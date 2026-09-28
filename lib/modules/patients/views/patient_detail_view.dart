@@ -1,0 +1,375 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/status_chip.dart';
+import '../../../routes/app_routes.dart';
+import '../controllers/patient_controller.dart';
+
+class PatientDetailView extends GetView<PatientController> {
+  const PatientDetailView({super.key});
+
+  void _showAddWeightDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(AppStringsAr.addWeight),
+        content: TextField(
+          controller: controller.newWeightController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'الوزن بالكيلوجرام (كجم)',
+            hintText: 'مثال: 4.5',
+            suffixText: 'كجم',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(AppStringsAr.cancel),
+          ),
+          ElevatedButton(
+            onPressed: controller.recordNewWeight,
+            child: const Text(AppStringsAr.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openWhatsApp(String phone) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final uri = Uri.parse('https://wa.me/$cleanPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Get.snackbar('تنبيه', 'تعذر فتح تطبيق واتساب', backgroundColor: Colors.amber.shade100);
+    }
+  }
+
+  Future<void> _makeCall(String phone) async {
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final pet = controller.selectedPet.value;
+      if (pet == null) {
+        return Scaffold(
+          appBar: AppBar(title: const Text(AppStringsAr.patientProfile)),
+          body: const Center(child: Text(AppStringsAr.noDataFound)),
+        );
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(pet.name),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_chart),
+              tooltip: AppStringsAr.addWeight,
+              onPressed: () => _showAddWeightDialog(context),
+            ),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: PrimaryButton(
+            text: 'بدء كشف سريري جديد (SOAP)',
+            icon: Icons.medical_services_outlined,
+            onPressed: () => Get.toNamed(AppRoutes.newConsultation, arguments: pet),
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. CRITICAL DRUG ALLERGY BANNER
+              if (pet.hasAllergies) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.criticalBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.critical, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppColors.critical, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              AppStringsAr.allergyWarningTitle,
+                              style: TextStyle(
+                                color: AppColors.critical,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              pet.allergies!,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // 2. Patient Basic Info Card
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: AppColors.secondaryLight,
+                            child: const Icon(Icons.pets, size: 36, color: AppColors.primary),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pet.name,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    StatusChip(label: pet.species, type: ChipStatusType.info),
+                                    const SizedBox(width: 6),
+                                    StatusChip(
+                                      label: pet.genderDisplayArabic,
+                                      type: ChipStatusType.neutral,
+                                    ),
+                                    if (pet.isNeutered) ...[
+                                      const SizedBox(width: 6),
+                                      const StatusChip(
+                                        label: 'معقم',
+                                        type: ChipStatusType.success,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24),
+                      _buildInfoRow('السلالة', pet.breed ?? 'غير محددة'),
+                      _buildInfoRow('رقم الشريحة (Microchip)', pet.microchipNumber ?? 'غير متوفرة'),
+                      _buildInfoRow('حالة الحساسية', pet.hasAllergies ? 'يوجد تنبيه حساسية' : 'سليم'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 3. Owner Details Card with WhatsApp action
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppStringsAr.ownerInfo,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          if (pet.ownerPhone != null && pet.ownerPhone!.isNotEmpty)
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.phone, color: AppColors.primary, size: 20),
+                                  onPressed: () => _makeCall(pet.ownerPhone!),
+                                  tooltip: 'اتصال',
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 20),
+                                  onPressed: () => _openWhatsApp(pet.ownerPhone!),
+                                  tooltip: 'واتساب',
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildInfoRow('الاسم', pet.ownerName ?? 'غير معروف'),
+                      _buildInfoRow('الهاتف', pet.ownerPhone ?? 'غير متوفر'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 4. Weight Curve Tracking Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            AppStringsAr.weightTracking,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => _showAddWeightDialog(context),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('تسجيل وزن'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (controller.petWeights.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text('لم يتم تسجيل قراءات وزن بعد', style: TextStyle(color: AppColors.textMuted)),
+                        )
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: controller.petWeights.length,
+                          itemBuilder: (context, idx) {
+                            final w = controller.petWeights[idx];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(w.recordedDate, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  Text(
+                                    '${w.weight} كجم',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.darkNeutral),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 5. Medical Consultation History (SOAP)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'السجل الطبي والكشوفات السابقة (SOAP)',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      if (controller.petConsultations.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text('لا توجد زيارات أو كشوفات مسجلة لهذا المريض', style: TextStyle(color: AppColors.textMuted)),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: controller.petConsultations.length,
+                          separatorBuilder: (_, _) => const Divider(height: 20),
+                          itemBuilder: (context, idx) {
+                            final c = controller.petConsultations[idx];
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      c.visitDate.substring(0, 10),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    ),
+                                    Text(
+                                      '${c.visitCost.toStringAsFixed(0)} ر.س',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text('التشخيص: ${c.diagnosis}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                if (c.symptoms != null && c.symptoms!.isNotEmpty)
+                                  Text('الشكوى: ${c.symptoms}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                if (c.treatmentPlan != null && c.treatmentPlan!.isNotEmpty)
+                                  Text('الخطة: ${c.treatmentPlan}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              ],
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildInfoRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+}

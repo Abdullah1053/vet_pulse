@@ -1,0 +1,26 @@
+abstract class AppRoutes {
+  AppRoutes._();
+
+  static const login = '/login';
+  static const clinicSetup = '/clinic-setup';
+  static const pinLock = '/pin-lock';
+  static const dashboard = '/dashboard';
+
+  static const patientList = '/patients';
+  static const patientDetail = '/patients/detail';
+  static const addPatient = '/patients/add';
+
+  static const newConsultation = '/consultations/new';
+  static const prescriptionPreview = '/consultations/prescription-preview';
+
+  static const inventoryList = '/pharmacy';
+  static const addMedicine = '/pharmacy/add';
+  static const stockTransfer = '/pharmacy/transfer';
+
+  static const followUps = '/follow-ups';
+
+  static const surgeries = '/surgeries';
+  static const newSurgery = '/surgeries/new';
+
+  static const usersManagement = '/users';
+}
