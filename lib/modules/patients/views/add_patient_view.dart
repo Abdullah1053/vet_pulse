@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -7,6 +10,69 @@ import '../controllers/patient_controller.dart';
 
 class AddPatientView extends GetView<PatientController> {
   const AddPatientView({super.key});
+
+  void _showImageSourceBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'اختيار صورة المريض البيطري',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.secondaryLight,
+                  child: Icon(Icons.camera_alt, color: AppColors.primary),
+                ),
+                title: const Text('التقاط صورة بالكاميرا'),
+                subtitle: const Text('التقاط صورة سريرية للحيوان مباشرة عبر الكاميرا'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  controller.pickPetPhoto(ImageSource.camera);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.secondaryLight,
+                  child: Icon(Icons.photo_library, color: AppColors.primary),
+                ),
+                title: const Text('اختيار من المعرض / الملفات'),
+                subtitle: const Text('اختيار صورة محفوظة للحيوان من ذاكرة الجهاز'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  controller.pickPetPhoto(ImageSource.gallery);
+                },
+              ),
+              if (controller.petPhotoPath.value != null) ...[
+                const Divider(),
+                ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFFFFEBEE),
+                    child: Icon(Icons.delete_outline, color: AppColors.critical),
+                  ),
+                  title: const Text('إزالة الصورة الحالية', style: TextStyle(color: AppColors.critical)),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    controller.clearPetPhoto();
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +97,64 @@ class AddPatientView extends GetView<PatientController> {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
+
+                    // Pet Photo Avatar / Upload Box
+                    Center(
+                      child: Obx(() {
+                        final photo = controller.petPhotoPath.value;
+                        return Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _showImageSourceBottomSheet(context),
+                              child: Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryLight.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.primary, width: 2),
+                                  image: photo != null
+                                      ? DecorationImage(
+                                          image: FileImage(File(photo)),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : null,
+                                ),
+                                child: photo == null
+                                    ? const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.add_a_photo_outlined, size: 36, color: AppColors.primary),
+                                          SizedBox(height: 4),
+                                          Text('صورة الحيوان', style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                        ],
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => _showImageSourceBottomSheet(context),
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: AppColors.primary,
+                                  child: Icon(
+                                    photo == null ? Icons.camera_alt : Icons.edit,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+
                     CustomTextField(
                       label: AppStringsAr.petName,
                       hint: 'مثال: لوسي، ماكس، ريكس',

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -155,9 +156,18 @@ class PatientDetailView extends GetView<PatientController> {
                       Row(
                         children: [
                           CircleAvatar(
-                            radius: 32,
+                            radius: 34,
                             backgroundColor: AppColors.secondaryLight,
-                            child: const Icon(Icons.pets, size: 36, color: AppColors.primary),
+                            backgroundImage: (pet.photoPath != null &&
+                                    pet.photoPath!.isNotEmpty &&
+                                    File(pet.photoPath!).existsSync())
+                                ? FileImage(File(pet.photoPath!))
+                                : null,
+                            child: (pet.photoPath != null &&
+                                    pet.photoPath!.isNotEmpty &&
+                                    File(pet.photoPath!).existsSync())
+                                ? null
+                                : const Icon(Icons.pets, size: 36, color: AppColors.primary),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

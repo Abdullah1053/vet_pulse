@@ -65,6 +65,9 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>تطبيق فيت بلس يحتاج الوصول إلى الكاميرا لالتقاط صورة للمريض البيطري</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>تطبيق فيت بلس يحتاج الوصول إلى معرض الصور لاختيار صورة للمريض البيطري</string>
 </dict>
 </plist>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../data/models/pet_model.dart';
@@ -10,6 +11,7 @@ import '../../../data/repositories/pet_repository.dart';
 class PatientController extends GetxController {
   final PetRepository _petRepo = PetRepository();
   final ConsultationRepository _consultationRepo = ConsultationRepository();
+  final ImagePicker _picker = ImagePicker();
 
   final RxList<PetModel> patients = <PetModel>[].obs;
   final RxList<OwnerModel> owners = <OwnerModel>[].obs;
@@ -31,6 +33,7 @@ class PatientController extends GetxController {
   final initialWeightController = TextEditingController();
   final RxString selectedGender = 'male'.obs;
   final RxBool isNeutered = false.obs;
+  final Rx<String?> petPhotoPath = Rx<String?>(null);
 
   // Owner Form Controllers
   final ownerNameController = TextEditingController();
@@ -85,6 +88,26 @@ class PatientController extends GetxController {
     }
   }
 
+  Future<void> pickPetPhoto(ImageSource source) async {
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (file != null) {
+        petPhotoPath.value = file.path;
+      }
+    } catch (e) {
+      Get.snackbar('خطأ', 'تعذر التقاط أو اختيار الصورة: $e', backgroundColor: Colors.red.shade100);
+    }
+  }
+
+  void clearPetPhoto() {
+    petPhotoPath.value = null;
+  }
+
   Future<void> savePatient() async {
     final pName = petNameController.text.trim();
     final oName = ownerNameController.text.trim();
@@ -119,6 +142,7 @@ class PatientController extends GetxController {
       gender: selectedGender.value,
       isNeutered: isNeutered.value,
       microchipNumber: microchipController.text.trim(),
+      photoPath: petPhotoPath.value,
       allergies: allergiesController.text.trim(),
     );
 
@@ -173,6 +197,7 @@ class PatientController extends GetxController {
     selectedExistingOwner.value = null;
     selectedGender.value = 'male';
     isNeutered.value = false;
+    petPhotoPath.value = null;
   }
 
   @override

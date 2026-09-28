@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
@@ -88,12 +89,21 @@ class PatientListView extends GetView<PatientController> {
                       leading: CircleAvatar(
                         radius: 24,
                         backgroundColor: AppColors.secondaryLight,
-                        child: Icon(
-                          pet.species == 'كلب'
-                              ? Icons.pets
-                              : (pet.species == 'طائر' ? Icons.flutter_dash : Icons.pets),
-                          color: AppColors.primary,
-                        ),
+                        backgroundImage: (pet.photoPath != null &&
+                                pet.photoPath!.isNotEmpty &&
+                                File(pet.photoPath!).existsSync())
+                            ? FileImage(File(pet.photoPath!))
+                            : null,
+                        child: (pet.photoPath != null &&
+                                pet.photoPath!.isNotEmpty &&
+                                File(pet.photoPath!).existsSync())
+                            ? null
+                            : Icon(
+                                pet.species == 'كلب'
+                                    ? Icons.pets
+                                    : (pet.species == 'طائر' ? Icons.flutter_dash : Icons.pets),
+                                color: AppColors.primary,
+                              ),
                       ),
                       title: Row(
                         children: [
