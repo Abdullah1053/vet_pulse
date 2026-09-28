@@ -116,7 +116,11 @@ class AppStringsAr {
   static const String assessmentHint = 'مثال: بارفو، كاليسي، التهاب رئوي حاد...';
   static const String plan = 'الخطة العلاجية والتوصيات (Plan)';
   static const String planHint = 'السوائل الوريدية، البروتوكول الدوائي، الراحة المنزلية...';
-  static const String visitCost = 'أتعاب الكشف والخدمات';
+  static const String visitCost = 'أتعاب الكشف والخدمات (ر.ي)';
+
+  // Currency
+  static const String currency = 'ريال يمني';
+  static const String currencyShort = 'ر.ي';
 
   // Prescriptions & Dispensing
   static const String prescription = 'الروشتة والوصفة الطبية';
@@ -155,8 +159,8 @@ class AppStringsAr {
   static const String batchNumber = 'رقم التشغيلة (Batch)';
   static const String expiryDate = 'تاريخ انتهاء الصلاحية';
   static const String minStockAlert = 'حد الأمان لإعادة الطلب';
-  static const String unitCostPrice = 'سعر الشراء للوحدة';
-  static const String unitSalePrice = 'سعر البيع للوحدة';
+  static const String unitCostPrice = 'سعر الشراء للوحدة (ر.ي)';
+  static const String unitSalePrice = 'سعر البيع للوحدة (ر.ي)';
   static const String stockTransfer = 'نقل مخزون (من المستودع إلى الرف)';
   static const String transferAmount = 'الكمية المنقولة';
   static const String stockExpiredTag = 'منتهي الصلاحية';
@@ -198,7 +202,7 @@ class AppStringsAr {
   static const String checkConsent = 'تم توقيع إقرار التخدير والموافقة من المالك';
   static const String anesthesiaProtocol = 'بروتوكول التخدير والملاحظات';
   static const String postOpNotes = 'تعليمات العناية بعد الجراحة وخروج المريض';
-  static const String estimatedCost = 'التكلفة التقديرية للعملية';
+  static const String estimatedCost = 'التكلفة التقديرية للعملية (ر.ي)';
 
   // Users Management
   static const String usersManagement = 'إدارة فريق العمل والصلاحيات';

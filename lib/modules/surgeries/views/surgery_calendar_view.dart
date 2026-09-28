@@ -178,7 +178,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          item.estimatedCost != null ? 'التكلفة: ${item.estimatedCost} ر.س' : '',
+                          item.estimatedCost != null ? 'التكلفة: ${item.estimatedCost} ${AppStringsAr.currencyShort}' : '',
                           style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                         ),
                         Row(

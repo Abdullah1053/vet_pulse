@@ -418,7 +418,7 @@ class DashboardView extends GetView<DashboardController> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   StatusChip(
-                    label: '${visit.visitCost.toStringAsFixed(0)} ر.س',
+                    label: '${visit.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
                     type: ChipStatusType.success,
                     fontSize: 10,
                   ),

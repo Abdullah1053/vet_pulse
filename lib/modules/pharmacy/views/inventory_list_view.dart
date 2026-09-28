@@ -145,7 +145,7 @@ class InventoryListView extends GetView<PharmacyController> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${med.unitSalePrice.toStringAsFixed(1)} ر.س',
+                                    '${med.unitSalePrice.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
                                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 14),
                                   ),
                                   Text(

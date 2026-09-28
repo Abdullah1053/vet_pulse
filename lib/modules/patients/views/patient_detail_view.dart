@@ -334,7 +334,7 @@ class PatientDetailView extends GetView<PatientController> {
                                       style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                                     ),
                                     Text(
-                                      '${c.visitCost.toStringAsFixed(0)} ر.س',
+                                      '${c.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
                                       style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ],
