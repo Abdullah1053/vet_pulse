@@ -14,6 +14,20 @@ class PetRepository {
     return res.map((m) => OwnerModel.fromMap(m)).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getOwnersWithPetCounts() async {
+    final db = await _dbHelper.database;
+    const sql = '''
+      SELECT 
+        o.*, 
+        COUNT(p.id) as pets_count 
+      FROM ${DatabaseTables.tableOwners} o
+      LEFT JOIN ${DatabaseTables.tablePets} p ON o.id = p.owner_id
+      GROUP BY o.id
+      ORDER BY o.full_name ASC
+    ''';
+    return await db.rawQuery(sql);
+  }
+
   Future<OwnerModel?> getOwnerById(int id) async {
     final db = await _dbHelper.database;
     final res = await db.query(
@@ -66,6 +80,23 @@ class PetRepository {
       ORDER BY p.id DESC
     ''';
     final res = await db.rawQuery(query);
+    return res.map((m) => PetModel.fromMap(m)).toList();
+  }
+
+  Future<List<PetModel>> getPetsByOwnerId(int ownerId) async {
+    final db = await _dbHelper.database;
+    const query = '''
+      SELECT 
+        p.*, 
+        o.full_name AS owner_name, 
+        o.phone_primary AS owner_phone,
+        (SELECT pw.weight FROM ${DatabaseTables.tablePetWeights} pw WHERE pw.pet_id = p.id ORDER BY pw.recorded_date DESC, pw.id DESC LIMIT 1) AS latest_weight
+      FROM ${DatabaseTables.tablePets} p
+      INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
+      WHERE p.owner_id = ?
+      ORDER BY p.id DESC
+    ''';
+    final res = await db.rawQuery(query, [ownerId]);
     return res.map((m) => PetModel.fromMap(m)).toList();
   }
 

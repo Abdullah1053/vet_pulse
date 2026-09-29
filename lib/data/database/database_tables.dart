@@ -132,12 +132,15 @@ class DatabaseTables {
     CREATE TABLE $tablePrescriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       consultation_id INTEGER NOT NULL,
-      medicine_id INTEGER NOT NULL,
+      medicine_id INTEGER,
+      custom_name TEXT,
       dosage TEXT NOT NULL,
       frequency TEXT NOT NULL,
       duration_days INTEGER NOT NULL,
       quantity_dispensed INTEGER NOT NULL,
       instructions TEXT,
+      is_clinic_administered INTEGER DEFAULT 0,
+      route TEXT,
       FOREIGN KEY (consultation_id) REFERENCES $tableConsultations (id) ON DELETE CASCADE,
       FOREIGN KEY (medicine_id) REFERENCES $tableMedicines (id)
     );

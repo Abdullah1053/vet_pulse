@@ -4,14 +4,18 @@ import '../modules/auth/views/clinic_setup_view.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/pin_lock_view.dart';
 import '../modules/consultations/bindings/consultation_binding.dart';
+import '../modules/consultations/views/consultations_list_view.dart';
 import '../modules/consultations/views/new_consultation_view.dart';
 import '../modules/consultations/views/prescription_preview_view.dart';
 import '../modules/dashboard/bindings/dashboard_binding.dart';
 import '../modules/dashboard/views/dashboard_view.dart';
+import '../modules/dashboard/views/weekly_reports_view.dart';
 import '../modules/follow_ups/bindings/follow_up_binding.dart';
 import '../modules/follow_ups/views/follow_up_calendar_view.dart';
 import '../modules/patients/bindings/patient_binding.dart';
 import '../modules/patients/views/add_patient_view.dart';
+import '../modules/patients/views/owner_detail_view.dart';
+import '../modules/patients/views/owners_list_view.dart';
 import '../modules/patients/views/patient_detail_view.dart';
 import '../modules/patients/views/patient_list_view.dart';
 import '../modules/pharmacy/bindings/pharmacy_binding.dart';
@@ -71,8 +75,26 @@ class AppPages {
       page: () => const AddPatientView(),
       binding: PatientBinding(),
     ),
+    GetPage(
+      name: AppRoutes.owners,
+      page: () => const OwnersListView(),
+    ),
+    GetPage(
+      name: AppRoutes.ownerDetail,
+      page: () => const OwnerDetailView(),
+    ),
+
+    // Reports
+    GetPage(
+      name: AppRoutes.weeklyReports,
+      page: () => const WeeklyReportsView(),
+    ),
 
     // Consultations & Prescriptions
+    GetPage(
+      name: AppRoutes.consultations,
+      page: () => const ConsultationsListView(),
+    ),
     GetPage(
       name: AppRoutes.newConsultation,
       page: () => const NewConsultationView(),

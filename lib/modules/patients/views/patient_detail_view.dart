@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../data/models/pet_model.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/patient_controller.dart';
 
@@ -35,6 +36,39 @@ class PatientDetailView extends GetView<PatientController> {
           ElevatedButton(
             onPressed: controller.recordNewWeight,
             child: const Text(AppStringsAr.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeletePet(BuildContext context, PetModel pet) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.critical),
+            SizedBox(width: 8),
+            Text('تأكيد حذف ملف المريض'),
+          ],
+        ),
+        content: Text(
+          'هل أنت متأكد من رغبتك في حذف ملف المريض "${pet.name}" نهائياً؟\n\nتنبيه: سيتم حذف جميع الكشوفات والمراجعات وسجلات الوزن المرتبطة به.',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(AppStringsAr.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              controller.deletePet(pet.id!);
+            },
+            child: const Text('نعم، احذف الملف', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -77,6 +111,19 @@ class PatientDetailView extends GetView<PatientController> {
               icon: const Icon(Icons.add_chart),
               tooltip: AppStringsAr.addWeight,
               onPressed: () => _showAddWeightDialog(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'تعديل بيانات المريض',
+              onPressed: () {
+                controller.initEditPet(pet);
+                Get.toNamed(AppRoutes.addPatient);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: AppColors.critical),
+              tooltip: 'حذف ملف المريض',
+              onPressed: () => _confirmDeletePet(context, pet),
             ),
           ],
         ),
@@ -204,8 +251,10 @@ class PatientDetailView extends GetView<PatientController> {
                         ],
                       ),
                       const Divider(height: 24),
+                      _buildInfoRow('العمر', pet.ageDisplayArabic),
                       _buildInfoRow('السلالة', pet.breed ?? 'غير محددة'),
-                      _buildInfoRow('رقم الشريحة (Microchip)', pet.microchipNumber ?? 'غير متوفرة'),
+                      if (pet.microchipNumber != null && pet.microchipNumber!.trim().isNotEmpty)
+                        _buildInfoRow('رقم الشريحة (Microchip)', pet.microchipNumber!),
                       _buildInfoRow('حالة الحساسية', pet.hasAllergies ? 'يوجد تنبيه حساسية' : 'سليم'),
                     ],
                   ),

@@ -88,11 +88,11 @@ class ConsultationRepository {
     const sql = '''
       SELECT 
         pr.*, 
-        m.trade_name AS medicine_name, 
-        m.form AS medicine_form,
+        COALESCE(m.trade_name, pr.custom_name) AS medicine_name, 
+        m.form AS medicine_form, 
         m.concentration AS medicine_concentration
       FROM ${DatabaseTables.tablePrescriptions} pr
-      INNER JOIN ${DatabaseTables.tableMedicines} m ON pr.medicine_id = m.id
+      LEFT JOIN ${DatabaseTables.tableMedicines} m ON pr.medicine_id = m.id
       WHERE pr.consultation_id = ?
     ''';
     final res = await db.rawQuery(sql, [consultationId]);
@@ -100,7 +100,7 @@ class ConsultationRepository {
   }
 
   /// Create consultation and its prescriptions within a single atomic transaction
-  /// Automatically deduces the medicine quantity from clinic shelf stock
+  /// Deducts shelf stock ONLY for clinic-administered treatments with valid pharmacy medicine_id
   Future<int> createConsultationWithPrescriptions({
     required ConsultationModel consultation,
     required List<PrescriptionModel> prescriptions,
@@ -113,32 +113,87 @@ class ConsultationRepository {
         consultation.toMap(),
       );
 
-      // 2. Insert prescriptions & auto-deduct shelf stock
+      // 2. Insert prescriptions & auto-deduct shelf stock if clinic administered
       for (final rx in prescriptions) {
         final rxMap = rx.copyWith(consultationId: consultationId).toMap();
         await txn.insert(DatabaseTables.tablePrescriptions, rxMap);
 
-        // Deduct clinic shelf stock
-        final medRows = await txn.query(
-          DatabaseTables.tableMedicines,
-          where: 'id = ?',
-          whereArgs: [rx.medicineId],
-          limit: 1,
-        );
-
-        if (medRows.isNotEmpty) {
-          final currentStock = medRows.first['clinic_stock'] as int? ?? 0;
-          final updatedStock = (currentStock - rx.quantityDispensed).clamp(0, 999999);
-          await txn.update(
+        // Deduct clinic shelf stock ONLY for in-clinic administered medications
+        if (rx.isClinicAdministered && rx.medicineId != null && rx.medicineId! > 0) {
+          final medRows = await txn.query(
             DatabaseTables.tableMedicines,
-            {'clinic_stock': updatedStock},
             where: 'id = ?',
             whereArgs: [rx.medicineId],
+            limit: 1,
           );
+
+          if (medRows.isNotEmpty) {
+            final currentStock = medRows.first['clinic_stock'] as int? ?? 0;
+            final updatedStock = (currentStock - rx.quantityDispensed).clamp(0, 999999);
+            await txn.update(
+              DatabaseTables.tableMedicines,
+              {'clinic_stock': updatedStock},
+              where: 'id = ?',
+              whereArgs: [rx.medicineId],
+            );
+          }
         }
       }
 
       return consultationId;
+    });
+  }
+
+  Future<int> updateConsultation(ConsultationModel consultation) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      DatabaseTables.tableConsultations,
+      consultation.toMap(),
+      where: 'id = ?',
+      whereArgs: [consultation.id],
+    );
+  }
+
+  Future<void> deleteConsultation(int consultationId) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      // 1. Find clinic-administered prescriptions to restore shelf stock
+      final rxList = await txn.query(
+        DatabaseTables.tablePrescriptions,
+        where: 'consultation_id = ?',
+        whereArgs: [consultationId],
+      );
+
+      for (final rx in rxList) {
+        final isClinicAdministered = (rx['is_clinic_administered'] as int? ?? 0) == 1;
+        final medId = rx['medicine_id'] as int?;
+        final qty = rx['quantity_dispensed'] as int? ?? 0;
+
+        if (isClinicAdministered && medId != null && medId > 0 && qty > 0) {
+          final medRows = await txn.query(
+            DatabaseTables.tableMedicines,
+            where: 'id = ?',
+            whereArgs: [medId],
+            limit: 1,
+          );
+          if (medRows.isNotEmpty) {
+            final currentStock = medRows.first['clinic_stock'] as int? ?? 0;
+            await txn.update(
+              DatabaseTables.tableMedicines,
+              {'clinic_stock': currentStock + qty},
+              where: 'id = ?',
+              whereArgs: [medId],
+            );
+          }
+        }
+      }
+
+      // 2. Delete consultation (cascades to prescriptions)
+      await txn.delete(
+        DatabaseTables.tableConsultations,
+        where: 'id = ?',
+        whereArgs: [consultationId],
+      );
     });
   }
 

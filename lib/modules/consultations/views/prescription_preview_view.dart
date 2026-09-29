@@ -173,12 +173,13 @@ class PrescriptionPreviewView extends StatelessWidget {
                       ],
                     ),
                     ...consultation.prescriptions.map((rx) {
+                      final typeLabel = rx.isClinicAdministered ? '[صُرف بالعيادة]' : '[روشتة منزلية]';
                       return pw.TableRow(
                         children: [
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(4),
                             child: pw.Text(
-                              '${rx.medicineName ?? ""}\n(${rx.medicineForm ?? ""})',
+                              '${rx.displayName} $typeLabel\n${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}',
                               style: pw.TextStyle(font: arabicFont, fontSize: 8),
                             ),
                           ),

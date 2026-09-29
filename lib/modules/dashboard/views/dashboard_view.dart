@@ -5,7 +5,10 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../consultations/widgets/consultation_details_dialog.dart';
 import '../controllers/dashboard_controller.dart';
+import '../services/alerts_service.dart';
+import '../widgets/alerts_bottom_sheet.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -13,6 +16,7 @@ class DashboardView extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
+    final alertsController = Get.put(AlertsController());
 
     return Scaffold(
       appBar: AppBar(
@@ -31,6 +35,42 @@ class DashboardView extends GetView<DashboardController> {
           ],
         ),
         actions: [
+          // Notification Bell with Multi-Stage Alerts (12h, 6h, 1h)
+          Obx(() {
+            final count = alertsController.activeAlertsCount.value;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'مركز التنبيهات والتذكيرات',
+                  icon: const Icon(Icons.notifications_outlined, color: AppColors.darkNeutral),
+                  onPressed: () => AlertsBottomSheet.show(context),
+                ),
+                if (count > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.critical,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        '$count',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
           IconButton(
             tooltip: AppStringsAr.lockApp,
             icon: const Icon(Icons.lock_outline, color: AppColors.darkNeutral),
@@ -39,13 +79,19 @@ class DashboardView extends GetView<DashboardController> {
           IconButton(
             tooltip: AppStringsAr.refresh,
             icon: const Icon(Icons.refresh, color: AppColors.darkNeutral),
-            onPressed: controller.loadDashboardData,
+            onPressed: () {
+              controller.loadDashboardData();
+              alertsController.refreshAlerts();
+            },
           ),
         ],
       ),
       drawer: _buildDrawer(context, authController),
       body: RefreshIndicator(
-        onRefresh: controller.loadDashboardData,
+        onRefresh: () async {
+          await controller.loadDashboardData();
+          await alertsController.refreshAlerts();
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -73,12 +119,22 @@ class DashboardView extends GetView<DashboardController> {
               const SizedBox(height: 24),
 
               // Recent Consultations & Medical Alerts
-              Text(
-                'آخر الكشوفات السريرية',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkNeutral,
-                    ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'آخر الكشوفات السريرية',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkNeutral,
+                        ),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.arrow_back, size: 16),
+                    label: const Text('عرض جميع الكشوفات'),
+                    onPressed: () => Get.toNamed(AppRoutes.consultations),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               _buildRecentVisitsList(context),
@@ -395,39 +451,49 @@ class DashboardView extends GetView<DashboardController> {
         itemBuilder: (context, index) {
           final visit = controller.recentConsultations[index];
           return Card(
-            child: ListTile(
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  color: AppColors.secondaryLight,
-                  shape: BoxShape.circle,
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => ConsultationDetailsDialog.show(
+                context,
+                consultation: visit,
+                onDeleted: controller.loadDashboardData,
+              ),
+              child: ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.pets, color: AppColors.primary, size: 22),
                 ),
-                child: const Icon(Icons.pets, color: AppColors.primary, size: 22),
-              ),
-              title: Text(
-                '${visit.petName ?? "مريض"} (${visit.petSpecies ?? ""})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              subtitle: Text(
-                'التشخيص: ${visit.diagnosis}\nالمالك: ${visit.ownerName ?? "غير محدد"}',
-                style: const TextStyle(fontSize: 12),
-              ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  StatusChip(
-                    label: '${visit.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
-                    type: ChipStatusType.success,
-                    fontSize: 10,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    visit.visitDate.substring(0, 10),
-                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-                  ),
-                ],
+                title: Text(
+                  '${visit.petName ?? "مريض"} (${visit.petSpecies ?? ""})',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                subtitle: Text(
+                  'التشخيص: ${visit.diagnosis}\nالمالك: ${visit.ownerName ?? "غير محدد"}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    StatusChip(
+                      label: '${visit.visitCost.toStringAsFixed(0)} ريال يمني',
+                      type: ChipStatusType.success,
+                      fontSize: 10,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      visit.visitDate.substring(0, 10),
+                      style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -470,11 +536,27 @@ class DashboardView extends GetView<DashboardController> {
             onTap: () => Get.back(),
           ),
           ListTile(
+            leading: const Icon(Icons.assignment_outlined, color: AppColors.primary),
+            title: const Text('سجل الكشوفات السريرية'),
+            onTap: () {
+              Get.back();
+              Get.toNamed(AppRoutes.consultations);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.pets_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.patients),
             onTap: () {
               Get.back();
               Get.toNamed(AppRoutes.patientList);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.people_alt_outlined, color: AppColors.primary),
+            title: const Text('سجل المربين (المالكين)'),
+            onTap: () {
+              Get.back();
+              Get.toNamed(AppRoutes.owners);
             },
           ),
           ListTile(
@@ -502,6 +584,22 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
+            title: const Text('التقارير الأسبوعية الشاملة'),
+            onTap: () {
+              Get.back();
+              Get.toNamed(AppRoutes.weeklyReports);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
+            title: const Text('مركز التنبيهات والتذكيرات'),
+            onTap: () {
+              Get.back();
+              AlertsBottomSheet.show(context);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.group_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.usersManagement),
             onTap: () {
@@ -517,7 +615,6 @@ class DashboardView extends GetView<DashboardController> {
               Get.toNamed(AppRoutes.clinicSetup);
             },
           ),
-          const Spacer(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.critical),

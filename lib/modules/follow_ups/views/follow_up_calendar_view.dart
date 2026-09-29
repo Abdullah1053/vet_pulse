@@ -10,11 +10,11 @@ import '../controllers/follow_up_controller.dart';
 class FollowUpCalendarView extends GetView<FollowUpController> {
   const FollowUpCalendarView({super.key});
 
-  void _showScheduleDialog(BuildContext context) {
+  void _showScheduleDialog(BuildContext context, {bool isEdit = false}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(AppStringsAr.scheduleFollowUp),
+        title: Text(isEdit ? 'تعديل موعد المراجعة' : AppStringsAr.scheduleFollowUp),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -42,8 +42,8 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now().add(const Duration(days: 3)),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 180)),
+                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (picked != null) {
                     controller.scheduledDateController.text = picked.toIso8601String().substring(0, 10);
@@ -54,9 +54,22 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
               const SizedBox(height: 12),
               CustomTextField(
                 label: 'الوقت المحدد',
-                hint: '10:00 ص',
+                hint: 'اختر الوقت',
                 controller: controller.scheduledTimeController,
+                readOnly: true,
                 prefixIcon: const Icon(Icons.access_time),
+                onTap: () async {
+                  final pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime: const TimeOfDay(hour: 10, minute: 0),
+                  );
+                  if (pickedTime != null) {
+                    final hourStr = pickedTime.hourOfPeriod == 0 ? '12' : pickedTime.hourOfPeriod.toString();
+                    final minStr = pickedTime.minute.toString().padLeft(2, '0');
+                    final periodStr = pickedTime.period == DayPeriod.am ? 'ص' : 'م';
+                    controller.scheduledTimeController.text = '$hourStr:$minStr $periodStr';
+                  }
+                },
               ),
               const SizedBox(height: 12),
               CustomTextField(
@@ -75,12 +88,45 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () {
+              controller.clearForm();
+              Navigator.of(ctx).pop();
+            },
             child: const Text(AppStringsAr.cancel),
           ),
           ElevatedButton(
             onPressed: controller.scheduleFollowUp,
-            child: const Text(AppStringsAr.save),
+            child: Text(isEdit ? 'حفظ التعديل' : AppStringsAr.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, int id, String petName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.critical),
+            SizedBox(width: 8),
+            Text('حذف الموعد'),
+          ],
+        ),
+        content: Text('هل أنت متأكد من حذف موعد المراجعة الخاص بالمريض ($petName)؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(AppStringsAr.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              controller.deleteFollowUp(id);
+            },
+            child: const Text(AppStringsAr.delete),
           ),
         ],
       ),
@@ -105,20 +151,41 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.scheduleFollowUp, style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => _showScheduleDialog(context),
+        onPressed: () {
+          controller.clearForm();
+          _showScheduleDialog(context, isEdit: false);
+        },
       ),
       body: Column(
         children: [
-          // Filter Tabs
+          // Filter Tabs with Badges
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Obx(() => Row(
                   children: [
-                    _buildTab(label: 'مواعيد اليوم', value: 'today', color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    _buildTab(label: 'متأخرة', value: 'overdue', color: AppColors.critical),
-                    const SizedBox(width: 8),
-                    _buildTab(label: 'القادمة', value: 'upcoming', color: AppColors.success),
+                    _buildTab(
+                      label: 'اليوم (${controller.todayCount})',
+                      value: 'today',
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildTab(
+                      label: 'متأخرة (${controller.overdueCount})',
+                      value: 'overdue',
+                      color: AppColors.critical,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildTab(
+                      label: 'القادمة (${controller.upcomingCount})',
+                      value: 'upcoming',
+                      color: AppColors.success,
+                    ),
+                    const SizedBox(width: 6),
+                    _buildTab(
+                      label: 'الكل (${controller.allCount})',
+                      value: 'all',
+                      color: AppColors.accent,
+                    ),
                   ],
                 )),
           ),
@@ -136,7 +203,10 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                   title: 'لا توجد مراجعات في هذا القسم',
                   subtitle: 'يمكنك جدولة موعد مراجعة سريرية جديدة في أي وقت',
                   actionText: AppStringsAr.scheduleFollowUp,
-                  onAction: () => _showScheduleDialog(context),
+                  onAction: () {
+                    controller.clearForm();
+                    _showScheduleDialog(context);
+                  },
                 );
               }
 
@@ -147,6 +217,8 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                 itemBuilder: (context, index) {
                   final item = controller.followUps[index];
                   return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -155,30 +227,73 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: AppColors.secondaryLight,
+                                      child: const Icon(Icons.pets, size: 20, color: AppColors.primary),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            'المالك: ${item.ownerName ?? "غير محدد"}',
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: AppColors.secondaryLight,
-                                    child: const Icon(Icons.pets, size: 20, color: AppColors.primary),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                  _buildStatusTag(item.statusDisplayArabic, item.isOverdue, item.isToday),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                                    onSelected: (action) {
+                                      if (action == 'edit') {
+                                        controller.initEdit(item);
+                                        _showScheduleDialog(context, isEdit: true);
+                                      } else if (action == 'delete') {
+                                        _confirmDelete(context, item.id!, item.petName ?? 'المريض');
+                                      }
+                                    },
+                                    itemBuilder: (ctx) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.edit, size: 18, color: AppColors.primary),
+                                            SizedBox(width: 8),
+                                            Text(AppStringsAr.edit),
+                                          ],
+                                        ),
                                       ),
-                                      Text(
-                                        'المالك: ${item.ownerName ?? "غير محدد"}',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete, size: 18, color: AppColors.critical),
+                                            SizedBox(width: 8),
+                                            Text(AppStringsAr.delete),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              _buildStatusTag(item.statusDisplayArabic, item.isOverdue, item.isToday),
                             ],
                           ),
                           const Divider(height: 20),
@@ -266,7 +381,7 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
         onTap: () => controller.setFilter(value),
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected ? color : Colors.white,
             borderRadius: BorderRadius.circular(10),
@@ -275,8 +390,9 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
           alignment: Alignment.center,
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: isSelected ? Colors.white : AppColors.darkNeutral,
             ),

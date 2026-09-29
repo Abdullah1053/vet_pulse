@@ -10,8 +10,14 @@ abstract class AppRoutes {
   static const patientDetail = '/patients/detail';
   static const addPatient = '/patients/add';
 
+  static const consultations = '/consultations';
   static const newConsultation = '/consultations/new';
   static const prescriptionPreview = '/consultations/prescription-preview';
+
+  static const owners = '/owners';
+  static const ownerDetail = '/owners/detail';
+
+  static const weeklyReports = '/reports/weekly';
 
   static const inventoryList = '/pharmacy';
   static const addMedicine = '/pharmacy/add';

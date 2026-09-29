@@ -11,6 +11,7 @@ class AppColors {
   // Secondary Palette
   static const Color secondary = Color(0xFFCBE4DE); // Soft Mint
   static const Color secondaryLight = Color(0xFFE9F4F1);
+  static const Color accent = Color(0xFFF4A261); // Amber Accent
 
   // Neutrals
   static const Color darkNeutral = Color(0xFF2E4F4F); // Deep Slate

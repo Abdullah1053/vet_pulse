@@ -31,7 +31,8 @@ class AppointmentRepository {
       case 'today':
         return all.where((f) => f.isToday && f.isPending).toList();
       case 'upcoming':
-        return all.where((f) => !f.isToday && !f.isOverdue && f.isPending).toList();
+        return all.where((f) => !f.isOverdue && f.isPending && !f.isToday).toList();
+      case 'all':
       default:
         return all;
     }
@@ -40,6 +41,16 @@ class AppointmentRepository {
   Future<int> insertFollowUp(FollowUpModel followUp) async {
     final db = await _dbHelper.database;
     return await db.insert(DatabaseTables.tableFollowUps, followUp.toMap());
+  }
+
+  Future<int> updateFollowUp(FollowUpModel followUp) async {
+    final db = await _dbHelper.database;
+    return await db.update(
+      DatabaseTables.tableFollowUps,
+      followUp.toMap(),
+      where: 'id = ?',
+      whereArgs: [followUp.id],
+    );
   }
 
   Future<int> updateFollowUpStatus(int id, String status) async {

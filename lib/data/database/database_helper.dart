@@ -6,7 +6,7 @@ import 'database_tables.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -34,11 +34,26 @@ class DatabaseHelper {
       version: _dbVersion,
       onConfigure: _onConfigure,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON;');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN custom_name TEXT;');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN is_clinic_administered INTEGER DEFAULT 0;');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN route TEXT;');
+      } catch (_) {}
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {

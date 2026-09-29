@@ -78,7 +78,9 @@ class AddPatientView extends GetView<PatientController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStringsAr.newPetAction),
+        title: Obx(() => Text(
+              controller.isEditing.value ? 'تعديل بيانات المريض البيطري' : AppStringsAr.newPetAction,
+            )),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -177,10 +179,11 @@ class AddPatientView extends GetView<PatientController> {
                                 initialValue: controller.speciesController.text,
                                 decoration: const InputDecoration(),
                                 items: const [
-                                  DropdownMenuItem(value: 'قط', child: Text('قط (Feline)')),
-                                  DropdownMenuItem(value: 'كلب', child: Text('كلب (Canine)')),
-                                  DropdownMenuItem(value: 'طائر', child: Text('طائر (Avian)')),
-                                  DropdownMenuItem(value: 'خيل', child: Text('خيل (Equine)')),
+                                  DropdownMenuItem(value: 'قط', child: Text('قط')),
+                                  DropdownMenuItem(value: 'كلب', child: Text('كلب')),
+                                  DropdownMenuItem(value: 'طائر', child: Text('طائر')),
+                                  DropdownMenuItem(value: 'خيل', child: Text('خيل')),
+                                  DropdownMenuItem(value: 'أرنب', child: Text('أرنب')),
                                   DropdownMenuItem(value: 'أخرى', child: Text('حيوان أليف آخر')),
                                 ],
                                 onChanged: (v) {
@@ -201,6 +204,46 @@ class AddPatientView extends GetView<PatientController> {
                       ],
                     ),
                     const SizedBox(height: 14),
+
+                    // Age input row
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: CustomTextField(
+                            label: 'عمر الحيوان',
+                            hint: 'مثال: 2',
+                            controller: controller.ageValueController,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: const Icon(Icons.cake_outlined),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('الوحدة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 6),
+                              Obx(() => DropdownButtonFormField<String>(
+                                    initialValue: controller.selectedAgeUnit.value,
+                                    decoration: const InputDecoration(),
+                                    items: const [
+                                      DropdownMenuItem(value: 'سنوات', child: Text('سنوات')),
+                                      DropdownMenuItem(value: 'أشهر', child: Text('أشهر')),
+                                    ],
+                                    onChanged: (v) {
+                                      if (v != null) controller.selectedAgeUnit.value = v;
+                                    },
+                                  )),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
                     Row(
                       children: [
                         Expanded(
@@ -232,14 +275,63 @@ class AddPatientView extends GetView<PatientController> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    CustomTextField(
-                      label: AppStringsAr.microchipNumber,
-                      hint: 'رقم الشريحة المكون من 15 رقماً',
-                      controller: controller.microchipController,
-                      keyboardType: TextInputType.number,
-                      prefixIcon: const Icon(Icons.qr_code),
-                    ),
+
+                    // Microchip with toggle / collapsible view
+                    Obx(() => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: controller.hasMicrochip.value
+                                ? AppColors.secondaryLight.withValues(alpha: 0.3)
+                                : Colors.grey.shade50,
+                            border: Border.all(
+                              color: controller.hasMicrochip.value ? AppColors.primary : AppColors.border,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.qr_code_2,
+                                        size: 20,
+                                        color: controller.hasMicrochip.value ? AppColors.primary : AppColors.textSecondary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'شريحة إلكترونية للحيوان (Microchip)',
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                  Switch(
+                                    value: controller.hasMicrochip.value,
+                                    onChanged: (val) {
+                                      controller.hasMicrochip.value = val;
+                                      if (!val) controller.microchipController.clear();
+                                    },
+                                  ),
+                                ],
+                              ),
+                              if (controller.hasMicrochip.value) ...[
+                                const SizedBox(height: 8),
+                                CustomTextField(
+                                  label: AppStringsAr.microchipNumber,
+                                  hint: 'أدخل رقم الشريحة المكون من 15 رقماً',
+                                  controller: controller.microchipController,
+                                  keyboardType: TextInputType.number,
+                                  prefixIcon: const Icon(Icons.qr_code),
+                                ),
+                              ],
+                            ],
+                          ),
+                        )),
                     const SizedBox(height: 14),
+
                     CustomTextField(
                       label: 'الوزن الأولي عند التسجيل (كجم)',
                       hint: 'مثال: 3.8',
@@ -347,11 +439,11 @@ class AddPatientView extends GetView<PatientController> {
             ),
             const SizedBox(height: 24),
 
-            PrimaryButton(
-              text: AppStringsAr.save,
-              icon: Icons.check,
-              onPressed: controller.savePatient,
-            ),
+            Obx(() => PrimaryButton(
+                  text: controller.isEditing.value ? 'حفظ تعديلات المريض' : AppStringsAr.save,
+                  icon: Icons.check,
+                  onPressed: controller.savePatient,
+                )),
           ],
         ),
       ),

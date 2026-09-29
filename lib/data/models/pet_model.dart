@@ -81,6 +81,37 @@ class PetModel {
     return gender ?? 'غير محدد';
   }
 
+  String get ageDisplayArabic {
+    if (dateOfBirth == null || dateOfBirth!.trim().isEmpty) return 'غير محدد';
+    final dob = DateTime.tryParse(dateOfBirth!);
+    if (dob == null) return dateOfBirth!;
+    final now = DateTime.now();
+    int years = now.year - dob.year;
+    int months = now.month - dob.month;
+    if (now.day < dob.day) months--;
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    if (years <= 0 && months <= 0) return 'أقل من شهر';
+    if (years == 0) {
+      if (months == 1) return 'شهر واحد';
+      if (months == 2) return 'شهران';
+      if (months >= 3 && months <= 10) return '$months أشهر';
+      return '$months شهراً';
+    }
+    if (years == 1) {
+      return months > 0 ? 'سنة و $months أشهر' : 'سنة واحدة';
+    }
+    if (years == 2) {
+      return months > 0 ? 'سنتان و $months أشهر' : 'سنتان';
+    }
+    if (years >= 3 && years <= 10) {
+      return months > 0 ? '$years سنوات و $months أشهر' : '$years سنوات';
+    }
+    return months > 0 ? '$years سنة و $months أشهر' : '$years سنة';
+  }
+
   PetModel copyWith({
     int? id,
     int? ownerId,

@@ -24,16 +24,23 @@ class PatientController extends GetxController {
 
   final searchController = TextEditingController();
 
-  // Add Patient Form Controllers
+  // Add/Edit Patient Form Controllers
   final petNameController = TextEditingController();
   final speciesController = TextEditingController(text: 'قط');
   final breedController = TextEditingController();
   final microchipController = TextEditingController();
   final allergiesController = TextEditingController();
   final initialWeightController = TextEditingController();
+  final ageValueController = TextEditingController();
+  final RxString selectedAgeUnit = 'سنوات'.obs;
+  final RxBool hasMicrochip = false.obs;
   final RxString selectedGender = 'male'.obs;
   final RxBool isNeutered = false.obs;
   final Rx<String?> petPhotoPath = Rx<String?>(null);
+
+  // Edit Pet Mode
+  final RxBool isEditing = false.obs;
+  final Rx<int?> editingPetId = Rx<int?>(null);
 
   // Owner Form Controllers
   final ownerNameController = TextEditingController();
@@ -108,7 +115,76 @@ class PatientController extends GetxController {
     petPhotoPath.value = null;
   }
 
+  String? computeDobFromAge() {
+    final val = int.tryParse(ageValueController.text.trim());
+    if (val == null || val <= 0) return null;
+    final now = DateTime.now();
+    if (selectedAgeUnit.value == 'أشهر') {
+      final dob = DateTime(now.year, now.month - val, now.day);
+      return dob.toIso8601String().substring(0, 10);
+    } else {
+      final dob = DateTime(now.year - val, now.month, now.day);
+      return dob.toIso8601String().substring(0, 10);
+    }
+  }
+
+  void initEditPet(PetModel pet) async {
+    isEditing.value = true;
+    editingPetId.value = pet.id;
+    petNameController.text = pet.name;
+    speciesController.text = pet.species;
+    breedController.text = pet.breed ?? '';
+    selectedGender.value = pet.gender ?? 'male';
+    isNeutered.value = pet.isNeutered;
+    allergiesController.text = pet.allergies ?? '';
+    petPhotoPath.value = pet.photoPath;
+
+    if (pet.microchipNumber != null && pet.microchipNumber!.trim().isNotEmpty) {
+      hasMicrochip.value = true;
+      microchipController.text = pet.microchipNumber!;
+    } else {
+      hasMicrochip.value = false;
+      microchipController.clear();
+    }
+
+    if (pet.dateOfBirth != null && pet.dateOfBirth!.trim().isNotEmpty) {
+      final dob = DateTime.tryParse(pet.dateOfBirth!);
+      if (dob != null) {
+        final now = DateTime.now();
+        int years = now.year - dob.year;
+        int months = now.month - dob.month;
+        if (now.day < dob.day) months--;
+        if (months < 0) {
+          years--;
+          months += 12;
+        }
+        if (years > 0) {
+          ageValueController.text = years.toString();
+          selectedAgeUnit.value = 'سنوات';
+        } else if (months > 0) {
+          ageValueController.text = months.toString();
+          selectedAgeUnit.value = 'أشهر';
+        }
+      }
+    } else {
+      ageValueController.clear();
+    }
+
+    final owner = await _petRepo.getOwnerById(pet.ownerId);
+    if (owner != null) {
+      selectedExistingOwner.value = owner;
+      ownerNameController.text = owner.fullName;
+      ownerPhoneController.text = owner.phonePrimary;
+      ownerAddressController.text = owner.address ?? '';
+    }
+  }
+
   Future<void> savePatient() async {
+    if (isEditing.value) {
+      await updatePet();
+      return;
+    }
+
     final pName = petNameController.text.trim();
     final oName = ownerNameController.text.trim();
     final oPhone = ownerPhoneController.text.trim();
@@ -134,6 +210,8 @@ class PatientController extends GetxController {
       ownerId = await _petRepo.insertOwner(newOwner);
     }
 
+    final dob = computeDobFromAge();
+
     final newPet = PetModel(
       ownerId: ownerId,
       name: pName,
@@ -141,7 +219,8 @@ class PatientController extends GetxController {
       breed: breedController.text.trim(),
       gender: selectedGender.value,
       isNeutered: isNeutered.value,
-      microchipNumber: microchipController.text.trim(),
+      dateOfBirth: dob,
+      microchipNumber: hasMicrochip.value ? microchipController.text.trim() : null,
       photoPath: petPhotoPath.value,
       allergies: allergiesController.text.trim(),
     );
@@ -162,6 +241,70 @@ class PatientController extends GetxController {
     await loadPatients();
     Get.back();
     Get.snackbar('نجاح', 'تم تسجيل ملف المريض بنجاح', backgroundColor: Colors.green.shade100);
+  }
+
+  Future<void> updatePet() async {
+    if (editingPetId.value == null) return;
+    final pName = petNameController.text.trim();
+    if (pName.isEmpty) {
+      Get.snackbar('تنبيه', 'اسم الحيوان مطلوب', backgroundColor: Colors.amber.shade100);
+      return;
+    }
+
+    int ownerId = selectedExistingOwner.value?.id ?? selectedPet.value?.ownerId ?? 1;
+
+    // If owner info was changed and no existing owner was picked
+    if (selectedExistingOwner.value == null && ownerNameController.text.trim().isNotEmpty) {
+      final newOwner = OwnerModel(
+        fullName: ownerNameController.text.trim(),
+        phonePrimary: ownerPhoneController.text.trim(),
+        address: ownerAddressController.text.trim(),
+      );
+      ownerId = await _petRepo.insertOwner(newOwner);
+    } else if (selectedExistingOwner.value != null && ownerPhoneController.text.trim().isNotEmpty) {
+      // update owner phone/address if edited
+      final currentO = selectedExistingOwner.value!;
+      await _petRepo.updateOwner(currentO.copyWith(
+        fullName: ownerNameController.text.trim(),
+        phonePrimary: ownerPhoneController.text.trim(),
+        address: ownerAddressController.text.trim(),
+      ));
+    }
+
+    final dob = computeDobFromAge();
+
+    final updated = PetModel(
+      id: editingPetId.value,
+      ownerId: ownerId,
+      name: pName,
+      species: speciesController.text.trim(),
+      breed: breedController.text.trim(),
+      gender: selectedGender.value,
+      isNeutered: isNeutered.value,
+      dateOfBirth: dob,
+      microchipNumber: hasMicrochip.value ? microchipController.text.trim() : null,
+      photoPath: petPhotoPath.value,
+      allergies: allergiesController.text.trim(),
+    );
+
+    await _petRepo.updatePet(updated);
+    final refreshed = await _petRepo.getPetById(editingPetId.value!);
+    if (refreshed != null) {
+      selectedPet.value = refreshed;
+    }
+    await loadPatients();
+    clearForm();
+    Get.back();
+    Get.snackbar('تم', 'تم تحديث بيانات المريض بنجاح', backgroundColor: Colors.green.shade100);
+  }
+
+  Future<void> deletePet(int petId) async {
+    await _petRepo.deletePet(petId);
+    selectedPet.value = null;
+    await loadPatients();
+    Get.back(); // close dialog if open
+    Get.back(); // close detail view
+    Get.snackbar('تم الحذف', 'تم حذف ملف المريض وكافة بياناته المرتبطة', backgroundColor: Colors.green.shade100);
   }
 
   Future<void> recordNewWeight() async {
@@ -185,12 +328,17 @@ class PatientController extends GetxController {
   }
 
   void clearForm() {
+    isEditing.value = false;
+    editingPetId.value = null;
     petNameController.clear();
     speciesController.text = 'قط';
     breedController.clear();
     microchipController.clear();
     allergiesController.clear();
     initialWeightController.clear();
+    ageValueController.clear();
+    selectedAgeUnit.value = 'سنوات';
+    hasMicrochip.value = false;
     ownerNameController.clear();
     ownerPhoneController.clear();
     ownerAddressController.clear();
@@ -209,6 +357,7 @@ class PatientController extends GetxController {
     microchipController.dispose();
     allergiesController.dispose();
     initialWeightController.dispose();
+    ageValueController.dispose();
     ownerNameController.dispose();
     ownerPhoneController.dispose();
     ownerAddressController.dispose();

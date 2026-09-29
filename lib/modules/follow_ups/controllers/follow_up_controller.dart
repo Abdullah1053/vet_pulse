@@ -16,7 +16,13 @@ class FollowUpController extends GetxController {
   final RxList<FollowUpModel> followUps = <FollowUpModel>[].obs;
   final RxList<PetModel> pets = <PetModel>[].obs;
   final RxBool isLoading = false.obs;
-  final RxString currentFilter = 'today'.obs; // overdue, today, upcoming
+  final RxString currentFilter = 'today'.obs; // overdue, today, upcoming, all
+
+  // Counts for all appointment categories
+  final RxInt todayCount = 0.obs;
+  final RxInt overdueCount = 0.obs;
+  final RxInt upcomingCount = 0.obs;
+  final RxInt allCount = 0.obs;
 
   // Form Controllers
   final Rx<PetModel?> selectedPet = Rx<PetModel?>(null);
@@ -24,6 +30,10 @@ class FollowUpController extends GetxController {
   final scheduledTimeController = TextEditingController(text: '10:00 ص');
   final reasonController = TextEditingController(text: AppStringsAr.reasonRecheck);
   final notesController = TextEditingController();
+
+  // Edit Follow-up state
+  final RxBool isEditing = false.obs;
+  final Rx<int?> editingId = Rx<int?>(null);
 
   @override
   void onInit() {
@@ -39,6 +49,12 @@ class FollowUpController extends GetxController {
   Future<void> loadFollowUps() async {
     isLoading.value = true;
     try {
+      final all = await _appointmentRepo.getAllFollowUps();
+      allCount.value = all.length;
+      todayCount.value = all.where((f) => f.isToday && f.isPending).length;
+      overdueCount.value = all.where((f) => f.isOverdue).length;
+      upcomingCount.value = all.where((f) => !f.isOverdue && f.isPending && !f.isToday).length;
+
       final list = await _appointmentRepo.getFollowUpsByFilter(currentFilter.value);
       followUps.assignAll(list);
     } finally {
@@ -55,6 +71,24 @@ class FollowUpController extends GetxController {
     await _appointmentRepo.updateFollowUpStatus(id, status);
     loadFollowUps();
     Get.snackbar('تم', 'تم تحديث حالة الموعد', backgroundColor: Colors.green.shade100);
+  }
+
+  void initEdit(FollowUpModel followUp) {
+    isEditing.value = true;
+    editingId.value = followUp.id;
+    if (pets.isNotEmpty) {
+      selectedPet.value = pets.firstWhereOrNull((p) => p.id == followUp.petId);
+    }
+    scheduledDateController.text = followUp.scheduledDate;
+    scheduledTimeController.text = followUp.scheduledTime ?? '10:00 ص';
+    reasonController.text = followUp.reason;
+    notesController.text = followUp.notes ?? '';
+  }
+
+  Future<void> deleteFollowUp(int id) async {
+    await _appointmentRepo.deleteFollowUp(id);
+    await loadFollowUps();
+    Get.snackbar('تم الحذف', 'تم حذف موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
   }
 
   Future<void> sendWhatsAppReminder(FollowUpModel followUp) async {
@@ -109,27 +143,44 @@ class FollowUpController extends GetxController {
 
     isLoading.value = true;
     try {
-      final model = FollowUpModel(
-        petId: selectedPet.value!.id!,
-        scheduledDate: date,
-        scheduledTime: scheduledTimeController.text.trim(),
-        reason: reasonController.text.trim(),
-        notes: notesController.text.trim(),
-      );
-
-      await _appointmentRepo.insertFollowUp(model);
+      if (isEditing.value && editingId.value != null) {
+        final model = FollowUpModel(
+          id: editingId.value,
+          petId: selectedPet.value!.id!,
+          scheduledDate: date,
+          scheduledTime: scheduledTimeController.text.trim(),
+          reason: reasonController.text.trim(),
+          notes: notesController.text.trim(),
+        );
+        await _appointmentRepo.updateFollowUp(model);
+        Get.back();
+        Get.snackbar('تم', 'تم تعديل موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
+      } else {
+        final model = FollowUpModel(
+          petId: selectedPet.value!.id!,
+          scheduledDate: date,
+          scheduledTime: scheduledTimeController.text.trim(),
+          reason: reasonController.text.trim(),
+          notes: notesController.text.trim(),
+        );
+        await _appointmentRepo.insertFollowUp(model);
+        Get.back();
+        Get.snackbar('تم', 'تمت جدولة موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
+      }
       clearForm();
       await loadFollowUps();
-      Get.back();
-      Get.snackbar('تم', 'تمت جدولة موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
     } finally {
       isLoading.value = false;
     }
   }
 
   void clearForm() {
+    isEditing.value = false;
+    editingId.value = null;
     selectedPet.value = null;
     scheduledDateController.clear();
+    scheduledTimeController.text = '10:00 ص';
+    reasonController.text = AppStringsAr.reasonRecheck;
     notesController.clear();
   }
 

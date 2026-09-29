@@ -20,11 +20,24 @@ class NewSurgeryView extends GetView<SurgeryController> {
     }
   }
 
+  Future<void> _selectTime(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (picked != null) {
+      final hourStr = picked.hourOfPeriod == 0 ? '12' : picked.hourOfPeriod.toString();
+      final minStr = picked.minute.toString().padLeft(2, '0');
+      final periodStr = picked.period == DayPeriod.am ? 'ص' : 'م';
+      controller.scheduledTimeController.text = '$hourStr:$minStr $periodStr';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStringsAr.scheduleSurgery),
+        title: Obx(() => Text(controller.isEditing.value ? 'تعديل بيانات العملية الجراحية' : AppStringsAr.scheduleSurgery)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -109,8 +122,10 @@ class NewSurgeryView extends GetView<SurgeryController> {
                         Expanded(
                           child: CustomTextField(
                             label: 'ساعة الحضور للجناح',
-                            hint: '09:00 ص',
+                            hint: 'اختر الوقت',
                             controller: controller.scheduledTimeController,
+                            readOnly: true,
+                            onTap: () => _selectTime(context),
                             prefixIcon: const Icon(Icons.access_time),
                           ),
                         ),
@@ -192,11 +207,11 @@ class NewSurgeryView extends GetView<SurgeryController> {
                     ),
                     const SizedBox(height: 14),
                     CustomTextField(
-                      label: AppStringsAr.estimatedCost,
-                      hint: '350',
+                      label: 'التكلفة التقديرية للعملية (ريال يمني)',
+                      hint: 'مثال: 15000',
                       controller: controller.costController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      prefixIcon: const Icon(Icons.attach_money),
+                      prefixIcon: const Icon(Icons.payments_outlined),
                     ),
                   ],
                 ),
@@ -205,7 +220,7 @@ class NewSurgeryView extends GetView<SurgeryController> {
             const SizedBox(height: 24),
 
             Obx(() => PrimaryButton(
-                  text: 'حفظ وتأكيد حجز العملية',
+                  text: controller.isEditing.value ? 'حفظ تعديلات العملية الجراحية' : 'حفظ وتأكيد حجز العملية',
                   isLoading: controller.isLoading.value,
                   icon: Icons.check,
                   onPressed: controller.saveSurgery,

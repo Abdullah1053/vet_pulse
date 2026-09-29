@@ -9,6 +9,43 @@ import '../controllers/consultation_controller.dart';
 class NewConsultationView extends GetView<ConsultationController> {
   const NewConsultationView({super.key});
 
+  Future<void> _selectTime(BuildContext context, TextEditingController textCtrl) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null) {
+      final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+      final minute = picked.minute.toString().padLeft(2, '0');
+      final period = picked.period == DayPeriod.am ? 'ص' : 'م';
+      textCtrl.text = '$hour:$minute $period';
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context, TextEditingController textCtrl) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 180)),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null) {
+      textCtrl.text = picked.toIso8601String().substring(0, 10);
+    }
+  }
+
   void _showDosageCalcDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -105,8 +142,8 @@ class NewConsultationView extends GetView<ConsultationController> {
           ],
         ),
         child: Obx(() => PrimaryButton(
-              text: 'حفظ الكشف وصرف الأدوية وطباعة الروشتة',
-              icon: Icons.print,
+              text: 'حفظ الكشف الطبي وصرف الأدوية والروشتة',
+              icon: Icons.check_circle_outline,
               isLoading: controller.isLoading.value,
               onPressed: controller.saveConsultation,
             )),
@@ -273,8 +310,12 @@ class NewConsultationView extends GetView<ConsultationController> {
             ),
             const SizedBox(height: 16),
 
-            // 4. Prescriptions & Medication Dispensing
+            // 4. Medication Type 1: In-Clinic Administered Injections & Treatments (Deducted from Pharmacy Shelf Stock)
             Card(
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -283,9 +324,22 @@ class NewConsultationView extends GetView<ConsultationController> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          AppStringsAr.prescription,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.vaccines, color: AppColors.primary, size: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '1- إبر وعلاجات العيادة الفورية',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primaryDark),
+                            ),
+                          ],
                         ),
                         TextButton.icon(
                           onPressed: () => _showDosageCalcDialog(context),
@@ -294,22 +348,26 @@ class NewConsultationView extends GetView<ConsultationController> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const Text(
+                      'أدوية وإبر يتم حقنها أو إعطاؤها للحيوان مباشرة في العيادة ويتم خصمها من مخزون الصيدلية',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 14),
 
-                    // Add medicine dropdown
+                    // Select medicine from shelf
                     Obx(() {
                       return DropdownButtonFormField<int?>(
-                        initialValue: controller.selectedMedForRx.value?.id,
-                        decoration: const InputDecoration(labelText: AppStringsAr.selectMedicine),
+                        initialValue: controller.selectedClinicMed.value?.id,
+                        decoration: const InputDecoration(labelText: 'اختر الدواء من صيدلية العيادة'),
                         items: controller.availableMedicines.map((m) {
                           return DropdownMenuItem<int?>(
                             value: m.id,
-                            child: Text('${m.tradeName} (المتوفر بالرف: ${m.clinicStock})'),
+                            child: Text('${m.tradeName} (متوفر بالرف: ${m.clinicStock})'),
                           );
                         }).toList(),
                         onChanged: (id) {
                           if (id != null) {
-                            controller.selectedMedForRx.value =
+                            controller.selectedClinicMed.value =
                                 controller.availableMedicines.firstWhere((m) => m.id == id);
                           }
                         },
@@ -320,102 +378,107 @@ class NewConsultationView extends GetView<ConsultationController> {
                     Row(
                       children: [
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: CustomTextField(
-                            label: AppStringsAr.dosage,
-                            hint: 'مثال: 0.5 مل أو 1 قرص',
-                            controller: controller.rxDosageController,
+                            label: 'الجرعة المعطاة',
+                            hint: 'مثال: 1.5 مل أو 1 أمبول',
+                            controller: controller.clinicDoseController,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 3,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: controller.clinicRouteController.text,
+                            decoration: const InputDecoration(labelText: 'طريقة الإعطاء'),
+                            items: const [
+                              DropdownMenuItem(value: 'حقن عضلي (IM)', child: Text('حقن عضلي (IM)')),
+                              DropdownMenuItem(value: 'حقن وريدي (IV)', child: Text('حقن وريدي (IV)')),
+                              DropdownMenuItem(value: 'حقن تحت الجلد (SC)', child: Text('تحت الجلد (SC)')),
+                              DropdownMenuItem(value: 'إعطاء فموي (Oral)', child: Text('فموي (Oral)')),
+                              DropdownMenuItem(value: 'موضعي (Topical)', child: Text('موضعي (Topical)')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) controller.clinicRouteController.text = v;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
                         Expanded(
                           flex: 2,
                           child: CustomTextField(
-                            label: AppStringsAr.frequency,
-                            hint: 'مرتين يومياً',
-                            controller: controller.rxFrequencyController,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            label: AppStringsAr.durationDays,
-                            hint: '5',
-                            controller: controller.rxDurationController,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: CustomTextField(
-                            label: AppStringsAr.quantityDispensed,
+                            label: 'الكمية المنصرفة',
                             hint: '1',
-                            controller: controller.rxQuantityController,
+                            controller: controller.clinicQtyController,
                             keyboardType: TextInputType.number,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     CustomTextField(
-                      label: AppStringsAr.instructions,
-                      hint: 'مثال: يحفظ بالثلاجة، يؤخذ مع الطعام',
-                      controller: controller.rxInstructionsController,
+                      label: 'ملاحظات الإعطاء',
+                      hint: 'مثال: تم إعطاء الحقنة بالعضل، الحيوان هادئ',
+                      controller: controller.clinicNotesController,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
                     Align(
                       alignment: Alignment.centerLeft,
                       child: ElevatedButton.icon(
-                        onPressed: controller.addPrescriptionItem,
-                        icon: const Icon(Icons.add_shopping_cart, size: 16),
-                        label: const Text('إضافة الدواء للروشتة'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                        onPressed: controller.addClinicTreatment,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('إضافة لإبر وعلاجات العيادة'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
-                    const Divider(height: 24),
 
-                    // Prescription List
+                    // List of in-clinic treatments
                     Obx(() {
-                      if (controller.prescriptionCart.isEmpty) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Text('لم يتم إضافة أدوية للروشتة بعد', style: TextStyle(color: AppColors.textMuted)),
-                          ),
+                      if (controller.clinicTreatments.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text('لم يتم صرف إبر أو علاجات بالعيادة بعد', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         );
                       }
-
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: controller.prescriptionCart.length,
-                        separatorBuilder: (_, _) => const Divider(height: 12),
-                        itemBuilder: (context, idx) {
-                          final item = controller.prescriptionCart[idx];
-                          return ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              '${item.medicineName ?? "دواء"} (${item.dosage})',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              '${item.frequency} لمدة ${item.durationDays} أيام | منصرف: ${item.quantityDispensed}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline, color: AppColors.critical, size: 20),
-                              onPressed: () => controller.removePrescriptionItem(idx),
-                            ),
-                          );
-                        },
+                      return Column(
+                        children: [
+                          const Divider(height: 20),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: controller.clinicTreatments.length,
+                            separatorBuilder: (_, _) => const Divider(height: 10),
+                            itemBuilder: (context, idx) {
+                              final item = controller.clinicTreatments[idx];
+                              return ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: AppColors.secondaryLight,
+                                  child: Icon(Icons.check, size: 16, color: AppColors.primary),
+                                ),
+                                title: Text(
+                                  '${item.medicineName ?? "علاج"} - ${item.dosage}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  '${item.route ?? "حقن"} | منصرف من الرف: ${item.quantityDispensed} | ${item.instructions ?? ""}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: AppColors.critical, size: 20),
+                                  onPressed: () => controller.removeClinicTreatment(idx),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       );
                     }),
                   ],
@@ -424,19 +487,377 @@ class NewConsultationView extends GetView<ConsultationController> {
             ),
             const SizedBox(height: 16),
 
-            // 5. Cost of Consultation
+            // 5. Medication Type 2: Take-Home Prescription for Owner (Freeform, not deducted from pharmacy stock)
             Card(
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Color(0xFF2A9D8F), width: 1.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: CustomTextField(
-                  label: AppStringsAr.visitCost,
-                  hint: '100',
-                  controller: controller.costController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  prefixIcon: const Icon(Icons.attach_money),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2A9D8F).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.receipt_long, color: Color(0xFF2A9D8F), size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '2- روشيتة علاج للمنزل (للمالك)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2A9D8F)),
+                        ),
+                      ],
+                    ),
+                    const Text(
+                      'روشتة طبية تصرف للمالك للاستخدام المنزلي (تكتب بحرية وبدون تقييد بمخزون صيدلية العيادة)',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 14),
+
+                    CustomTextField(
+                      label: 'اسم الدواء / العلاج الموصوف',
+                      hint: 'مثال: أموكسيسيلين أقراص، فيتامين قطرة، غسول أذن',
+                      controller: controller.homeMedNameController,
+                      prefixIcon: const Icon(Icons.medication),
+                    ),
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: CustomTextField(
+                            label: 'الجرعة وطريقة الاستعمال',
+                            hint: 'مثال: 1 قرص، أو 2 مل',
+                            controller: controller.homeDosageController,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: CustomTextField(
+                            label: 'التكرار',
+                            hint: 'مرتين يومياً بعد الأكل',
+                            controller: controller.homeFrequencyController,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 1,
+                          child: CustomTextField(
+                            label: 'المدة (أيام)',
+                            hint: '5',
+                            controller: controller.homeDurationController,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    CustomTextField(
+                      label: 'إرشادات الاستعمال للعميل',
+                      hint: 'مثال: يحفظ في الثلاجة، يُرج جيداً قبل الاستعمال، تجنب ملامسة العين',
+                      controller: controller.homeInstructionsController,
+                    ),
+                    const SizedBox(height: 12),
+
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        onPressed: controller.addHomePrescription,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('إضافة للروشتة المنزلية'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2A9D8F),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    // List of home prescriptions
+                    Obx(() {
+                      if (controller.homePrescriptions.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text('لم يتم إضافة أدوية للروشتة المنزلية بعد', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        );
+                      }
+                      return Column(
+                        children: [
+                          const Divider(height: 20),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: controller.homePrescriptions.length,
+                            separatorBuilder: (_, _) => const Divider(height: 10),
+                            itemBuilder: (context, idx) {
+                              final item = controller.homePrescriptions[idx];
+                              return ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: const CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Color(0xFFEAF8F6),
+                                  child: Icon(Icons.description, size: 16, color: Color(0xFF2A9D8F)),
+                                ),
+                                title: Text(
+                                  '${item.displayName} (${item.dosage})',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  '${item.frequency} لمدة ${item.durationDays} أيام | ${item.instructions ?? ""}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: AppColors.critical, size: 20),
+                                  onPressed: () => controller.removeHomePrescription(idx),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // 6. Schedule Surgery if Needed
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Obx(() => SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          secondary: const CircleAvatar(
+                            backgroundColor: Color(0xFFFFEFEA),
+                            child: Icon(Icons.healing, color: Color(0xFFE76F51)),
+                          ),
+                          title: const Text('3- حجز موعد عملية جراحية للحالة', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('تفعيل خيار جدولة عملية جراحية بناءً على نتائج هذا الفحص', style: TextStyle(fontSize: 11)),
+                          value: controller.needSurgery.value,
+                          onChanged: (v) => controller.needSurgery.value = v,
+                        )),
+                    Obx(() {
+                      if (!controller.needSurgery.value) return const SizedBox.shrink();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(height: 20),
+                          CustomTextField(
+                            label: 'اسم العملية الجراحية',
+                            hint: 'مثال: تعقيم قطة، استئصال ورم، تنظيف جير الأسنان',
+                            controller: controller.surgeryNameController,
+                            prefixIcon: const Icon(Icons.healing),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'تاريخ العملية',
+                                  hint: 'YYYY-MM-DD',
+                                  controller: controller.surgeryDateController,
+                                  readOnly: true,
+                                  onTap: () => _selectDate(context, controller.surgeryDateController),
+                                  prefixIcon: const Icon(Icons.calendar_today),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'ساعة الحضور للجناح',
+                                  hint: '09:00 ص',
+                                  controller: controller.surgeryTimeController,
+                                  readOnly: true,
+                                  onTap: () => _selectTime(context, controller.surgeryTimeController),
+                                  prefixIcon: const Icon(Icons.access_time),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<int?>(
+                                  initialValue: controller.selectedSurgeon.value?.id,
+                                  decoration: const InputDecoration(labelText: 'الجراح المسؤول'),
+                                  items: controller.availableSurgeons.map((d) {
+                                    return DropdownMenuItem<int?>(
+                                      value: d.id,
+                                      child: Text(d.fullName),
+                                    );
+                                  }).toList(),
+                                  onChanged: (id) {
+                                    if (id != null) {
+                                      controller.selectedSurgeon.value =
+                                          controller.availableSurgeons.firstWhere((u) => u.id == id);
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'التكلفة التقديرية (${AppStringsAr.currencyShort})',
+                                  hint: '25000',
+                                  controller: controller.surgeryCostController,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          CustomTextField(
+                            label: 'ملاحظات التحضير للجراحة',
+                            hint: 'الصيام عن الطعام 12 ساعة، إيقاف أدوية معينة...',
+                            controller: controller.surgeryNotesController,
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 7. Consecutive Treatment Plan / Follow-up Visits Option
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Obx(() => SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          secondary: const CircleAvatar(
+                            backgroundColor: Color(0xFFEAF8F6),
+                            child: Icon(Icons.event_repeat, color: Color(0xFF2A9D8F)),
+                          ),
+                          title: const Text('4- خطة علاجية وجلسات متابعة متتالية', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: const Text('مثل: إبر مضاد حيوي بالعيادة تتطلب عودة المريض لمدة 3 أيام متتالية', style: TextStyle(fontSize: 11)),
+                          value: controller.needTreatmentPlan.value,
+                          onChanged: (v) => controller.needTreatmentPlan.value = v,
+                        )),
+                    Obx(() {
+                      if (!controller.needTreatmentPlan.value) return const SizedBox.shrink();
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Divider(height: 20),
+                          CustomTextField(
+                            label: 'سبب المراجعات والجلسات',
+                            hint: 'مثال: إبر مضاد حيوي بالعيادة، غيار جروح يومي',
+                            controller: controller.planReasonController,
+                            prefixIcon: const Icon(Icons.medical_services),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'عدد الأيام المتتالية',
+                                  hint: '3',
+                                  controller: controller.planDaysController,
+                                  keyboardType: TextInputType.number,
+                                  prefixIcon: const Icon(Icons.repeat),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'تاريخ بدء الجلسات',
+                                  hint: 'YYYY-MM-DD',
+                                  controller: controller.planStartDateController,
+                                  readOnly: true,
+                                  onTap: () => _selectDate(context, controller.planStartDateController),
+                                  prefixIcon: const Icon(Icons.calendar_today),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'وقت الحضور اليومي',
+                                  hint: '10:00 ص',
+                                  controller: controller.planTimeController,
+                                  readOnly: true,
+                                  onTap: () => _selectTime(context, controller.planTimeController),
+                                  prefixIcon: const Icon(Icons.access_time),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          CustomTextField(
+                            label: 'ملاحظات وتوصيات للمربي قبل كل جلسة',
+                            hint: 'مثال: إحضار الحيوان بدون إجهاد، إبلاغ الطبيب بأي مضاعفات',
+                            controller: controller.planNotesController,
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 8. Cost of Consultation in Yemeni Rial
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '5- أتعاب الكشف والخدمات السريرية',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondaryLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            AppStringsAr.currency, // ريال يمني
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primaryDark),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    CustomTextField(
+                      label: 'أتعاب الكشف والخدمات (${AppStringsAr.currencyShort})',
+                      hint: '5000',
+                      controller: controller.costController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      prefixIcon: const Icon(Icons.payments_outlined),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
