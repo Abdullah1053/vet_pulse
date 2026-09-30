@@ -38,6 +38,25 @@ class AppointmentRepository {
     }
   }
 
+  Future<List<FollowUpModel>> getFollowUpsForPet(int petId) async {
+    final db = await _dbHelper.database;
+    const sql = '''
+      SELECT 
+        f.*, 
+        p.name AS pet_name, 
+        p.species AS pet_species,
+        o.full_name AS owner_name,
+        o.phone_primary AS owner_phone
+      FROM ${DatabaseTables.tableFollowUps} f
+      INNER JOIN ${DatabaseTables.tablePets} p ON f.pet_id = p.id
+      INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
+      WHERE f.pet_id = ?
+      ORDER BY f.scheduled_date DESC
+    ''';
+    final res = await db.rawQuery(sql, [petId]);
+    return res.map((m) => FollowUpModel.fromMap(m)).toList();
+  }
+
   Future<int> insertFollowUp(FollowUpModel followUp) async {
     final db = await _dbHelper.database;
     return await db.insert(DatabaseTables.tableFollowUps, followUp.toMap());

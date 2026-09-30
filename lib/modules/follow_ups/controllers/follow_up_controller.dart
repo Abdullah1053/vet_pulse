@@ -7,6 +7,7 @@ import '../../../data/models/pet_model.dart';
 import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
+import '../../../core/services/data_sync_service.dart';
 
 class FollowUpController extends GetxController {
   final AppointmentRepository _appointmentRepo = AppointmentRepository();
@@ -67,9 +68,10 @@ class FollowUpController extends GetxController {
     loadFollowUps();
   }
 
-  Future<void> markStatus(int id, String status) async {
+  Future<void> markStatus(int id, String status, {int? petId}) async {
     await _appointmentRepo.updateFollowUpStatus(id, status);
-    loadFollowUps();
+    await loadFollowUps();
+    DataSyncService.notifyFollowUpChanged(petId: petId);
     Get.snackbar('تم', 'تم تحديث حالة الموعد', backgroundColor: Colors.green.shade100);
   }
 
@@ -85,9 +87,10 @@ class FollowUpController extends GetxController {
     notesController.text = followUp.notes ?? '';
   }
 
-  Future<void> deleteFollowUp(int id) async {
+  Future<void> deleteFollowUp(int id, {int? petId}) async {
     await _appointmentRepo.deleteFollowUp(id);
     await loadFollowUps();
+    DataSyncService.notifyFollowUpChanged(petId: petId);
     Get.snackbar('تم الحذف', 'تم حذف موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
   }
 
@@ -153,6 +156,7 @@ class FollowUpController extends GetxController {
           notes: notesController.text.trim(),
         );
         await _appointmentRepo.updateFollowUp(model);
+        DataSyncService.notifyFollowUpChanged(petId: model.petId);
         Get.back();
         Get.snackbar('تم', 'تم تعديل موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
       } else {
@@ -164,6 +168,7 @@ class FollowUpController extends GetxController {
           notes: notesController.text.trim(),
         );
         await _appointmentRepo.insertFollowUp(model);
+        DataSyncService.notifyFollowUpChanged(petId: model.petId);
         Get.back();
         Get.snackbar('تم', 'تمت جدولة موعد المراجعة بنجاح', backgroundColor: Colors.green.shade100);
       }

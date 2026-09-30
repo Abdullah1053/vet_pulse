@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../data/models/consultation_model.dart';
+import '../../../data/models/follow_up_model.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../data/models/pet_model.dart';
 import '../../../data/models/pet_weight_model.dart';
+import '../../../data/models/surgery_model.dart';
+import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/consultation_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
+import '../../../data/repositories/surgery_repository.dart';
+import '../../../core/services/data_sync_service.dart';
 
 class PatientController extends GetxController {
   final PetRepository _petRepo = PetRepository();
   final ConsultationRepository _consultationRepo = ConsultationRepository();
+  final SurgeryRepository _surgeryRepo = SurgeryRepository();
+  final AppointmentRepository _appointmentRepo = AppointmentRepository();
   final ImagePicker _picker = ImagePicker();
 
   final RxList<PetModel> patients = <PetModel>[].obs;
@@ -18,8 +25,11 @@ class PatientController extends GetxController {
   final Rx<PetModel?> selectedPet = Rx<PetModel?>(null);
   final RxList<PetWeightModel> petWeights = <PetWeightModel>[].obs;
   final RxList<ConsultationModel> petConsultations = <ConsultationModel>[].obs;
+  final RxList<SurgeryModel> petSurgeries = <SurgeryModel>[].obs;
+  final RxList<FollowUpModel> petFollowUps = <FollowUpModel>[].obs;
 
   final RxBool isLoading = false.obs;
+  final RxBool isLoadingProfile = false.obs;
   final RxString selectedSpeciesFilter = 'الكل'.obs;
 
   final searchController = TextEditingController();
@@ -88,10 +98,47 @@ class PatientController extends GetxController {
   }
 
   Future<void> selectPet(PetModel pet) async {
-    selectedPet.value = pet;
-    if (pet.id != null) {
-      petWeights.value = await _petRepo.getWeightsForPet(pet.id!);
-      petConsultations.value = await _consultationRepo.getConsultationsForPet(pet.id!);
+    await loadPetFullProfile(pet);
+  }
+
+  Future<void> loadPetFullProfile(dynamic arg) async {
+    isLoadingProfile.value = true;
+    try {
+      PetModel? targetPet;
+      if (arg is PetModel) {
+        targetPet = arg;
+      } else if (arg is int) {
+        targetPet = await _petRepo.getPetById(arg);
+      } else if (selectedPet.value != null) {
+        targetPet = await _petRepo.getPetById(selectedPet.value!.id!);
+      }
+
+      if (targetPet != null) {
+        selectedPet.value = targetPet;
+        final petId = targetPet.id;
+        if (petId != null) {
+          final weightsFuture = _petRepo.getWeightsForPet(petId);
+          final consultationsFuture = _consultationRepo.getConsultationsForPet(petId);
+          final surgeriesFuture = _surgeryRepo.getSurgeriesForPet(petId);
+          final followUpsFuture = _appointmentRepo.getFollowUpsForPet(petId);
+
+          final results = await Future.wait([
+            weightsFuture,
+            consultationsFuture,
+            surgeriesFuture,
+            followUpsFuture,
+          ]);
+
+          petWeights.value = results[0] as List<PetWeightModel>;
+          petConsultations.value = results[1] as List<ConsultationModel>;
+          petSurgeries.value = results[2] as List<SurgeryModel>;
+          petFollowUps.value = results[3] as List<FollowUpModel>;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading pet full profile: $e');
+    } finally {
+      isLoadingProfile.value = false;
     }
   }
 
@@ -239,6 +286,7 @@ class PatientController extends GetxController {
 
     clearForm();
     await loadPatients();
+    DataSyncService.notifyPatientChanged(petId: petId);
     Get.back();
     Get.snackbar('نجاح', 'تم تسجيل ملف المريض بنجاح', backgroundColor: Colors.green.shade100);
   }
@@ -293,6 +341,7 @@ class PatientController extends GetxController {
       selectedPet.value = refreshed;
     }
     await loadPatients();
+    DataSyncService.notifyPatientChanged(petId: editingPetId.value);
     clearForm();
     Get.back();
     Get.snackbar('تم', 'تم تحديث بيانات المريض بنجاح', backgroundColor: Colors.green.shade100);
@@ -302,6 +351,7 @@ class PatientController extends GetxController {
     await _petRepo.deletePet(petId);
     selectedPet.value = null;
     await loadPatients();
+    DataSyncService.notifyPatientChanged(petId: petId);
     Get.back(); // close dialog if open
     Get.back(); // close detail view
     Get.snackbar('تم الحذف', 'تم حذف ملف المريض وكافة بياناته المرتبطة', backgroundColor: Colors.green.shade100);
@@ -315,14 +365,16 @@ class PatientController extends GetxController {
       return;
     }
 
+    final petId = selectedPet.value!.id!;
     await _petRepo.addWeight(PetWeightModel(
-      petId: selectedPet.value!.id!,
+      petId: petId,
       weight: w,
       recordedDate: DateTime.now().toIso8601String().substring(0, 10),
     ));
 
     newWeightController.clear();
-    petWeights.value = await _petRepo.getWeightsForPet(selectedPet.value!.id!);
+    petWeights.value = await _petRepo.getWeightsForPet(petId);
+    DataSyncService.notifyPatientChanged(petId: petId);
     Get.back();
     Get.snackbar('تم', 'تم تسجيل الوزن في الملف السريري', backgroundColor: Colors.green.shade100);
   }

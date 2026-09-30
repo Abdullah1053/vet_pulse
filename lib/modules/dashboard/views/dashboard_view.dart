@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../data/database/demo_data_seeder.dart';
 import '../../../routes/app_routes.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../../consultations/widgets/consultation_details_dialog.dart';
 import '../controllers/dashboard_controller.dart';
 import '../services/alerts_service.dart';
 import '../widgets/alerts_bottom_sheet.dart';
@@ -98,6 +98,10 @@ class DashboardView extends GetView<DashboardController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Demo Edition Status Banner
+              _buildDemoBanner(context),
+              const SizedBox(height: 12),
+
               // Clinic & Doctor Welcome Card
               _buildDoctorHeader(context, authController),
               const SizedBox(height: 16),
@@ -455,11 +459,7 @@ class DashboardView extends GetView<DashboardController> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () => ConsultationDetailsDialog.show(
-                context,
-                consultation: visit,
-                onDeleted: controller.loadDashboardData,
-              ),
+              onTap: () => Get.toNamed(AppRoutes.consultationDetail, arguments: visit)?.then((_) => controller.loadDashboardData()),
               child: ListTile(
                 leading: Container(
                   width: 44,
@@ -617,11 +617,73 @@ class DashboardView extends GetView<DashboardController> {
           ),
           const Divider(),
           ListTile(
+            leading: const Icon(Icons.restart_alt, color: Colors.teal),
+            title: const Text('إعادة تهيئة بيانات العرض التجريبي'),
+            subtitle: const Text('استعادة البيانات السريرية النموذجية (Demo Reset)', style: TextStyle(fontSize: 11)),
+            onTap: () async {
+              Get.back();
+              await DemoDataSeeder.resetDemoData();
+              controller.loadDashboardData();
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.logout, color: AppColors.critical),
             title: const Text(AppStringsAr.logout, style: TextStyle(color: AppColors.critical)),
             onTap: authController.logout,
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDemoBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.teal.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade700,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text('DEMO', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'نسخة العرض التجريبية • VetPulse Demo Edition',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.teal),
+                ),
+                Text(
+                  'كافة المزايا مفعلة بالكامل للتقييم السريري والإداري',
+                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.refresh, size: 14, color: Colors.teal),
+            label: const Text('تهيئة البيانات', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () async {
+              await DemoDataSeeder.resetDemoData();
+              controller.loadDashboardData();
+            },
+          ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
+import '../../../core/services/data_sync_service.dart';
 
 class SurgeryController extends GetxController {
   final SurgeryRepository _surgeryRepo = SurgeryRepository();
@@ -64,10 +65,15 @@ class SurgeryController extends GetxController {
     }
   }
 
+  Future<void> loadPets() async {
+    await loadPetsAndDoctors();
+  }
+
   Future<void> toggleChecklist(SurgeryModel surgery) async {
     final nextState = !surgery.preOpChecklistPassed;
     await _surgeryRepo.togglePreOpChecklist(surgery.id!, nextState);
-    loadSurgeries();
+    await loadSurgeries();
+    DataSyncService.notifySurgeryChanged(petId: surgery.petId);
     Get.snackbar(
       nextState ? 'تم اجتياز الفحص' : 'تم إلغاء الاعتماد',
       nextState ? 'تم تأكيد اكتمال قائمة التحقق قبل الجراحة' : 'قائمة التحقق معلقة',
@@ -75,10 +81,18 @@ class SurgeryController extends GetxController {
     );
   }
 
-  Future<void> updateStatus(int id, String status) async {
+  Future<void> updateStatus(int id, String status, {int? petId}) async {
     await _surgeryRepo.updateSurgeryStatus(id, status);
-    loadSurgeries();
+    await loadSurgeries();
+    DataSyncService.notifySurgeryChanged(petId: petId);
     Get.snackbar('تم', 'تم تحديث حالة العملية', backgroundColor: Colors.green.shade100);
+  }
+
+  Future<void> deleteSurgery(int id, {int? petId}) async {
+    await _surgeryRepo.deleteSurgery(id);
+    await loadSurgeries();
+    DataSyncService.notifySurgeryChanged(petId: petId);
+    Get.snackbar('تم الحذف', 'تم حذف حجز العملية الجراحية بنجاح', backgroundColor: Colors.green.shade100);
   }
 
   void initEditSurgery(SurgeryModel surgery) {
@@ -111,12 +125,6 @@ class SurgeryController extends GetxController {
     checkFasting.value = surgery.preOpChecklistPassed;
     checkBloodWork.value = surgery.preOpChecklistPassed;
     checkConsent.value = surgery.preOpChecklistPassed;
-  }
-
-  Future<void> deleteSurgery(int id) async {
-    await _surgeryRepo.deleteSurgery(id);
-    await loadSurgeries();
-    Get.snackbar('تم الحذف', 'تم حذف العملية الجراحية بنجاح', backgroundColor: Colors.green.shade100);
   }
 
   Future<void> saveSurgery() async {
@@ -152,6 +160,7 @@ class SurgeryController extends GetxController {
           estimatedCost: double.tryParse(costController.text.trim()) ?? 0.0,
         );
         await _surgeryRepo.updateSurgery(model);
+        DataSyncService.notifySurgeryChanged(petId: model.petId);
         Get.back();
         Get.snackbar('نجاح', 'تم تعديل بيانات العملية الجراحية بنجاح', backgroundColor: Colors.green.shade100);
       } else {
@@ -168,6 +177,7 @@ class SurgeryController extends GetxController {
         );
 
         await _surgeryRepo.insertSurgery(model);
+        DataSyncService.notifySurgeryChanged(petId: model.petId);
         Get.back();
         Get.snackbar('نجاح', 'تم حجز موعد العملية الجراحية بنجاح', backgroundColor: Colors.green.shade100);
       }

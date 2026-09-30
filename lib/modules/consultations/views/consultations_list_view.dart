@@ -100,11 +100,7 @@ class ConsultationsListView extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () => ConsultationDetailsDialog.show(
-                        context,
-                        consultation: visit,
-                        onDeleted: controller.loadConsultations,
-                      ),
+                      onTap: () => Get.toNamed(AppRoutes.consultationDetail, arguments: visit)?.then((_) => controller.loadConsultations()),
                       child: Padding(
                         padding: const EdgeInsets.all(14.0),
                         child: Column(
@@ -146,18 +142,11 @@ class ConsultationsListView extends StatelessWidget {
                                       icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
                                       onSelected: (action) {
                                         if (action == 'details') {
-                                          ConsultationDetailsDialog.show(
-                                            context,
-                                            consultation: visit,
-                                            onDeleted: controller.loadConsultations,
-                                          );
+                                          Get.toNamed(AppRoutes.consultationDetail, arguments: visit)?.then((_) => controller.loadConsultations());
                                         } else if (action == 'print') {
                                           Get.toNamed(
                                             AppRoutes.prescriptionPreview,
-                                            arguments: {
-                                              'consultation': visit,
-                                              'prescriptions': visit.prescriptions,
-                                            },
+                                            arguments: visit,
                                           );
                                         } else if (action == 'delete') {
                                           ConsultationDetailsDialog.show(

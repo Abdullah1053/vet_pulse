@@ -12,6 +12,7 @@ abstract class AppRoutes {
 
   static const consultations = '/consultations';
   static const newConsultation = '/consultations/new';
+  static const consultationDetail = '/consultations/detail';
   static const prescriptionPreview = '/consultations/prescription-preview';
 
   static const owners = '/owners';
@@ -27,6 +28,7 @@ abstract class AppRoutes {
 
   static const surgeries = '/surgeries';
   static const newSurgery = '/surgeries/new';
+  static const completeSurgery = '/surgeries/complete';
 
   static const usersManagement = '/users';
 }

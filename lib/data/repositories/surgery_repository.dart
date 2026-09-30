@@ -49,6 +49,27 @@ class SurgeryRepository {
     return null;
   }
 
+  Future<List<SurgeryModel>> getSurgeriesForPet(int petId) async {
+    final db = await _dbHelper.database;
+    const sql = '''
+      SELECT 
+        s.*, 
+        p.name AS pet_name, 
+        p.species AS pet_species,
+        u.full_name AS surgeon_name,
+        o.full_name AS owner_name,
+        o.phone_primary AS owner_phone
+      FROM ${DatabaseTables.tableSurgeries} s
+      INNER JOIN ${DatabaseTables.tablePets} p ON s.pet_id = p.id
+      LEFT JOIN ${DatabaseTables.tableUsers} u ON s.lead_surgeon_id = u.id
+      INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
+      WHERE s.pet_id = ?
+      ORDER BY s.scheduled_date DESC
+    ''';
+    final res = await db.rawQuery(sql, [petId]);
+    return res.map((m) => SurgeryModel.fromMap(m)).toList();
+  }
+
   Future<int> insertSurgery(SurgeryModel surgery) async {
     final db = await _dbHelper.database;
     return await db.insert(DatabaseTables.tableSurgeries, surgery.toMap());

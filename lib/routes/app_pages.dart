@@ -4,6 +4,7 @@ import '../modules/auth/views/clinic_setup_view.dart';
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/pin_lock_view.dart';
 import '../modules/consultations/bindings/consultation_binding.dart';
+import '../modules/consultations/views/consultation_detail_view.dart';
 import '../modules/consultations/views/consultations_list_view.dart';
 import '../modules/consultations/views/new_consultation_view.dart';
 import '../modules/consultations/views/prescription_preview_view.dart';
@@ -23,6 +24,7 @@ import '../modules/pharmacy/views/add_medicine_view.dart';
 import '../modules/pharmacy/views/inventory_list_view.dart';
 import '../modules/pharmacy/views/stock_transfer_view.dart';
 import '../modules/surgeries/bindings/surgery_binding.dart';
+import '../modules/surgeries/views/complete_surgery_view.dart';
 import '../modules/surgeries/views/new_surgery_view.dart';
 import '../modules/surgeries/views/surgery_calendar_view.dart';
 import '../modules/users_management/bindings/users_binding.dart';
@@ -101,6 +103,11 @@ class AppPages {
       binding: ConsultationBinding(),
     ),
     GetPage(
+      name: AppRoutes.consultationDetail,
+      page: () => const ConsultationDetailView(),
+      binding: ConsultationBinding(),
+    ),
+    GetPage(
       name: AppRoutes.prescriptionPreview,
       page: () => const PrescriptionPreviewView(),
       binding: ConsultationBinding(),
@@ -139,6 +146,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.newSurgery,
       page: () => const NewSurgeryView(),
+      binding: SurgeryBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.completeSurgery,
+      page: () => const CompleteSurgeryView(),
       binding: SurgeryBinding(),
     ),
 

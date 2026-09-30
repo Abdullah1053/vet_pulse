@@ -17,6 +17,7 @@ import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../../../core/services/data_sync_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 class ConsultationController extends GetxController {
@@ -317,6 +318,8 @@ class ConsultationController extends GetxController {
           ));
         }
       }
+
+      DataSyncService.notifyConsultationChanged(petId: selectedPet.value!.id!);
 
       Get.snackbar(
         'نجاح الكشف السريري',

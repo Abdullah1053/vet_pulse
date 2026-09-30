@@ -59,12 +59,17 @@ class StockTransferView extends GetView<PharmacyController> {
                     // Select Medicine
                     Obx(() {
                       return DropdownButtonFormField<int?>(
+                        isExpanded: true,
                         initialValue: controller.selectedMedForTransfer.value?.id,
                         decoration: const InputDecoration(labelText: 'اختر الصنف المراد نقله'),
                         items: controller.medicines.map((m) {
                           return DropdownMenuItem<int?>(
                             value: m.id,
-                            child: Text('${m.tradeName} (المستودع: ${m.warehouseStock} | الرف: ${m.clinicStock})'),
+                            child: Text(
+                              '${m.tradeName} (المستودع: ${m.warehouseStock} | الرف: ${m.clinicStock})',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           );
                         }).toList(),
                         onChanged: (id) {

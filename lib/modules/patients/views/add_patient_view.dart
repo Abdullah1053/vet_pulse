@@ -370,13 +370,18 @@ class AddPatientView extends GetView<PatientController> {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
                           child: DropdownButtonFormField<int?>(
+                            isExpanded: true,
                             initialValue: controller.selectedExistingOwner.value?.id,
                             decoration: const InputDecoration(labelText: 'اختر مالك مسجل سابقاً (أو أضف مالك جديد بالأسفل)'),
                             items: [
                               const DropdownMenuItem(value: null, child: Text('-- مالك جديد --')),
                               ...controller.owners.map((o) => DropdownMenuItem(
                                     value: o.id,
-                                    child: Text('${o.fullName} (${o.phonePrimary})'),
+                                    child: Text(
+                                      '${o.fullName} (${o.phonePrimary})',
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
                                   )),
                             ],
                             onChanged: (id) {

@@ -11,7 +11,7 @@ import '../controllers/surgery_controller.dart';
 class SurgeryCalendarView extends GetView<SurgeryController> {
   const SurgeryCalendarView({super.key});
 
-  void _confirmDeleteSurgery(BuildContext context, int id, String surgeryName) {
+  void _confirmDeleteSurgery(BuildContext context, int id, String surgeryName, {int? petId}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -32,7 +32,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.critical, foregroundColor: Colors.white),
             onPressed: () {
               Navigator.of(ctx).pop();
-              controller.deleteSurgery(id);
+              controller.deleteSurgery(id, petId: petId);
             },
             child: const Text(AppStringsAr.delete),
           ),
@@ -241,11 +241,11 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
             label: const Text(AppStringsAr.delete, style: TextStyle(color: AppColors.critical)),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _confirmDeleteSurgery(context, item.id!, item.surgeryName);
+              _confirmDeleteSurgery(context, item.id!, item.surgeryName, petId: item.petId);
             },
           ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.edit, size: 18),
+          TextButton.icon(
+            icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text(AppStringsAr.edit),
             onPressed: () {
               Navigator.of(ctx).pop();
@@ -253,6 +253,16 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
               Get.toNamed(AppRoutes.newSurgery);
             },
           ),
+          if (item.status != 'completed')
+            ElevatedButton.icon(
+              icon: const Icon(Icons.task_alt, size: 18),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
+              label: const Text('إتمام العملية'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Get.toNamed(AppRoutes.completeSurgery, arguments: item)?.then((_) => controller.loadSurgeries());
+              },
+            ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('إغلاق'),
@@ -331,10 +341,27 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                                   item.surgeryName,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'المريض: ${item.petName ?? "غير محدد"} (${item.petSpecies ?? ""}) • المالك: ${item.ownerName ?? ""}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.pets, size: 14, color: AppColors.primary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '• المالك: ${item.ownerName ?? ""}',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -493,14 +520,14 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                                 TextButton.icon(
                                   icon: const Icon(Icons.play_arrow, size: 16),
                                   label: const Text('بدء العملية'),
-                                  onPressed: () => controller.updateStatus(item.id!, 'in_progress'),
+                                  onPressed: () => controller.updateStatus(item.id!, 'in_progress', petId: item.petId),
                                 ),
-                              if (item.status == 'in_progress')
+                              if (item.status == 'in_progress' || item.status == 'scheduled')
                                 ElevatedButton.icon(
-                                  icon: const Icon(Icons.check, size: 16),
-                                  label: const Text('إتمام العملية'),
-                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-                                  onPressed: () => controller.updateStatus(item.id!, 'completed'),
+                                  icon: const Icon(Icons.task_alt, size: 16),
+                                  label: const Text('إتمام وتخريج'),
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
+                                  onPressed: () => Get.toNamed(AppRoutes.completeSurgery, arguments: item)?.then((_) => controller.loadSurgeries()),
                                 ),
                             ],
                           ),

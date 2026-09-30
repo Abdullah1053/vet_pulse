@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_service.dart';
 import '../services/alerts_service.dart';
 
 class AlertsBottomSheet extends StatefulWidget {
@@ -88,6 +89,47 @@ class _AlertsBottomSheetState extends State<AlertsBottomSheet> {
             ),
           ),
           const Divider(height: 1),
+          // Notification Permission Banner
+          Obx(() {
+            final notifService = Get.find<NotificationService>();
+            if (notifService.hasNotificationPermission.value) {
+              return const SizedBox.shrink();
+            }
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.notifications_paused_outlined, color: Colors.amber.shade800, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'إشعارات الهاتف غير مفعلة. اضغط لتفعيل وصول التنبيهات المباشرة لهاتفك',
+                      style: TextStyle(fontSize: 11, color: Colors.brown.shade800, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  ElevatedButton(
+                    onPressed: () => notifService.requestNotificationPermission(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber.shade800,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    child: const Text('تفعيل الآن', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          }),
 
           // Urgency Filters
           Padding(

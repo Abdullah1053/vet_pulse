@@ -57,11 +57,16 @@ class NewSurgeryView extends GetView<SurgeryController> {
                     ),
                     const SizedBox(height: 16),
                     Obx(() => DropdownButtonFormField<int?>(
+                          isExpanded: true,
                           initialValue: controller.selectedPet.value?.id,
                           decoration: const InputDecoration(labelText: 'اختر المريض'),
                           items: controller.pets.map((p) => DropdownMenuItem(
                                 value: p.id,
-                                child: Text('${p.name} (${p.species}) - المالك: ${p.ownerName ?? ""}'),
+                                child: Text(
+                                  '${p.name} (${p.species}) - المالك: ${p.ownerName ?? ""}',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               )).toList(),
                           onChanged: (id) {
                             if (id != null) {
@@ -71,11 +76,16 @@ class NewSurgeryView extends GetView<SurgeryController> {
                         )),
                     const SizedBox(height: 14),
                     Obx(() => DropdownButtonFormField<int?>(
+                          isExpanded: true,
                           initialValue: controller.selectedSurgeon.value?.id,
                           decoration: const InputDecoration(labelText: AppStringsAr.leadSurgeon),
                           items: controller.doctors.map((d) => DropdownMenuItem(
                                 value: d.id,
-                                child: Text('${d.fullName} (${d.roleDisplayArabic})'),
+                                child: Text(
+                                  '${d.fullName} (${d.roleDisplayArabic})',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               )).toList(),
                           onChanged: (id) {
                             if (id != null) {

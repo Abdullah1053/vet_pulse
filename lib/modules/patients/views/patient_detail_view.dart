@@ -10,8 +10,38 @@ import '../../../data/models/pet_model.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/patient_controller.dart';
 
-class PatientDetailView extends GetView<PatientController> {
+class PatientDetailView extends StatefulWidget {
   const PatientDetailView({super.key});
+
+  @override
+  State<PatientDetailView> createState() => _PatientDetailViewState();
+}
+
+class _PatientDetailViewState extends State<PatientDetailView> with SingleTickerProviderStateMixin {
+  late final PatientController controller;
+  TabController? _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<PatientController>();
+    _tabController = TabController(length: 4, vsync: this);
+
+    final arg = Get.arguments;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (arg != null) {
+        controller.loadPetFullProfile(arg);
+      } else if (controller.selectedPet.value != null) {
+        controller.loadPetFullProfile(controller.selectedPet.value);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
 
   void _showAddWeightDialog(BuildContext context) {
     showDialog(
@@ -54,7 +84,7 @@ class PatientDetailView extends GetView<PatientController> {
           ],
         ),
         content: Text(
-          'هل أنت متأكد من رغبتك في حذف ملف المريض "${pet.name}" نهائياً؟\n\nتنبيه: سيتم حذف جميع الكشوفات والمراجعات وسجلات الوزن المرتبطة به.',
+          'هل أنت متأكد من رغبتك في حذف ملف المريض "${pet.name}" نهائياً؟\n\nتنبيه: سيتم حذف جميع الكشوفات والمراجعات والعمليات وسجلات الوزن المرتبطة به.',
           style: const TextStyle(fontSize: 13),
         ),
         actions: [
@@ -95,11 +125,41 @@ class PatientDetailView extends GetView<PatientController> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      if (controller.isLoadingProfile.value) {
+        return Scaffold(
+          appBar: AppBar(title: const Text(AppStringsAr.patientProfile)),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('جاري تحميل السجل الطبي الكامل للمريض...'),
+              ],
+            ),
+          ),
+        );
+      }
+
       final pet = controller.selectedPet.value;
       if (pet == null) {
         return Scaffold(
           appBar: AppBar(title: const Text(AppStringsAr.patientProfile)),
-          body: const Center(child: Text(AppStringsAr.noDataFound)),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.pets, size: 64, color: Colors.grey),
+                const SizedBox(height: 12),
+                const Text(AppStringsAr.noDataFound, style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Get.back(),
+                  child: const Text('العودة'),
+                ),
+              ],
+            ),
+          ),
         );
       }
 
@@ -262,7 +322,7 @@ class PatientDetailView extends GetView<PatientController> {
               ),
               const SizedBox(height: 16),
 
-              // 3. Owner Details Card with WhatsApp action
+              // 3. Owner Details Card with WhatsApp & Call actions
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -302,7 +362,7 @@ class PatientDetailView extends GetView<PatientController> {
               ),
               const SizedBox(height: 16),
 
-              // 4. Weight Curve Tracking Section
+              // 4. Weight Tracking Section
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -312,9 +372,15 @@ class PatientDetailView extends GetView<PatientController> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            AppStringsAr.weightTracking,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          Row(
+                            children: [
+                              const Icon(Icons.show_chart, color: AppColors.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                AppStringsAr.weightTracking,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
                           TextButton.icon(
                             onPressed: () => _showAddWeightDialog(context),
@@ -326,7 +392,7 @@ class PatientDetailView extends GetView<PatientController> {
                       const SizedBox(height: 8),
                       if (controller.petWeights.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
                           child: Text('لم يتم تسجيل قراءات وزن بعد', style: TextStyle(color: AppColors.textMuted)),
                         )
                       else
@@ -364,47 +430,132 @@ class PatientDetailView extends GetView<PatientController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'السجل الطبي والكشوفات السابقة (SOAP)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.assignment_outlined, color: AppColors.primary, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'سجل الكشوفات والفحوصات السريرية (SOAP)',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${controller.petConsultations.length} زيارات',
+                              style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       if (controller.petConsultations.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12.0),
-                          child: Text('لا توجد زيارات أو كشوفات مسجلة لهذا المريض', style: TextStyle(color: AppColors.textMuted)),
+                          child: Text('لا توجد زيارات أو كشوفات مسجلة لهذا المريض بعد', style: TextStyle(color: AppColors.textMuted)),
                         )
                       else
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: controller.petConsultations.length,
-                          separatorBuilder: (_, _) => const Divider(height: 20),
+                          separatorBuilder: (_, _) => const Divider(height: 24),
                           itemBuilder: (context, idx) {
                             final c = controller.petConsultations[idx];
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => Get.toNamed(AppRoutes.consultationDetail, arguments: c),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      c.visitDate.substring(0, 10),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.event, size: 14, color: AppColors.primary),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              c.visitDate.substring(0, 10),
+                                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '${c.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textSecondary),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      '${c.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
+                                    const SizedBox(height: 6),
+                                    Text('التشخيص: ${c.diagnosis}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    if (c.symptoms != null && c.symptoms!.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text('الشكوى والأعراض: ${c.symptoms}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ],
+                                    if (c.treatmentPlan != null && c.treatmentPlan!.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text('الخطة العلاجية: ${c.treatmentPlan}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ],
+                                    if (c.prescriptions.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: Colors.grey.shade300),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Row(
+                                              children: [
+                                                Icon(Icons.medication_outlined, size: 14, color: AppColors.accent),
+                                                SizedBox(width: 4),
+                                                Text('العلاجات والروشتة المصروفة:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            ...c.prescriptions.map((p) => Padding(
+                                                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Text('• ${p.displayName}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                                      const SizedBox(width: 6),
+                                                      Text('(${p.dosage} - ${p.frequency} - ${p.durationDays} أيام)',
+                                                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                                                    ],
+                                                  ),
+                                                )),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text('التشخيص: ${c.diagnosis}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                if (c.symptoms != null && c.symptoms!.isNotEmpty)
-                                  Text('الشكوى: ${c.symptoms}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                                if (c.treatmentPlan != null && c.treatmentPlan!.isNotEmpty)
-                                  Text('الخطة: ${c.treatmentPlan}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                              ],
+                              ),
                             );
                           },
                         ),
@@ -412,6 +563,239 @@ class PatientDetailView extends GetView<PatientController> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // 6. Surgery Records Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.healing, color: AppColors.primary, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'سجل العمليات الجراحية المسجلة',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${controller.petSurgeries.length} عمليات',
+                              style: TextStyle(fontSize: 12, color: Colors.blue.shade900, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (controller.petSurgeries.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text('لا توجد عمليات جراحية مسجلة لهذا الحيوان', style: TextStyle(color: AppColors.textMuted)),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: controller.petSurgeries.length,
+                          separatorBuilder: (_, _) => const Divider(height: 16),
+                          itemBuilder: (context, idx) {
+                            final s = controller.petSurgeries[idx];
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          s.surgeryName,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: s.status == 'completed' ? Colors.green.shade50 : Colors.amber.shade50,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: s.status == 'completed' ? Colors.green.shade300 : Colors.amber.shade300),
+                                        ),
+                                        child: Text(
+                                          s.statusDisplayArabic,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: s.status == 'completed' ? Colors.green.shade800 : Colors.amber.shade900,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, size: 13, color: AppColors.textSecondary),
+                                      const SizedBox(width: 4),
+                                      Text(s.scheduledDate, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                      const SizedBox(width: 14),
+                                      const Icon(Icons.person, size: 13, color: AppColors.textSecondary),
+                                      const SizedBox(width: 4),
+                                      Text('الجراح: ${s.surgeonName ?? "طبيب بيطري"}',
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ],
+                                  ),
+                                  if (s.postOpNotes != null && s.postOpNotes!.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.grey.shade300),
+                                      ),
+                                      child: Text(
+                                        'ملاحظات وتقرير ما بعد الجراحة:\n${s.postOpNotes}',
+                                        style: const TextStyle(fontSize: 12, color: AppColors.darkNeutral),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 7. Follow-ups & Upcoming Visits Section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.event_repeat, color: AppColors.primary, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'المواعيد والمراجعات المسجلة',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${controller.petFollowUps.length} مواعيد',
+                              style: TextStyle(fontSize: 12, color: Colors.purple.shade900, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (controller.petFollowUps.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text('لا توجد مراجعات أو مواعيد لاحقة مجدولة لهذا المريض', style: TextStyle(color: AppColors.textMuted)),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: controller.petFollowUps.length,
+                          separatorBuilder: (_, _) => const Divider(height: 16),
+                          itemBuilder: (context, idx) {
+                            final f = controller.petFollowUps[idx];
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.alarm, size: 16, color: AppColors.primary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '${f.scheduledDate} ${f.scheduledTime != null ? "(${f.scheduledTime})" : ""}',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: f.status == 'completed'
+                                              ? Colors.green.shade50
+                                              : (f.isOverdue ? Colors.red.shade50 : Colors.blue.shade50),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          f.statusDisplayArabic,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: f.status == 'completed'
+                                              ? Colors.green.shade800
+                                              : (f.isOverdue ? Colors.red.shade800 : Colors.blue.shade800),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text('سبب المراجعة: ${f.reason}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                  if (f.notes != null && f.notes!.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text('ملاحظات المالك: ${f.notes}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

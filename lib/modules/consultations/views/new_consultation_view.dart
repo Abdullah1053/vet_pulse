@@ -167,12 +167,17 @@ class NewConsultationView extends GetView<ConsultationController> {
                     const SizedBox(height: 12),
                     Obx(() {
                       return DropdownButtonFormField<int?>(
+                        isExpanded: true,
                         initialValue: controller.selectedPet.value?.id,
                         decoration: const InputDecoration(labelText: 'اختر المريض من السجل'),
                         items: controller.allPets.map((p) {
                           return DropdownMenuItem<int?>(
                             value: p.id,
-                            child: Text('${p.name} (${p.species}) - المالك: ${p.ownerName ?? ""}'),
+                            child: Text(
+                              '${p.name} (${p.species}) - المالك: ${p.ownerName ?? ""}',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           );
                         }).toList(),
                         onChanged: (id) {
@@ -357,12 +362,17 @@ class NewConsultationView extends GetView<ConsultationController> {
                     // Select medicine from shelf
                     Obx(() {
                       return DropdownButtonFormField<int?>(
+                        isExpanded: true,
                         initialValue: controller.selectedClinicMed.value?.id,
                         decoration: const InputDecoration(labelText: 'اختر الدواء من صيدلية العيادة'),
                         items: controller.availableMedicines.map((m) {
                           return DropdownMenuItem<int?>(
                             value: m.id,
-                            child: Text('${m.tradeName} (متوفر بالرف: ${m.clinicStock})'),
+                            child: Text(
+                              '${m.tradeName} (متوفر بالرف: ${m.clinicStock})',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           );
                         }).toList(),
                         onChanged: (id) {
@@ -694,12 +704,13 @@ class NewConsultationView extends GetView<ConsultationController> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<int?>(
+                                  isExpanded: true,
                                   initialValue: controller.selectedSurgeon.value?.id,
                                   decoration: const InputDecoration(labelText: 'الجراح المسؤول'),
                                   items: controller.availableSurgeons.map((d) {
                                     return DropdownMenuItem<int?>(
                                       value: d.id,
-                                      child: Text(d.fullName),
+                                      child: Text(d.fullName, overflow: TextOverflow.ellipsis, maxLines: 1),
                                     );
                                   }).toList(),
                                   onChanged: (id) {

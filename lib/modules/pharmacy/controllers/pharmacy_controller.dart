@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../data/models/medicine_model.dart';
 import '../../../data/repositories/inventory_repository.dart';
+import '../../../core/services/data_sync_service.dart';
 
 class PharmacyController extends GetxController {
   final InventoryRepository _inventoryRepo = InventoryRepository();
@@ -106,6 +107,7 @@ class PharmacyController extends GetxController {
       await _inventoryRepo.insertMedicine(model);
       clearAddForm();
       await loadMedicines();
+      DataSyncService.notifyInventoryChanged();
       Get.back();
       Get.snackbar('نجاح', 'تمت إضافة المستحضر الطبي إلى المخزون', backgroundColor: Colors.green.shade100);
     } finally {
@@ -140,6 +142,7 @@ class PharmacyController extends GetxController {
         transferQuantityController.clear();
         selectedMedForTransfer.value = null;
         await loadMedicines();
+        DataSyncService.notifyInventoryChanged();
         Get.back();
         Get.snackbar('نجاح', 'تم تحويل $qty وحدة من المستودع إلى رف العيادة بنجاح',
             backgroundColor: Colors.green.shade100);

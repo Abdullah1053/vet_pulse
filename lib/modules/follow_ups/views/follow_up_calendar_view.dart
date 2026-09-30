@@ -5,6 +5,7 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../routes/app_routes.dart';
 import '../controllers/follow_up_controller.dart';
 
 class FollowUpCalendarView extends GetView<FollowUpController> {
@@ -20,11 +21,16 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Obx(() => DropdownButtonFormField<int?>(
+                    isExpanded: true,
                     initialValue: controller.selectedPet.value?.id,
                     decoration: const InputDecoration(labelText: 'اختر المريض'),
                     items: controller.pets.map((p) => DropdownMenuItem(
                           value: p.id,
-                          child: Text('${p.name} (${p.ownerName ?? ""})'),
+                          child: Text(
+                            '${p.name} (${p.ownerName ?? ""})',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         )).toList(),
                     onChanged: (id) {
                       if (id != null) {
@@ -228,32 +234,46 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: AppColors.secondaryLight,
-                                      child: const Icon(Icons.pets, size: 20, color: AppColors.primary),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Text(
-                                            'المالك: ${item.ownerName ?? "غير محدد"}',
-                                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                          ),
-                                        ],
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 20,
+                                        backgroundColor: AppColors.secondaryLight,
+                                        child: const Icon(Icons.pets, size: 20, color: AppColors.primary),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                const Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primary),
+                                              ],
+                                            ),
+                                            Text(
+                                              'المالك: ${item.ownerName ?? "غير محدد"}',
+                                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               Row(
