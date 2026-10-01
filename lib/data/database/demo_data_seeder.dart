@@ -26,9 +26,9 @@ class DemoDataSeeder {
 
     await db.transaction((txn) async {
       await txn.delete(DatabaseTables.tablePrescriptions);
-      await txn.delete(DatabaseTables.tableConsultations);
-      await txn.delete(DatabaseTables.tableSurgeries);
       await txn.delete(DatabaseTables.tableFollowUps);
+      await txn.delete(DatabaseTables.tableSurgeries);
+      await txn.delete(DatabaseTables.tableConsultations);
       await txn.delete(DatabaseTables.tablePetWeights);
       await txn.delete(DatabaseTables.tablePets);
       await txn.delete(DatabaseTables.tableOwners);
@@ -37,13 +37,15 @@ class DemoDataSeeder {
     await populateDemoData();
     DataSyncService.notifyAllChanged();
 
-    Get.snackbar(
-      'تم إعادة تهيئة بيانات العرض',
-      'تم تحميل بيانات العيادة التجريبية المتكاملة بنجاح (مرضى، كشوفات، عمليات، ومواعيد)',
-      backgroundColor: Colors.teal.shade100,
-      colorText: Colors.teal.shade900,
-      duration: const Duration(seconds: 4),
-    );
+    if (Get.context != null) {
+      Get.snackbar(
+        'تم إعادة تهيئة بيانات العرض',
+        'تم تحميل بيانات العيادة التجريبية المتكاملة بنجاح (مرضى، كشوفات، عمليات، ومواعيد)',
+        backgroundColor: Colors.teal.shade100,
+        colorText: Colors.teal.shade900,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   /// Insert realistic clinic data for demonstration and sales presentations
@@ -165,25 +167,25 @@ class DemoDataSeeder {
       await txn.insert(DatabaseTables.tablePrescriptions, {
         'consultation_id': consult1Id,
         'medicine_id': 1, // Synulox
-        'dose': 'نصف قرص (125mg)',
+        'dosage': 'نصف قرص (125mg)',
         'frequency': 'مرتين يومياً (كل 12 ساعة)',
-        'duration': '5 أيام',
+        'duration_days': 5,
+        'quantity_dispensed': 5,
         'instructions': 'يُعطى بعد وجبة طعام خفيفة لتقليل تهيج المعدة. إكمال كامل الكورس العلاجي.',
-        'quantity': 5,
         'is_clinic_administered': 0,
-        'cost': 2500.0,
+        'route': 'عن طريق الفم (Oral)',
       });
 
       await txn.insert(DatabaseTables.tablePrescriptions, {
         'consultation_id': consult1Id,
         'medicine_id': 2, // Metacam
-        'dose': '0.4 ml',
+        'dosage': '0.4 ml',
         'frequency': 'مرة واحدة بالعيادة',
-        'duration': 'يوم واحد',
+        'duration_days': 1,
+        'quantity_dispensed': 1,
         'instructions': 'حُقنت بالعيادة لتسكين الألم وخفض الحرارة.',
-        'quantity': 1,
         'is_clinic_administered': 1,
-        'cost': 4000.0,
+        'route': 'حقن عضلي (IM)',
       });
 
       // Consultation 2 for Rocky
@@ -204,13 +206,13 @@ class DemoDataSeeder {
       await txn.insert(DatabaseTables.tablePrescriptions, {
         'consultation_id': consult2Id,
         'medicine_id': 3, // Doxycycline or Dewormer
-        'dose': 'قرص ونصف',
+        'dosage': 'قرص ونصف',
         'frequency': 'جرعة واحدة',
-        'duration': 'يوم واحد',
+        'duration_days': 1,
+        'quantity_dispensed': 2,
         'instructions': 'تكرار الجرعة بعد أسبوعين في المنزل.',
-        'quantity': 2,
         'is_clinic_administered': 0,
-        'cost': 2000.0,
+        'route': 'عن طريق الفم (Oral)',
       });
 
       // 5. Surgeries
@@ -251,9 +253,11 @@ class DemoDataSeeder {
       final alert1TimeStr = alert1Time.toIso8601String().substring(11, 16);
       await txn.insert(DatabaseTables.tableFollowUps, {
         'pet_id': pet1Id,
-        'scheduled_date': '$todayStr $alert1TimeStr',
+        'consultation_id': consult1Id,
+        'scheduled_date': todayStr,
+        'scheduled_time': alert1TimeStr,
         'reason': 'مراجعة سريرية وفحص خياطة الجراحة وإزالة الأنبوب (حرج ⚠️)',
-        'status': 'scheduled',
+        'status': 'pending',
         'reminder_sent': 0,
         'notes': 'فحص موضع الجرح والتأكد من عدم وجود تورم أو إفرازات، ومراقبة التبول الطبيعي.',
       });
@@ -263,9 +267,11 @@ class DemoDataSeeder {
       final alert2TimeStr = alert2Time.toIso8601String().substring(11, 16);
       await txn.insert(DatabaseTables.tableFollowUps, {
         'pet_id': pet2Id,
-        'scheduled_date': '$todayStr $alert2TimeStr',
+        'consultation_id': consult2Id,
+        'scheduled_date': todayStr,
+        'scheduled_time': alert2TimeStr,
         'reason': 'معاينة استجابة التطعيم وقياس الوزن الدوري',
-        'status': 'scheduled',
+        'status': 'pending',
         'reminder_sent': 0,
         'notes': 'التأكد من عدم حدوث أي تحسس بعد التطعيم وتسجيل الوزن في البطاقة الصحية.',
       });
@@ -275,9 +281,11 @@ class DemoDataSeeder {
       final alert3TimeStr = alert3Time.toIso8601String().substring(11, 16);
       await txn.insert(DatabaseTables.tableFollowUps, {
         'pet_id': pet3Id,
-        'scheduled_date': '$todayStr $alert3TimeStr',
+        'consultation_id': null,
+        'scheduled_date': todayStr,
+        'scheduled_time': alert3TimeStr,
         'reason': 'فحص الأسنان وتنظيف الجير بالموجات فوق الصوتية',
-        'status': 'scheduled',
+        'status': 'pending',
         'reminder_sent': 0,
         'notes': 'تقييم اللثة وتحديد موعد جلسة التلميع.',
       });
