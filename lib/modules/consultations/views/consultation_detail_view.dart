@@ -8,7 +8,8 @@ import '../../../data/repositories/consultation_repository.dart';
 import '../../../routes/app_routes.dart';
 
 class ConsultationDetailView extends StatefulWidget {
-  const ConsultationDetailView({super.key});
+  final ConsultationModel? initialConsultation;
+  const ConsultationDetailView({super.key, this.initialConsultation});
 
   @override
   State<ConsultationDetailView> createState() => _ConsultationDetailViewState();
@@ -22,7 +23,12 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
   @override
   void initState() {
     super.initState();
-    _loadConsultation();
+    if (widget.initialConsultation != null) {
+      consultation = widget.initialConsultation;
+      isLoading = false;
+    } else {
+      _loadConsultation();
+    }
   }
 
   Future<void> _loadConsultation() async {
