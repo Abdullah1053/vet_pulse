@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/config/demo_config.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/database/demo_data_seeder.dart';
 import '../../../routes/app_routes.dart';
@@ -32,6 +33,25 @@ class DashboardView extends GetView<DashboardController> {
                     color: AppColors.primaryDark,
                   ),
             ),
+            if (DemoConfig.isDemoMode) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.shade400),
+                ),
+                child: Text(
+                  'نسخة تجريبية Demo',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         actions: [

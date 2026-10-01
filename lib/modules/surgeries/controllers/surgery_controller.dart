@@ -8,6 +8,7 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/config/demo_config.dart';
 
 class SurgeryController extends GetxController {
   final SurgeryRepository _surgeryRepo = SurgeryRepository();
@@ -128,6 +129,10 @@ class SurgeryController extends GetxController {
   }
 
   Future<void> saveSurgery() async {
+    if (!await DemoConfig.canAddSurgery()) {
+      return;
+    }
+
     if (selectedPet.value == null || selectedPet.value!.id == null) {
       Get.snackbar('تنبيه', 'يرجى اختيار المريض أولاً', backgroundColor: Colors.amber.shade100);
       return;

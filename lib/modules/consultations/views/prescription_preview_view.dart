@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/config/demo_config.dart';
 import '../../../data/models/clinic_model.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -49,6 +50,32 @@ class PrescriptionPreviewView extends StatelessWidget {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
+                // Demo Edition Security Watermark Banner
+                if (DemoConfig.isDemoMode) ...[
+                  pw.Container(
+                    margin: const pw.EdgeInsets.only(bottom: 6),
+                    padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.amber50,
+                      borderRadius: pw.BorderRadius.circular(4),
+                      border: pw.Border.all(color: PdfColors.amber400),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          'نسخة تجريبية (Demo Edition) • غير مصرحة للاستخدام الرسمي خارج العرض',
+                          style: pw.TextStyle(font: arabicBold, fontSize: 8, color: PdfColors.amber900),
+                        ),
+                        pw.Text(
+                          'مطور النظام: م. عبدالله عبدالمغني الأديمي',
+                          style: pw.TextStyle(font: arabicBold, fontSize: 8, color: PdfColors.amber900),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // 1. Clinic Letterhead Header
                 pw.Container(
                   padding: const pw.EdgeInsets.all(10),

@@ -8,6 +8,7 @@ import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/config/demo_config.dart';
 
 class FollowUpController extends GetxController {
   final AppointmentRepository _appointmentRepo = AppointmentRepository();
@@ -133,6 +134,12 @@ class FollowUpController extends GetxController {
   }
 
   Future<void> scheduleFollowUp() async {
+    if (!isEditing.value) {
+      if (!await DemoConfig.canAddFollowUp()) {
+        return;
+      }
+    }
+
     if (selectedPet.value == null || selectedPet.value!.id == null) {
       Get.snackbar('تنبيه', 'يرجى اختيار المريض أولاً', backgroundColor: Colors.amber.shade100);
       return;

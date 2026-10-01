@@ -12,6 +12,7 @@ import '../../../data/repositories/consultation_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/config/demo_config.dart';
 
 class PatientController extends GetxController {
   final PetRepository _petRepo = PetRepository();
@@ -229,6 +230,10 @@ class PatientController extends GetxController {
   Future<void> savePatient() async {
     if (isEditing.value) {
       await updatePet();
+      return;
+    }
+
+    if (!await DemoConfig.canAddPatient()) {
       return;
     }
 

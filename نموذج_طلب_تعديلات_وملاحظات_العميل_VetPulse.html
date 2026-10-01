@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <title>نموذج تقييم وطلب تعديلات - VetPulse</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f1f5f9;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+
+    .no-print-bar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .btn-print {
+      background: #0d9488;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    .page-card {
+      background: white;
+      border: 2.5px solid #0d9488;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
+      min-height: 275mm;
+      max-height: 280mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+      }
+
+      .no-print-bar {
+        display: none !important;
+      }
+
+      .container {
+        max-width: 100%;
+        margin: 0;
+      }
+
+      .page-card {
+        margin: 0 !important;
+        box-shadow: none !important;
+        min-height: 278mm !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="no-print-bar">
+    <div style="font-weight: bold; font-size: 15px;">📝 نموذج طلب التعديلات والملاحظات (VetPulse) — جاهز للحفظ كـ PDF
+      (صفحتين فقط)</div>
+    <button class="btn-print" onclick="window.print()">🖨️ حفظ كـ PDF / طباعة</button>
+  </div>
+
+  <div class="container">
+
+    <!-- PAGE 1 -->
+    <div class="page-card">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccfbf1; padding-bottom: 12px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 54px; height: 54px; border-radius: 12px; border: 2px solid #5eead4;" />
+            <div>
+              <h1 style="margin: 0; color: #0f766e; font-size: 20px; font-weight: 800;">نموذج تقييم وطلب تخصيص ومميزات
+              </h1>
+              <p style="margin: 2px 0 0 0; color: #0d9488; font-size: 11.5px; font-weight: 600;">نظام نبض البيطري
+                (VetPulse) • الإصدار التجريبي 1.0</p>
+            </div>
+          </div>
+          <div
+            style="background: #0f766e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            صفحة 1 من 2
+          </div>
+        </div>
+
+        <div
+          style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; border-right: 5px solid #2dd4bf;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div style="color: #94a3b8; font-size: 10px;">مطور واستشاري النظام:</div>
+              <div style="color: #2dd4bf; font-weight: bold; font-size: 15px;">مهندس برمجيات / عبدالله عبدالمغني الأديمي
+              </div>
+            </div>
+            <div style="color: #cbd5e1; font-size: 11px;">
+              ملتزمون بتطويع النظام وتخصيصه بنسبة 100% ليلائم طبيعة عمل عيادتكم اليومية
+            </div>
+          </div>
+        </div>
+
+        <div
+          style="background: white; border: 1px solid #ccfbf1; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+          <h3 style="margin: 0 0 10px 0; color: #0f766e; font-size: 13.5px;">🏥 أولاً: بيانات العيادة والطبيب المسؤول
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11.5px;">
+            <tr>
+              <td style="padding: 6px; width: 50%;"><strong>اسم العيادة / المركز البيطري:</strong>
+                .....................................................</td>
+              <td style="padding: 6px; width: 50%;"><strong>اسم الطبيب / المدير المسؤول:</strong>
+                .....................................................</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px;"><strong>المدينة والموقع:</strong>
+                ....................................................................</td>
+              <td style="padding: 6px;"><strong>رقم الهاتف / واتساب:</strong>
+                .............................................................</td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding: 6px;"><strong>تاريخ تجربة نسخة العرض (Demo):</strong> ...... / ...... /
+                2026م</td>
+            </tr>
+          </table>
+        </div>
+
+        <div
+          style="background: white; border: 1px solid #ccfbf1; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+          <h3 style="margin: 0 0 10px 0; color: #0f766e; font-size: 13.5px;">⭐ ثانياً: التقييم العام للمميزات المجرّبة
+            في نسخة العرض</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
+            <thead>
+              <tr style="background: #f0fdfa; color: #0f766e; border-bottom: 2px solid #99f6e4;">
+                <th style="padding: 8px; text-align: right; width: 45%;">القسم / الميزة المفحوصة</th>
+                <th style="padding: 8px; width: 11%;">ممتاز (5)</th>
+                <th style="padding: 8px; width: 11%;">جيد جداً (4)</th>
+                <th style="padding: 8px; width: 11%;">جيد (3)</th>
+                <th style="padding: 8px; width: 11%;">تعديل (2)</th>
+                <th style="padding: 8px; width: 11%;">غير مناسب (1)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>سرعة النظام وعمله 100% محلياً بدون إنترنت</strong>
+                </td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>الملف الطبي التكاملي للحيوان والأوزان
+                    والحساسيات</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>شاشة الكشف السريري بنظام SOAP وتفاصيل
+                    الفحص</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>توليد الروشتة بصيغة PDF عربية ومشاركتها عبر
+                    واتساب</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>جناح العمليات وقائمة التحقق الأمني وإرشادات
+                    التخريج</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>مركز التنبيهات المسبقة للمواعيد (12س / 6س /
+                    1س)</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 7px; text-align: right;"><strong>إدارة صيدلية العيادة والمخزون المزدوج والريال
+                    اليمني</strong></td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+                <td>[ &nbsp; ]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • نموذج طلب التعديلات والتخصيص</span>
+        <span>صفحة 1 من 2</span>
+      </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="page-card">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccfbf1; padding-bottom: 10px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 44px; height: 44px; border-radius: 10px; border: 2px solid #5eead4;" />
+            <div>
+              <h2 style="margin: 0; color: #0f766e; font-size: 17px; font-weight: 800;">جدول التعديلات والمميزات
+                المطلوبة</h2>
+              <p style="margin: 1px 0 0 0; color: #0d9488; font-size: 11px;">تدوين التعديلات الخاصة بهوية وآلية عمل
+                عيادتكم</p>
+            </div>
+          </div>
+          <div
+            style="background: #0f766e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            صفحة 2 من 2
+          </div>
+        </div>
+
+        <div
+          style="background: white; border: 1px solid #ccfbf1; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+          <h3 style="margin: 0 0 8px 0; color: #0f766e; font-size: 13px;">🔧 ثالثاً: جدول طلب التعديلات والملاحظات على
+            المميزات الحالية</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #f0fdfa; color: #0f766e; border-bottom: 2px solid #99f6e4;">
+                <th style="padding: 6px; width: 30px; text-align: center;">#</th>
+                <th style="padding: 6px; width: 120px; text-align: right;">الشاشة المعنية</th>
+                <th style="padding: 6px; width: 140px; text-align: right;">الوضع الحالي</th>
+                <th style="padding: 6px; text-align: right;">التعديل المطلوب بدقة</th>
+                <th style="padding: 6px; width: 70px; text-align: center;">الأولوية</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 6px; text-align: center;">1</td>
+                <td style="padding: 6px;">طباعة الروشتة</td>
+                <td style="padding: 6px;">ترويسة تجريبية</td>
+                <td style="padding: 6px;">إضافة شعار العيادة الرسمي، رقم ترخيص مزاولة المهنة، وهاتف الطوارئ</td>
+                <td style="padding: 6px; text-align: center; color: #dc2626; font-weight: bold;">عاجلة</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">2</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">3</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">4</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          style="background: white; border: 1px solid #ccfbf1; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+          <h3 style="margin: 0 0 8px 0; color: #0f766e; font-size: 13px;">💡 رابعاً: المميزات الإضافية المفقودة التي
+            ترغبون في إضافتها</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #f0fdfa; color: #0f766e; border-bottom: 2px solid #99f6e4;">
+                <th style="padding: 6px; width: 30px; text-align: center;">#</th>
+                <th style="padding: 6px; width: 200px; text-align: right;">الميزة المقترحة</th>
+                <th style="padding: 6px; text-align: right;">الهدف منها وكيفية استخدامها في عيادتكم</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">1</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">2</td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px; text-align: center;">3</td>
+                <td></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background: #134e4a; color: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;">
+          <div style="font-size: 12.5px; font-weight: bold; color: #2dd4bf; margin-bottom: 2px;">⚡ آلية المتابعة
+            والتنفيذ السريع:</div>
+          <div style="font-size: 11px; color: #e2e8f0;">
+            بمجرد استلام هذا النموذج عبر واتساب، سيقوم <strong>المهندس / عبدالله عبدالمغني الأديمي</strong> بمراجعة
+            التعديلات وتسليم النسخة المحدثة لعيادتكم خلال <strong>(3 إلى 5 أيام عمل)</strong> مع شمول باقة التعديلات
+            الأولى مجاناً.
+          </div>
+        </div>
+
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #ccfbf1; border-radius: 10px; padding: 10px 16px; font-size: 11.5px;">
+          <div>
+            <strong>توقيع وختم الطبيب / مدير العيادة:</strong> ....................................................
+          </div>
+          <div style="text-align: left; color: #0f766e; font-weight: bold;">
+            هاتف / واتساب: م. عبدالله الأديمي
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • نموذج طلب التعديلات والتخصيص</span>
+        <span>صفحة 2 من 2 • نهاية النموذج</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

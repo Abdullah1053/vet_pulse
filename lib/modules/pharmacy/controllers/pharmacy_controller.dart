@@ -4,6 +4,7 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../data/models/medicine_model.dart';
 import '../../../data/repositories/inventory_repository.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/config/demo_config.dart';
 
 class PharmacyController extends GetxController {
   final InventoryRepository _inventoryRepo = InventoryRepository();
@@ -80,6 +81,10 @@ class PharmacyController extends GetxController {
   }
 
   Future<void> saveMedicine() async {
+    if (!await DemoConfig.canAddMedicine()) {
+      return;
+    }
+
     final trade = tradeNameController.text.trim();
     final expiry = expiryDateController.text.trim();
 

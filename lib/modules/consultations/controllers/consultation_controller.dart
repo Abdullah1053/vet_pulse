@@ -18,6 +18,7 @@ import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/config/demo_config.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 class ConsultationController extends GetxController {
@@ -226,6 +227,10 @@ class ConsultationController extends GetxController {
   }
 
   Future<void> saveConsultation() async {
+    if (!await DemoConfig.canAddConsultation()) {
+      return;
+    }
+
     if (selectedPet.value == null) {
       Get.snackbar('تنبيه', 'يرجى اختيار المريض أولاً', backgroundColor: Colors.amber.shade100);
       return;

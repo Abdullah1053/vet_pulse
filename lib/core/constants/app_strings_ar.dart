@@ -2,7 +2,7 @@ class AppStringsAr {
   AppStringsAr._();
 
   // App General
-  static const String appName = 'فيت بلس';
+  static const String appName = 'نبض البيطري';
   static const String appSubTitle = 'المنظومة البيطرية السريرية المتكاملة';
   static const String offlineMode = 'وضع عدم الاتصال (محلي)';
 
