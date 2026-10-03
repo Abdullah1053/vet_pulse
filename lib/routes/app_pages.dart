@@ -29,6 +29,9 @@ import '../modules/surgeries/views/new_surgery_view.dart';
 import '../modules/surgeries/views/surgery_calendar_view.dart';
 import '../modules/users_management/bindings/users_binding.dart';
 import '../modules/users_management/views/users_list_view.dart';
+import '../modules/financials/bindings/financial_binding.dart';
+import '../modules/financials/views/financial_dashboard_view.dart';
+import '../modules/financials/views/owner_account_statement_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -159,6 +162,17 @@ class AppPages {
       name: AppRoutes.usersManagement,
       page: () => const UsersListView(),
       binding: UsersBinding(),
+    ),
+
+    // Financials & Accounting
+    GetPage(
+      name: AppRoutes.financialDashboard,
+      page: () => const FinancialDashboardView(),
+      binding: FinancialBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.ownerAccountStatement,
+      page: () => const OwnerAccountStatementView(),
     ),
   ];
 }

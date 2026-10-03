@@ -25,6 +25,8 @@ class DemoDataSeeder {
     final db = await DatabaseHelper.instance.database;
 
     await db.transaction((txn) async {
+      await txn.delete(DatabaseTables.tableTransactions);
+      await txn.delete(DatabaseTables.tableExpenses);
       await txn.delete(DatabaseTables.tablePrescriptions);
       await txn.delete(DatabaseTables.tableFollowUps);
       await txn.delete(DatabaseTables.tableSurgeries);
@@ -288,6 +290,169 @@ class DemoDataSeeder {
         'status': 'pending',
         'reminder_sent': 0,
         'notes': 'تقييم اللثة وتحديد موعد جلسة التلميع.',
+      });
+
+      // 7. Clinic Expenses (Operating, Supplies, Maintenance, Medicines)
+      final pastDate10 = now.subtract(const Duration(days: 10)).toIso8601String().substring(0, 10);
+      final pastDate5 = now.subtract(const Duration(days: 5)).toIso8601String().substring(0, 10);
+      final recentDate2 = now.subtract(const Duration(days: 2)).toIso8601String().substring(0, 10);
+
+      final exp1Id = await txn.insert(DatabaseTables.tableExpenses, {
+        'title': 'فاتورة استهلاك الكهرباء والطاقة للعيادة',
+        'category': 'operating',
+        'amount': 65000.0,
+        'expense_date': pastDate10,
+        'notes': 'فاتورة شهرية مدفوعة نقداً',
+      });
+
+      final exp2Id = await txn.insert(DatabaseTables.tableExpenses, {
+        'title': 'طلبية مستلزمات طبية وتخدير وشاش معقم',
+        'category': 'medical_supplies',
+        'amount': 120000.0,
+        'expense_date': pastDate5,
+        'notes': 'شراء مستلزمات الجراحة والتعقيم من شركة الأدوية الطبية',
+      });
+
+      final exp3Id = await txn.insert(DatabaseTables.tableExpenses, {
+        'title': 'صيانة دورية ومعايرة جهاز السونار والمختبر',
+        'category': 'maintenance',
+        'amount': 30000.0,
+        'expense_date': recentDate2,
+        'notes': 'فحص دوري ومعايرة مجسات الموجات فوق الصوتية',
+      });
+
+      final exp4Id = await txn.insert(DatabaseTables.tableExpenses, {
+        'title': 'طلبية أدوية ومضادات حيوية للصيدلية',
+        'category': 'medicines',
+        'amount': 85000.0,
+        'expense_date': todayStr,
+        'notes': 'تعزيز رصيد الصيدلية بالأدوية سريعة الحركة',
+      });
+
+      // 8. Financial Transactions (Ledger & Client Statements)
+      // Transaction 1: Simba Consultation (Fully paid)
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'income',
+        'category': 'consultation',
+        'owner_id': owner1Id,
+        'pet_id': pet1Id,
+        'reference_id': consult1Id,
+        'reference_type': 'consultation',
+        'amount': 6500.0,
+        'paid_amount': 6500.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': todayStr,
+        'notes': 'كشف سريري - التهاب معوي حاد (مسدد بالكامل)',
+      });
+
+      // Transaction 2: Simba Surgery (Partial payment -> 10,000 YER remaining debt)
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'income',
+        'category': 'surgery',
+        'owner_id': owner1Id,
+        'pet_id': pet1Id,
+        'reference_id': 1,
+        'reference_type': 'surgery',
+        'amount': 35000.0,
+        'paid_amount': 25000.0,
+        'remaining_amount': 10000.0,
+        'payment_method': 'cash',
+        'transaction_date': pastSurgeryDate,
+        'notes': 'عملية استئصال حصوات المثانة (دفعة أولى 25,000 والمتبقي 10,000 دين مستحق)',
+      });
+
+      // Transaction 3: Rocky Consultation (Fully paid)
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'income',
+        'category': 'consultation',
+        'owner_id': owner2Id,
+        'pet_id': pet2Id,
+        'reference_id': consult2Id,
+        'reference_type': 'consultation',
+        'amount': 8000.0,
+        'paid_amount': 8000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': pastConsultDate,
+        'notes': 'فحص دوري سنوي وتطعيم خماسي (مسدد بالكامل)',
+      });
+
+      // Transaction 4: Misho Owner direct payment / pharmacy
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'income',
+        'category': 'pharmacy',
+        'owner_id': owner3Id,
+        'pet_id': pet3Id,
+        'reference_id': null,
+        'reference_type': 'pharmacy',
+        'amount': 4500.0,
+        'paid_amount': 4500.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': recentDate2,
+        'notes': 'مستلزمات وفيتامينات شعر وأوميغا 3',
+      });
+
+      // Expense transactions
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'expense',
+        'category': 'operating',
+        'owner_id': null,
+        'pet_id': null,
+        'reference_id': exp1Id,
+        'reference_type': 'expense',
+        'amount': 65000.0,
+        'paid_amount': 65000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': pastDate10,
+        'notes': 'فاتورة استهلاك الكهرباء والطاقة للعيادة',
+      });
+
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'expense',
+        'category': 'medical_supplies',
+        'owner_id': null,
+        'pet_id': null,
+        'reference_id': exp2Id,
+        'reference_type': 'expense',
+        'amount': 120000.0,
+        'paid_amount': 120000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': pastDate5,
+        'notes': 'طلبية مستلزمات طبية وتخدير وشاش معقم',
+      });
+
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'expense',
+        'category': 'maintenance',
+        'owner_id': null,
+        'pet_id': null,
+        'reference_id': exp3Id,
+        'reference_type': 'expense',
+        'amount': 30000.0,
+        'paid_amount': 30000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': pastDate2,
+        'notes': 'صيانة دورية ومعايرة جهاز السونار والمختبر',
+      });
+
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'expense',
+        'category': 'medicines',
+        'owner_id': null,
+        'pet_id': null,
+        'reference_id': exp4Id,
+        'reference_type': 'expense',
+        'amount': 85000.0,
+        'paid_amount': 85000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'cash',
+        'transaction_date': todayStr,
+        'notes': 'طلبية أدوية ومضادات حيوية للصيدلية',
       });
     });
   }

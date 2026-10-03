@@ -11,6 +11,8 @@ class DatabaseTables {
   static const String tablePrescriptions = 'prescriptions';
   static const String tableFollowUps = 'follow_ups';
   static const String tableSurgeries = 'surgeries';
+  static const String tableExpenses = 'expenses';
+  static const String tableTransactions = 'financial_transactions';
 
   static const String createClinicInfoTable = '''
     CREATE TABLE $tableClinicInfo (
@@ -182,5 +184,50 @@ class DatabaseTables {
       FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
       FOREIGN KEY (lead_surgeon_id) REFERENCES $tableUsers (id)
     );
+  ''';
+
+  static const String createExpensesTable = '''
+    CREATE TABLE $tableExpenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount REAL NOT NULL,
+      expense_date DATE NOT NULL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
+
+  static const String createExpensesDateIndex = '''
+    CREATE INDEX idx_expenses_date ON $tableExpenses(expense_date);
+  ''';
+
+  static const String createTransactionsTable = '''
+    CREATE TABLE $tableTransactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transaction_type TEXT NOT NULL CHECK(transaction_type IN ('income', 'expense', 'payment')),
+      category TEXT,
+      owner_id INTEGER,
+      pet_id INTEGER,
+      reference_id INTEGER,
+      reference_type TEXT,
+      amount REAL NOT NULL,
+      paid_amount REAL DEFAULT 0.0,
+      remaining_amount REAL DEFAULT 0.0,
+      payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash', 'bank_transfer', 'debt')),
+      transaction_date DATETIME NOT NULL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE SET NULL,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE SET NULL
+    );
+  ''';
+
+  static const String createTransactionsDateIndex = '''
+    CREATE INDEX idx_transactions_date ON $tableTransactions(transaction_date);
+  ''';
+
+  static const String createTransactionsOwnerIndex = '''
+    CREATE INDEX idx_transactions_owner ON $tableTransactions(owner_id);
   ''';
 }

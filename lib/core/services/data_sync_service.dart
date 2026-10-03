@@ -7,6 +7,7 @@ import '../../modules/consultations/controllers/consultations_list_controller.da
 import '../../modules/surgeries/controllers/surgery_controller.dart';
 import '../../modules/follow_ups/controllers/follow_up_controller.dart';
 import '../../modules/pharmacy/controllers/pharmacy_controller.dart';
+import '../../modules/financials/controllers/financial_controller.dart';
 
 /// Central reactive data synchronizer that ensures all screens, cards,
 /// badges, and lists update immediately across the app without manual refresh.
@@ -37,6 +38,9 @@ class DataSyncService {
       final pc = Get.find<PatientController>();
       pc.loadPatients();
       pc.loadOwners();
+    }
+    if (Get.isRegistered<FinancialController>()) {
+      Get.find<FinancialController>().loadFinancialData();
     }
   }
 

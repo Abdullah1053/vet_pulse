@@ -419,6 +419,19 @@ class DashboardView extends GetView<DashboardController> {
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                label: 'الإدارة المالية وكشوفات الحسابات',
+                icon: Icons.account_balance_wallet_outlined,
+                color: const Color(0xFF1D3557),
+                onPressed: () => Get.toNamed(AppRoutes.financialDashboard),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -609,6 +622,14 @@ class DashboardView extends GetView<DashboardController> {
             onTap: () {
               Get.back();
               Get.toNamed(AppRoutes.weeklyReports);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary),
+            title: const Text('الإدارة المالية وكشوفات الحسابات'),
+            onTap: () {
+              Get.back();
+              Get.toNamed(AppRoutes.financialDashboard);
             },
           ),
           ListTile(

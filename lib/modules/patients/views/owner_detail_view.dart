@@ -5,16 +5,20 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
+import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../data/models/pet_model.dart';
+import '../../../data/repositories/financial_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../routes/app_routes.dart';
 
 class OwnerDetailController extends GetxController {
   final PetRepository _petRepo = PetRepository();
+  final FinancialRepository _financialRepo = FinancialRepository();
 
   final Rx<OwnerModel?> owner = Rx<OwnerModel?>(null);
   final RxList<PetModel> pets = <PetModel>[].obs;
+  final Rx<OwnerAccountSummary?> accountSummary = Rx<OwnerAccountSummary?>(null);
   final RxBool isLoading = true.obs;
 
   late int ownerId;
@@ -38,6 +42,8 @@ class OwnerDetailController extends GetxController {
       owner.value = o;
       final petList = await _petRepo.getPetsByOwnerId(ownerId);
       pets.assignAll(petList);
+      final s = await _financialRepo.getOwnerAccountSummary(ownerId);
+      accountSummary.value = s;
     } finally {
       isLoading.value = false;
     }
@@ -62,6 +68,103 @@ class OwnerDetailController extends GetxController {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  void openAccountStatement() {
+    Get.toNamed(AppRoutes.ownerAccountStatement, arguments: ownerId)?.then((_) => loadOwnerData());
+  }
+
+  void showAddPaymentDialog() {
+    final amountController = TextEditingController();
+    final notesController = TextEditingController();
+    String paymentMethod = 'cash';
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.receipt_long, color: AppColors.success),
+            const SizedBox(width: 8),
+            Text('سند قبض لحساب: ${owner.value?.fullName ?? ""}'),
+          ],
+        ),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ المسدد (ر.ي) *',
+                    hintText: 'مثال: 10000',
+                    prefixIcon: Icon(Icons.money),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: paymentMethod,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة التحصيل *',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)')),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => paymentMethod = val);
+                  },
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظات السند (اختياري)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
+              if (amt <= 0) {
+                Get.snackbar('خطأ', 'يرجى إدخال مبلغ صحيح');
+                return;
+              }
+              Get.back();
+              await _financialRepo.recordClientPayment(
+                ownerId: ownerId,
+                amount: amt,
+                paymentMethod: paymentMethod,
+                notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+              );
+              await loadOwnerData();
+              Get.snackbar(
+                'تم حفظ سند القبض',
+                'تم قيد دفعة نقدية بقيمة ${amt.toStringAsFixed(0)} ر.ي وتحديث رصيد المربي',
+                backgroundColor: AppColors.success.withValues(alpha: 0.2),
+                colorText: AppColors.success,
+              );
+            },
+            child: const Text('حفظ سند القبض'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -194,7 +297,11 @@ class OwnerDetailView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Owner Financial Statement & Balance Card
+              _buildFinancialSummaryCard(context, controller),
+              const SizedBox(height: 16),
 
               // Registered Pets Section
               Row(
@@ -373,6 +480,154 @@ class OwnerDetailView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFinancialSummaryCard(BuildContext context, OwnerDetailController controller) {
+    return Obx(() {
+      final s = controller.accountSummary.value;
+      if (s == null) return const SizedBox.shrink();
+
+      return Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'كشف الحساب والوضعية المالية',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: s.hasDebt ? AppColors.criticalBackground : AppColors.success.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      s.hasDebt ? 'متبقي دين: ${s.balanceDue.toStringAsFixed(0)} ر.ي' : 'الحساب خالص',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: s.hasDebt ? AppColors.critical : AppColors.success,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // 3 pills: Billed, Paid, Balance
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildFinancialPill(
+                      'المطالبات (مدين)',
+                      '${s.totalBilled.toStringAsFixed(0)} ر.ي',
+                      Colors.blue.shade800,
+                      Colors.blue.shade50,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildFinancialPill(
+                      'المسدد (دائن)',
+                      '${s.totalPaid.toStringAsFixed(0)} ر.ي',
+                      Colors.green.shade800,
+                      Colors.green.shade50,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildFinancialPill(
+                      s.hasDebt ? 'الدين المتبقي' : 'الرصيد',
+                      '${s.balanceDue.toStringAsFixed(0)} ر.ي',
+                      s.hasDebt ? AppColors.critical : AppColors.primary,
+                      s.hasDebt ? AppColors.criticalBackground : AppColors.secondary.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: controller.openAccountStatement,
+                      icon: const Icon(Icons.description_outlined, size: 16),
+                      label: const Text(
+                        'عرض كشف الحساب المالي (PDF & طباعة)',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: controller.showAddPaymentDialog,
+                      icon: const Icon(Icons.add_card, size: 16),
+                      label: const Text(
+                        'سند قبض',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildFinancialPill(String title, String value, Color color, Color bg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Text(title, style: TextStyle(fontSize: 9.5, color: color)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
     );
   }
 }

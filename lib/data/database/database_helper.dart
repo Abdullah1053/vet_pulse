@@ -6,7 +6,7 @@ import 'database_tables.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -54,6 +54,17 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN route TEXT;');
       } catch (_) {}
     }
+    if (oldVersion < 3) {
+      try {
+        await db.execute(DatabaseTables.createExpensesTable);
+        await db.execute(DatabaseTables.createExpensesDateIndex);
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createTransactionsTable);
+        await db.execute(DatabaseTables.createTransactionsDateIndex);
+        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
+      } catch (_) {}
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -74,6 +85,11 @@ class DatabaseHelper {
     batch.execute(DatabaseTables.createFollowUpsTable);
     batch.execute(DatabaseTables.createFollowUpsDateIndex);
     batch.execute(DatabaseTables.createSurgeriesTable);
+    batch.execute(DatabaseTables.createExpensesTable);
+    batch.execute(DatabaseTables.createExpensesDateIndex);
+    batch.execute(DatabaseTables.createTransactionsTable);
+    batch.execute(DatabaseTables.createTransactionsDateIndex);
+    batch.execute(DatabaseTables.createTransactionsOwnerIndex);
 
     await batch.commit();
 

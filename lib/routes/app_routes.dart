@@ -31,4 +31,7 @@ abstract class AppRoutes {
   static const completeSurgery = '/surgeries/complete';
 
   static const usersManagement = '/users';
+
+  static const financialDashboard = '/financials';
+  static const ownerAccountStatement = '/financials/owner-statement';
 }
