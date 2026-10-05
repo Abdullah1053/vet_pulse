@@ -6,7 +6,7 @@ import 'database_tables.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 3;
+  static const int _dbVersion = 4;
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -17,6 +17,19 @@ class DatabaseHelper {
     if (_database != null) return _database!;
     _database = await _initDatabase();
     return _database!;
+  }
+
+  Future<String> getDatabaseFilePath() async {
+    final dbPath = await getDatabasesPath();
+    return join(dbPath, _dbName);
+  }
+
+  Future<void> flushWal() async {
+    if (_database != null && _database!.isOpen) {
+      try {
+        await _database!.execute('PRAGMA wal_checkpoint(FULL);');
+      } catch (_) {}
+    }
   }
 
   Future<Database> _initDatabase() async {
@@ -63,6 +76,11 @@ class DatabaseHelper {
         await db.execute(DatabaseTables.createTransactionsTable);
         await db.execute(DatabaseTables.createTransactionsDateIndex);
         await db.execute(DatabaseTables.createTransactionsOwnerIndex);
+      } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
       } catch (_) {}
     }
   }

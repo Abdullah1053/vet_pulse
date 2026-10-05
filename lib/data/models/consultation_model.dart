@@ -12,6 +12,7 @@ class ConsultationModel {
   final String diagnosis; // Assessment
   final String? treatmentPlan; // Plan
   final double visitCost;
+  final String paymentMethod;
   final String? createdAt;
 
   // Joined fields
@@ -33,6 +34,7 @@ class ConsultationModel {
     required this.diagnosis,
     this.treatmentPlan,
     this.visitCost = 0.0,
+    this.paymentMethod = 'نقدا',
     this.createdAt,
     this.petName,
     this.petSpecies,
@@ -54,6 +56,7 @@ class ConsultationModel {
       diagnosis: map['diagnosis'] as String? ?? '',
       treatmentPlan: map['treatment_plan'] as String?,
       visitCost: (map['visit_cost'] as num? ?? 0.0).toDouble(),
+      paymentMethod: map['payment_method'] as String? ?? 'نقدا',
       createdAt: map['created_at'] as String?,
       petName: map['pet_name'] as String?,
       petSpecies: map['pet_species'] as String?,
@@ -76,6 +79,7 @@ class ConsultationModel {
       'diagnosis': diagnosis,
       'treatment_plan': treatmentPlan,
       'visit_cost': visitCost,
+      'payment_method': paymentMethod,
     };
   }
 
@@ -91,6 +95,7 @@ class ConsultationModel {
     String? diagnosis,
     String? treatmentPlan,
     double? visitCost,
+    String? paymentMethod,
     String? createdAt,
     String? petName,
     String? petSpecies,
@@ -110,6 +115,7 @@ class ConsultationModel {
       diagnosis: diagnosis ?? this.diagnosis,
       treatmentPlan: treatmentPlan ?? this.treatmentPlan,
       visitCost: visitCost ?? this.visitCost,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
       createdAt: createdAt ?? this.createdAt,
       petName: petName ?? this.petName,
       petSpecies: petSpecies ?? this.petSpecies,

@@ -346,7 +346,7 @@ class DemoDataSeeder {
         'notes': 'كشف سريري - التهاب معوي حاد (مسدد بالكامل)',
       });
 
-      // Transaction 2: Simba Surgery (Partial payment -> 10,000 YER remaining debt)
+      // Transaction 2: Simba Surgery (Fully paid via kuraimi)
       await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'surgery',
@@ -355,11 +355,11 @@ class DemoDataSeeder {
         'reference_id': 1,
         'reference_type': 'surgery',
         'amount': 35000.0,
-        'paid_amount': 25000.0,
-        'remaining_amount': 10000.0,
-        'payment_method': 'cash',
+        'paid_amount': 35000.0,
+        'remaining_amount': 0.0,
+        'payment_method': 'كريمي',
         'transaction_date': pastSurgeryDate,
-        'notes': 'عملية استئصال حصوات المثانة (دفعة أولى 25,000 والمتبقي 10,000 دين مستحق)',
+        'notes': 'عملية استئصال حصوات المثانة (مسدد بالكامل عبر كريمي)',
       });
 
       // Transaction 3: Rocky Consultation (Fully paid)

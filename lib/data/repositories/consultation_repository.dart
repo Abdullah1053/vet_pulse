@@ -140,6 +140,33 @@ class ConsultationRepository {
         }
       }
 
+      // 3. Automatically record income transaction in financial module
+      if (consultation.visitCost > 0) {
+        final petRows = await txn.query(
+          DatabaseTables.tablePets,
+          columns: ['owner_id'],
+          where: 'id = ?',
+          whereArgs: [consultation.petId],
+          limit: 1,
+        );
+        final ownerId = petRows.isNotEmpty ? petRows.first['owner_id'] as int? : null;
+
+        await txn.insert(DatabaseTables.tableTransactions, {
+          'transaction_type': 'income',
+          'category': 'consultation',
+          'owner_id': ownerId,
+          'pet_id': consultation.petId,
+          'reference_id': consultationId,
+          'reference_type': 'consultation',
+          'amount': consultation.visitCost,
+          'paid_amount': consultation.visitCost,
+          'remaining_amount': 0.0,
+          'payment_method': consultation.paymentMethod,
+          'transaction_date': consultation.visitDate,
+          'notes': 'أتعاب كشف واستشارة سريرية: ${consultation.diagnosis}',
+        });
+      }
+
       return consultationId;
     });
   }

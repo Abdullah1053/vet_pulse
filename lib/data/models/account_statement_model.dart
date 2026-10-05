@@ -4,9 +4,9 @@ class AccountStatementItem {
   final String type; // 'consultation', 'surgery', 'payment', 'pharmacy', 'other'
   final String description;
   final String? petName;
-  final double debit; // مدين (المستحق على المربي)
-  final double credit; // دائن (المسدد من المربي)
-  final double balance; // الرصيد التراكمي
+  final double debit; // تكلفة الخدمة المسددة
+  final double credit; // المدفوع
+  final double balance; // الرصيد الحالي
   final String? notes;
 
   AccountStatementItem({
@@ -43,9 +43,9 @@ class OwnerAccountSummary {
   final String phonePrimary;
   final String? phoneSecondary;
   final String? address;
-  final double totalBilled; // إجمالي المطالبات (مدين)
-  final double totalPaid; // إجمالي المسدد (دائن)
-  final double balanceDue; // الرصيد المتبقي (دين على المربي)
+  final double totalBilled; // إجمالي الفواتير
+  final double totalPaid; // إجمالي المسدد
+  final double balanceDue; // الرصيد
   final List<AccountStatementItem> statementItems;
 
   OwnerAccountSummary({
@@ -60,5 +60,5 @@ class OwnerAccountSummary {
     this.statementItems = const [],
   });
 
-  bool get hasDebt => balanceDue > 0.01;
+  bool get hasDebt => false;
 }

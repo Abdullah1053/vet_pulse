@@ -124,6 +124,7 @@ class DatabaseTables {
       diagnosis TEXT NOT NULL,
       treatment_plan TEXT,
       visit_cost REAL DEFAULT 0.0,
+      payment_method TEXT DEFAULT 'نقدا',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
       FOREIGN KEY (doctor_id) REFERENCES $tableUsers (id)
@@ -214,7 +215,7 @@ class DatabaseTables {
       amount REAL NOT NULL,
       paid_amount REAL DEFAULT 0.0,
       remaining_amount REAL DEFAULT 0.0,
-      payment_method TEXT DEFAULT 'cash' CHECK(payment_method IN ('cash', 'bank_transfer', 'debt')),
+      payment_method TEXT DEFAULT 'نقدا',
       transaction_date DATETIME NOT NULL,
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

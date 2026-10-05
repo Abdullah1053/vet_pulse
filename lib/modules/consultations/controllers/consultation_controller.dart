@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/constants/app_payment_methods.dart';
 import '../../../core/utils/dosage_calculator.dart';
 import '../../../data/models/clinic_model.dart';
 import '../../../data/models/consultation_model.dart';
@@ -45,6 +46,7 @@ class ConsultationController extends GetxController {
   final diagnosisController = TextEditingController(); // Assessment
   final planController = TextEditingController(); // Plan
   final costController = TextEditingController(text: '5000'); // Yemeni Rial
+  final RxString selectedPaymentMethod = AppPaymentMethods.cash.obs;
 
   // 1. In-Clinic Administered Injections & Treatments (deducted from pharmacy shelf stock)
   final RxList<PrescriptionModel> clinicTreatments = <PrescriptionModel>[].obs;
@@ -264,6 +266,7 @@ class ConsultationController extends GetxController {
         diagnosis: diagnosis,
         treatmentPlan: planController.text.trim(),
         visitCost: double.tryParse(costController.text.trim()) ?? 0.0,
+        paymentMethod: selectedPaymentMethod.value,
         petName: selectedPet.value!.name,
         petSpecies: selectedPet.value!.species,
         ownerName: selectedPet.value!.ownerName,

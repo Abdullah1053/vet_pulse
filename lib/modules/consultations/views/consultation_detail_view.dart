@@ -301,7 +301,7 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                 Expanded(
                   child: _buildVitalCard(
                     icon: Icons.payments,
-                    title: 'رسوم الكشف',
+                    title: 'رسوم الكشف (${item.paymentMethod})',
                     value: '${item.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
                     color: Colors.teal.shade700,
                   ),

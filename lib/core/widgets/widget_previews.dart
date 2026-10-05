@@ -131,15 +131,15 @@ Widget previewEmptyPatients() {
   );
 }
 
-@Preview(name: 'Empty State - No Debts', group: 'Empty States')
+@Preview(name: 'Empty State - All Settled', group: 'Empty States')
 Widget previewEmptyDebts() {
   return const VetPulsePreviewWrapper(
     child: SizedBox(
       width: 360,
       child: EmptyStateView(
         icon: Icons.check_circle_outline,
-        title: 'سجل الحسابات والديون خالص تماماً',
-        subtitle: 'جميع المربين مسددين لمستحقات الكشوفات والعمليات السابقة',
+        title: 'جميع المعاملات مسددة بالكامل',
+        subtitle: 'تم تسديد مستحقات الكشوفات والخدمات السابقة',
       ),
     ),
   );
@@ -267,7 +267,7 @@ Widget previewFinancialPills() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('المطالبات (مدين)', style: TextStyle(fontSize: 11, color: Colors.blue.shade900)),
+                  Text('إجمالي الخدمات', style: TextStyle(fontSize: 11, color: Colors.blue.shade900)),
                   const SizedBox(height: 2),
                   Text('35,000 ر.ي', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue.shade900)),
                 ],
@@ -285,9 +285,9 @@ Widget previewFinancialPills() {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('المسدد (دائن)', style: TextStyle(fontSize: 11, color: Colors.green.shade900)),
+                  Text('إجمالي المسدد', style: TextStyle(fontSize: 11, color: Colors.green.shade900)),
                   const SizedBox(height: 2),
-                  Text('25,000 ر.ي', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
+                  Text('35,000 ر.ي', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade900)),
                 ],
               ),
             ),
@@ -297,15 +297,15 @@ Widget previewFinancialPills() {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: AppColors.secondary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('المتبقي (دين)', style: TextStyle(fontSize: 11, color: Colors.amber.shade900)),
+                  Text('حالة الحساب', style: TextStyle(fontSize: 11, color: AppColors.primary)),
                   const SizedBox(height: 2),
-                  Text('10,000 ر.ي', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
+                  Text('مسدد بالكامل', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary)),
                 ],
               ),
             ),

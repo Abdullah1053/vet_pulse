@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_payment_methods.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
@@ -77,7 +78,7 @@ class OwnerDetailController extends GetxController {
   void showAddPaymentDialog() {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    String paymentMethod = 'cash';
+    String paymentMethod = AppPaymentMethods.cash;
 
     Get.dialog(
       AlertDialog(
@@ -113,10 +114,33 @@ class OwnerDetailController extends GetxController {
                     labelText: 'طريقة التحصيل *',
                     border: OutlineInputBorder(),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية', overflow: TextOverflow.ellipsis)),
-                  ],
+                  items: AppPaymentMethods.fixedOptions.map((opt) {
+                    IconData icon;
+                    switch (opt) {
+                      case AppPaymentMethods.jawali:
+                      case AppPaymentMethods.jeeb:
+                      case AppPaymentMethods.floosak:
+                        icon = Icons.phone_android;
+                        break;
+                      case AppPaymentMethods.kuraimi:
+                        icon = Icons.account_balance;
+                        break;
+                      case AppPaymentMethods.cash:
+                      default:
+                        icon = Icons.payments_outlined;
+                        break;
+                    }
+                    return DropdownMenuItem<String>(
+                      value: opt,
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 20, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(opt, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => paymentMethod = val);
                   },
@@ -126,6 +150,7 @@ class OwnerDetailController extends GetxController {
                   controller: notesController,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات السند (اختياري)',
+                    hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -156,7 +181,7 @@ class OwnerDetailController extends GetxController {
               await loadOwnerData();
               Get.snackbar(
                 'تم حفظ سند القبض',
-                'تم قيد دفعة نقدية بقيمة ${amt.toStringAsFixed(0)} ر.ي وتحديث رصيد المربي',
+                'تم قيد دفعة بقيمة ${amt.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب المربي',
                 backgroundColor: AppColors.success.withValues(alpha: 0.2),
                 colorText: AppColors.success,
               );
@@ -532,15 +557,15 @@ class OwnerDetailView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: s.hasDebt ? AppColors.criticalBackground : AppColors.success.withValues(alpha: 0.15),
+                      color: AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      s.hasDebt ? 'متبقي دين: ${s.balanceDue.toStringAsFixed(0)} ر.ي' : 'الحساب خالص',
+                    child: const Text(
+                      'الحساب خالص ومسدد',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: s.hasDebt ? AppColors.critical : AppColors.success,
+                        color: AppColors.success,
                       ),
                     ),
                   ),
@@ -548,12 +573,12 @@ class OwnerDetailView extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // 3 pills: Billed, Paid, Balance
+              // 3 pills: Billed, Paid, Status
               Row(
                 children: [
                   Expanded(
                     child: _buildFinancialPill(
-                      'المطالبات (مدين)',
+                      'إجمالي الخدمات',
                       '${s.totalBilled.toStringAsFixed(0)} ر.ي',
                       Colors.blue.shade800,
                       Colors.blue.shade50,
@@ -562,7 +587,7 @@ class OwnerDetailView extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildFinancialPill(
-                      'المسدد (دائن)',
+                      'إجمالي المسدد',
                       '${s.totalPaid.toStringAsFixed(0)} ر.ي',
                       Colors.green.shade800,
                       Colors.green.shade50,
@@ -571,10 +596,10 @@ class OwnerDetailView extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildFinancialPill(
-                      s.hasDebt ? 'الدين المتبقي' : 'الرصيد',
-                      '${s.balanceDue.toStringAsFixed(0)} ر.ي',
-                      s.hasDebt ? AppColors.critical : AppColors.primary,
-                      s.hasDebt ? AppColors.criticalBackground : AppColors.secondary.withValues(alpha: 0.1),
+                      'حالة الحساب',
+                      'خالص ومسدد',
+                      AppColors.primary,
+                      AppColors.secondary.withValues(alpha: 0.1),
                     ),
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/widgets/database_backup_dialog.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
@@ -28,6 +29,11 @@ class FinancialDashboardView extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
           ),
           actions: [
+            IconButton(
+              tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
+              icon: const Icon(Icons.storage_rounded, color: Colors.white),
+              onPressed: () => DatabaseBackupDialog.show(context),
+            ),
             IconButton(
               tooltip: AppStringsAr.refresh,
               icon: const Icon(Icons.refresh, color: Colors.white),
@@ -399,24 +405,6 @@ class FinancialDashboardView extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (tx.hasRemainingDebt) ...[
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.criticalBackground,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'متبقي دين مستحق: ${tx.remainingAmount.toStringAsFixed(0)} ر.ي',
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.critical,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -951,15 +939,6 @@ class FinancialDashboardView extends StatelessWidget {
                 title: 'المبلغ المدفوع / المحصل',
                 value: '${tx.paidAmount.toStringAsFixed(0)} ر.ي',
               ),
-              if (tx.hasRemainingDebt) ...[
-                const Divider(height: 16),
-                _buildDetailItem(
-                  icon: Icons.warning_amber_rounded,
-                  title: 'المتبقي كدين معلق',
-                  value: '${tx.remainingAmount.toStringAsFixed(0)} ر.ي',
-                  valueColor: AppColors.critical,
-                ),
-              ],
               if (tx.notes != null && tx.notes!.isNotEmpty) ...[
                 const Divider(height: 16),
                 _buildDetailItem(
@@ -1332,7 +1311,7 @@ class FinancialDashboardView extends StatelessWidget {
     int? selectedOwnerId = controller.allOwners.isNotEmpty ? controller.allOwners.first.id : null;
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    String paymentMethod = 'cash';
+    String paymentMethod = 'نقدا';
 
     Get.dialog(
       AlertDialog(
@@ -1386,8 +1365,56 @@ class FinancialDashboardView extends StatelessWidget {
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية', overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(
+                        value: 'نقدا',
+                        child: Row(
+                          children: [
+                            Icon(Icons.payments_outlined, size: 18, color: Color(0xFF2A9D8F)),
+                            SizedBox(width: 8),
+                            Text('نقدا', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'جوالي',
+                        child: Row(
+                          children: [
+                            Icon(Icons.phone_android, size: 18, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('جوالي', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'جيب',
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet, size: 18, color: Colors.purple),
+                            SizedBox(width: 8),
+                            Text('جيب', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'كريمي',
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_balance, size: 18, color: Colors.teal),
+                            SizedBox(width: 8),
+                            Text('كريمي', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'فلوسك',
+                        child: Row(
+                          children: [
+                            Icon(Icons.credit_card, size: 18, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text('فلوسك', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => paymentMethod = val);
@@ -1398,7 +1425,7 @@ class FinancialDashboardView extends StatelessWidget {
                     controller: notesController,
                     decoration: const InputDecoration(
                       labelText: 'ملاحظات السند (اختياري)',
-                      hintText: 'دفعة سداد حساب...',
+                      hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
                       border: OutlineInputBorder(),
                     ),
                   ),

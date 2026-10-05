@@ -201,7 +201,7 @@ class FinancialStatementPdfHelper {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.center,
                             children: [
-                              pw.Text('إجمالي المطالبات (مدين)', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.blue900)),
+                              pw.Text('إجمالي الخدمات', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.blue900)),
                               pw.SizedBox(height: 4),
                               pw.Text(
                                 '${summary.totalBilled.toStringAsFixed(0)} ر.ي',
@@ -225,7 +225,7 @@ class FinancialStatementPdfHelper {
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.center,
                             children: [
-                              pw.Text('إجمالي المسدد (دائن)', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.green900)),
+                              pw.Text('إجمالي المسدد', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.green900)),
                               pw.SizedBox(height: 4),
                               pw.Text(
                                 '${summary.totalPaid.toStringAsFixed(0)} ر.ي',
@@ -237,33 +237,33 @@ class FinancialStatementPdfHelper {
                       ),
                       pw.SizedBox(width: 8),
 
-                      // Balance Due (Debt)
+                      // Account Status
                       pw.Expanded(
                         child: pw.Container(
                           padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                           decoration: pw.BoxDecoration(
-                            color: summary.balanceDue > 0 ? PdfColors.red50 : PdfColors.teal50,
+                            color: PdfColors.teal50,
                             borderRadius: pw.BorderRadius.circular(6),
-                            border: pw.Border.all(color: summary.balanceDue > 0 ? PdfColors.red300 : PdfColors.teal300),
+                            border: pw.Border.all(color: PdfColors.teal300),
                           ),
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.center,
                             children: [
                               pw.Text(
-                                summary.balanceDue > 0 ? 'المتبقي المستحق (دين)' : 'رصيد الحساب',
+                                'حالة الحساب',
                                 style: pw.TextStyle(
                                   font: arabicFont,
                                   fontSize: 9,
-                                  color: summary.balanceDue > 0 ? PdfColors.red900 : PdfColors.teal900,
+                                  color: PdfColors.teal900,
                                 ),
                               ),
                               pw.SizedBox(height: 4),
                               pw.Text(
-                                '${summary.balanceDue.toStringAsFixed(0)} ر.ي',
+                                'خالص ومسدد',
                                 style: pw.TextStyle(
                                   font: arabicBold,
                                   fontSize: 13,
-                                  color: summary.balanceDue > 0 ? PdfColors.red900 : PdfColors.teal900,
+                                  color: PdfColors.teal900,
                                 ),
                               ),
                             ],
@@ -277,7 +277,7 @@ class FinancialStatementPdfHelper {
 
                   // Statement Items Table
                   pw.Text(
-                    'تفاصيل الحركات المالية والخدمات السريرية:',
+                    'تفاصيل الخدمات السريرية والعمليات المسددة:',
                     style: pw.TextStyle(font: arabicBold, fontSize: 11, color: PdfColors.teal900),
                   ),
                   pw.SizedBox(height: 6),
@@ -288,9 +288,9 @@ class FinancialStatementPdfHelper {
                       0: pw.FlexColumnWidth(1.2), // التاريخ
                       1: pw.FlexColumnWidth(3.0), // البيان
                       2: pw.FlexColumnWidth(1.2), // المريض
-                      3: pw.FlexColumnWidth(1.3), // مدين
-                      4: pw.FlexColumnWidth(1.3), // دائن
-                      5: pw.FlexColumnWidth(1.4), // الرصيد
+                      3: pw.FlexColumnWidth(1.3), // المبلغ
+                      4: pw.FlexColumnWidth(1.3), // المسدد
+                      5: pw.FlexColumnWidth(1.4), // الحالة
                     },
                     children: [
                       // Header Row
@@ -300,32 +300,33 @@ class FinancialStatementPdfHelper {
                           _buildTableCell('التاريخ', arabicBold, isHeader: true),
                           _buildTableCell('البيان / الخدمة', arabicBold, isHeader: true),
                           _buildTableCell('المريض', arabicBold, isHeader: true),
-                          _buildTableCell('مدين (ر.ي)', arabicBold, isHeader: true),
-                          _buildTableCell('دائن (ر.ي)', arabicBold, isHeader: true),
-                          _buildTableCell('الرصيد (ر.ي)', arabicBold, isHeader: true),
+                          _buildTableCell('المبلغ (ر.ي)', arabicBold, isHeader: true),
+                          _buildTableCell('المسدد (ر.ي)', arabicBold, isHeader: true),
+                          _buildTableCell('الحالة', arabicBold, isHeader: true),
                         ],
                       ),
                       // Data Rows
                       ...summary.statementItems.map((item) {
+                        final amt = item.debit > 0 ? item.debit : item.credit;
                         return pw.TableRow(
                           children: [
                             _buildTableCell(item.date, arabicFont),
                             _buildTableCell(item.description, arabicFont),
                             _buildTableCell(item.petName ?? '-', arabicFont),
                             _buildTableCell(
-                              item.debit > 0 ? item.debit.toStringAsFixed(0) : '-',
+                              amt.toStringAsFixed(0),
                               arabicFont,
-                              textColor: item.debit > 0 ? PdfColors.blue900 : PdfColors.grey600,
+                              textColor: PdfColors.blue900,
                             ),
                             _buildTableCell(
-                              item.credit > 0 ? item.credit.toStringAsFixed(0) : '-',
+                              amt.toStringAsFixed(0),
                               arabicFont,
-                              textColor: item.credit > 0 ? PdfColors.green900 : PdfColors.grey600,
+                              textColor: PdfColors.green900,
                             ),
                             _buildTableCell(
-                              item.balance.toStringAsFixed(0),
+                              'مسدد',
                               arabicBold,
-                              textColor: item.balance > 0 ? PdfColors.red900 : PdfColors.teal900,
+                              textColor: PdfColors.teal900,
                             ),
                           ],
                         );

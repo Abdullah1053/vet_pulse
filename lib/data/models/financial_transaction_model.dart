@@ -116,15 +116,24 @@ class FinancialTransactionModel {
   String get paymentMethodDisplayArabic {
     switch (paymentMethod) {
       case 'cash':
-        return 'نقداً (كاش)';
-      case 'bank_transfer':
-        return 'تحويل بنكي / محفظة';
-      case 'debt':
-        return 'آجل (ذمم مدينة)';
+      case 'نقدا':
+        return 'نقدا';
+      case 'jawali':
+      case 'جوالي':
+        return 'جوالي';
+      case 'jeeb':
+      case 'جيب':
+        return 'جيب';
+      case 'kuraimi':
+      case 'كريمي':
+        return 'كريمي';
+      case 'floosak':
+      case 'فلوسك':
+        return 'فلوسك';
       default:
-        return 'نقداً';
+        return paymentMethod.isNotEmpty ? paymentMethod : 'نقدا';
     }
   }
 
-  bool get hasRemainingDebt => remainingAmount > 0.01;
+  bool get hasRemainingDebt => false;
 }

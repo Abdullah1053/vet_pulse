@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_payment_methods.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/clinic_model.dart';
@@ -56,7 +57,7 @@ class OwnerAccountStatementController extends GetxController {
     }
     Get.snackbar(
       'تم تسجيل سند القبض بنجاح',
-      'تم قيد دفعة نقدية بقيمة ${amount.toStringAsFixed(0)} ر.ي وتحديث رصيد المربي',
+      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب المربي',
       backgroundColor: AppColors.success.withValues(alpha: 0.2),
       colorText: AppColors.success,
     );
@@ -71,9 +72,9 @@ class OwnerAccountStatementController extends GetxController {
 *كشف حساب مالي - عيادة نبض البيطرية*
 المربي: ${s.ownerName}
 ------------------------------
-إجمالي المطالبات (مدين): ${s.totalBilled.toStringAsFixed(0)} ر.ي
-إجمالي المسدد (دائن): ${s.totalPaid.toStringAsFixed(0)} ر.ي
-*المتبقي المستحق:* ${s.balanceDue.toStringAsFixed(0)} ر.ي
+إجمالي الخدمات: ${s.totalBilled.toStringAsFixed(0)} ر.ي
+إجمالي المسدد: ${s.totalPaid.toStringAsFixed(0)} ر.ي
+حالة الحساب: خالص ومسدد بالكامل
 ------------------------------
 نشكركم على ثقتكم بنا.
 ''';
@@ -259,19 +260,19 @@ class OwnerAccountStatementView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: s.hasDebt ? AppColors.criticalBackground : AppColors.success.withValues(alpha: 0.15),
+                    color: AppColors.success.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: s.hasDebt ? AppColors.critical : AppColors.success,
+                      color: AppColors.success,
                       width: 1,
                     ),
                   ),
-                  child: Text(
-                    s.hasDebt ? 'عليه دين متبقي' : 'الحساب خالص ومسدد',
+                  child: const Text(
+                    'الحساب خالص ومسدد',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: s.hasDebt ? AppColors.critical : AppColors.success,
+                      color: AppColors.success,
                     ),
                   ),
                 ),
@@ -289,7 +290,7 @@ class OwnerAccountStatementView extends StatelessWidget {
         // Total Billed
         Expanded(
           child: _buildMetricCard(
-            title: 'إجمالي المطالبات',
+            title: 'إجمالي الخدمات',
             amount: '${s.totalBilled.toStringAsFixed(0)} ر.ي',
             color: Colors.blue.shade800,
             bgColor: Colors.blue.shade50,
@@ -310,14 +311,14 @@ class OwnerAccountStatementView extends StatelessWidget {
         ),
         const SizedBox(width: 10),
 
-        // Balance Due
+        // Balance Status
         Expanded(
           child: _buildMetricCard(
-            title: s.hasDebt ? 'المتبقي (دين)' : 'الرصيد',
-            amount: '${s.balanceDue.toStringAsFixed(0)} ر.ي',
-            color: s.hasDebt ? AppColors.critical : AppColors.primary,
-            bgColor: s.hasDebt ? AppColors.criticalBackground : AppColors.secondary.withValues(alpha: 0.1),
-            icon: s.hasDebt ? Icons.warning_amber_rounded : Icons.account_balance_wallet_outlined,
+            title: 'حالة الحساب',
+            amount: 'خالص ومسدد',
+            color: AppColors.primary,
+            bgColor: AppColors.secondary.withValues(alpha: 0.1),
+            icon: Icons.verified_outlined,
           ),
         ),
       ],
@@ -371,11 +372,12 @@ class OwnerAccountStatementView extends StatelessWidget {
             DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('البيان / الخدمة', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('المريض', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('مدين (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('دائن (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الرصيد (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('المبلغ (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('المدفوع (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: s.statementItems.map((item) {
+            final amt = item.debit > 0 ? item.debit : item.credit;
             return DataRow(
               cells: [
                 DataCell(Text(item.date, style: const TextStyle(fontSize: 12))),
@@ -391,36 +393,34 @@ class OwnerAccountStatementView extends StatelessWidget {
                 ),
                 DataCell(Text(item.petName ?? '-', style: const TextStyle(fontSize: 12))),
                 DataCell(Text(
-                  item.debit > 0 ? item.debit.toStringAsFixed(0) : '-',
+                  amt.toStringAsFixed(0),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: item.debit > 0 ? Colors.blue.shade900 : Colors.grey,
+                    color: Colors.blue.shade900,
                   ),
                 )),
                 DataCell(Text(
-                  item.credit > 0 ? item.credit.toStringAsFixed(0) : '-',
+                  amt.toStringAsFixed(0),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: item.credit > 0 ? Colors.green.shade800 : Colors.grey,
+                    color: Colors.green.shade800,
                   ),
                 )),
                 DataCell(
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: item.balance > 0
-                          ? AppColors.criticalBackground
-                          : AppColors.success.withValues(alpha: 0.1),
+                      color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text(
-                      item.balance.toStringAsFixed(0),
+                    child: const Text(
+                      'مسدد',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: item.balance > 0 ? AppColors.critical : AppColors.success,
+                        color: AppColors.success,
                       ),
                     ),
                   ),
@@ -470,7 +470,7 @@ class OwnerAccountStatementView extends StatelessWidget {
   ) {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    String paymentMethod = 'cash';
+    String paymentMethod = AppPaymentMethods.cash;
 
     Get.dialog(
       AlertDialog(
@@ -506,10 +506,33 @@ class OwnerAccountStatementView extends StatelessWidget {
                     labelText: 'طريقة التحصيل *',
                     border: OutlineInputBorder(),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية', overflow: TextOverflow.ellipsis)),
-                  ],
+                  items: AppPaymentMethods.fixedOptions.map((opt) {
+                    IconData icon;
+                    switch (opt) {
+                      case AppPaymentMethods.jawali:
+                      case AppPaymentMethods.jeeb:
+                      case AppPaymentMethods.floosak:
+                        icon = Icons.phone_android;
+                        break;
+                      case AppPaymentMethods.kuraimi:
+                        icon = Icons.account_balance;
+                        break;
+                      case AppPaymentMethods.cash:
+                      default:
+                        icon = Icons.payments_outlined;
+                        break;
+                    }
+                    return DropdownMenuItem<String>(
+                      value: opt,
+                      child: Row(
+                        children: [
+                          Icon(icon, size: 20, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(opt, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                   onChanged: (val) {
                     if (val != null) {
                       setState(() => paymentMethod = val);
@@ -521,7 +544,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                   controller: notesController,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات السند (اختياري)',
-                    hintText: 'سداد دفعة متبقية من عملية...',
+                    hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
                     border: OutlineInputBorder(),
                   ),
                 ),

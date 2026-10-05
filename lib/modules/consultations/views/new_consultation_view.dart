@@ -919,6 +919,72 @@ class NewConsultationView extends GetView<ConsultationController> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       prefixIcon: const Icon(Icons.payments_outlined),
                     ),
+                    const SizedBox(height: 14),
+                    Obx(() => DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: controller.selectedPaymentMethod.value,
+                      decoration: const InputDecoration(
+                        labelText: 'طريقة الدفع *',
+                        prefixIcon: Icon(Icons.payment, color: AppColors.primary),
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'نقدا',
+                          child: Row(
+                            children: [
+                              Icon(Icons.money, size: 18, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('نقدا', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'جوالي',
+                          child: Row(
+                            children: [
+                              Icon(Icons.phone_android, size: 18, color: Colors.blue),
+                              SizedBox(width: 8),
+                              Text('جوالي', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'جيب',
+                          child: Row(
+                            children: [
+                              Icon(Icons.account_balance_wallet, size: 18, color: Colors.purple),
+                              SizedBox(width: 8),
+                              Text('جيب', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'كريمي',
+                          child: Row(
+                            children: [
+                              Icon(Icons.account_balance, size: 18, color: Colors.teal),
+                              SizedBox(width: 8),
+                              Text('كريمي', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'فلوسك',
+                          child: Row(
+                            children: [
+                              Icon(Icons.credit_card, size: 18, color: Colors.orange),
+                              SizedBox(width: 8),
+                              Text('فلوسك', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) controller.selectedPaymentMethod.value = val;
+                      },
+                    )),
                   ],
                 ),
               ),
