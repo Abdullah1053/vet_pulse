@@ -154,7 +154,12 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 icon: const Icon(Icons.description_outlined),
-                label: const Text('عرض وطباعة الروشتة (PDF)', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'طباعة الروشتة (PDF)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 onPressed: () => Get.toNamed(AppRoutes.prescriptionPreview, arguments: item),
               ),
             ),
@@ -201,11 +206,15 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                               Text(
                                 item.petName ?? 'المريض',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${item.petSpecies ?? "حيوان أليف"} • المالك: ${item.ownerName ?? "غير محدد"}',
                                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -243,15 +252,22 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            const Icon(Icons.medical_services_outlined, size: 15, color: AppColors.accent),
-                            const SizedBox(width: 6),
-                            Text(
-                              item.doctorName ?? 'طبيب بيطري',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                            ),
-                          ],
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const Icon(Icons.medical_services_outlined, size: 15, color: AppColors.accent),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  item.doctorName ?? 'طبيب بيطري',
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -470,10 +486,14 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
           const SizedBox(height: 4),
           Text(title, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
-            textAlign: TextAlign.center,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+            ),
           ),
         ],
       ),
@@ -507,9 +527,12 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                 child: Text(letter, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 8),
-              Text(
-                letterTitle,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+              Expanded(
+                child: Text(
+                  letterTitle,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -564,27 +587,14 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
             ],
           ),
           const SizedBox(height: 6),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              const Icon(Icons.healing, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text('الجرعة: ${rx.dosage}', style: const TextStyle(fontSize: 13, color: AppColors.darkNeutral)),
-              const SizedBox(width: 14),
-              const Icon(Icons.repeat, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text('التكرار: ${rx.frequency}', style: const TextStyle(fontSize: 13, color: AppColors.darkNeutral)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.timelapse, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text('المدة: ${rx.durationDays} أيام', style: const TextStyle(fontSize: 13, color: AppColors.darkNeutral)),
-              const SizedBox(width: 14),
-              const Icon(Icons.shopping_bag_outlined, size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text('الكمية المصروفة: ${rx.quantityDispensed}', style: const TextStyle(fontSize: 13, color: AppColors.darkNeutral)),
+              _buildRxBadge(Icons.healing, 'الجرعة: ${rx.dosage}'),
+              _buildRxBadge(Icons.repeat, 'التكرار: ${rx.frequency}'),
+              _buildRxBadge(Icons.timelapse, 'المدة: ${rx.durationDays} أيام'),
+              _buildRxBadge(Icons.shopping_bag_outlined, 'الكمية المصروفة: ${rx.quantityDispensed}'),
             ],
           ),
           if (rx.instructions != null && rx.instructions!.isNotEmpty) ...[
@@ -612,6 +622,25 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRxBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 4),
+          Text(text, style: const TextStyle(fontSize: 12, color: AppColors.darkNeutral)),
         ],
       ),
     );

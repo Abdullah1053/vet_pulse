@@ -222,9 +222,32 @@ class PatientController extends GetxController {
     if (owner != null) {
       selectedExistingOwner.value = owner;
       ownerNameController.text = owner.fullName;
-      ownerPhoneController.text = owner.phonePrimary;
+      String ph = owner.phonePrimary;
+      if (ph.startsWith('+967')) {
+        ph = ph.substring(4).trim();
+      } else if (ph.startsWith('967')) {
+        ph = ph.substring(3).trim();
+      }
+      ownerPhoneController.text = ph;
       ownerAddressController.text = owner.address ?? '';
     }
+  }
+
+  String? validateAndFormatYemeniPhone(String rawPhone) {
+    String clean = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (clean.startsWith('967')) {
+      clean = clean.substring(3);
+    }
+    if (clean.startsWith('0')) {
+      clean = clean.substring(1);
+    }
+
+    final allowedPrefixes = ['77', '78', '73', '70', '71'];
+    bool isValid = clean.length == 9 && allowedPrefixes.any((prefix) => clean.startsWith(prefix));
+    if (!isValid) {
+      return null;
+    }
+    return '+967$clean';
   }
 
   Future<void> savePatient() async {
@@ -254,9 +277,19 @@ class PatientController extends GetxController {
         Get.snackbar('تنبيه', 'اسم المالك ورقم الهاتف مطلوبان', backgroundColor: Colors.amber.shade100);
         return;
       }
+      final formattedPhone = validateAndFormatYemeniPhone(oPhone);
+      if (formattedPhone == null) {
+        Get.snackbar(
+          'رقم الهاتف غير صالح',
+          'يجب أن يبدأ رقم هاتف المالك بـ (77، 78، 73، 70، 71) ويتكون من 9 أرقام',
+          backgroundColor: Colors.amber.shade100,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
       final newOwner = OwnerModel(
         fullName: oName,
-        phonePrimary: oPhone,
+        phonePrimary: formattedPhone,
         address: ownerAddressController.text.trim(),
       );
       ownerId = await _petRepo.insertOwner(newOwner);
@@ -306,11 +339,25 @@ class PatientController extends GetxController {
 
     int ownerId = selectedExistingOwner.value?.id ?? selectedPet.value?.ownerId ?? 1;
 
+    String? validatedPhone;
+    if (ownerPhoneController.text.trim().isNotEmpty) {
+      validatedPhone = validateAndFormatYemeniPhone(ownerPhoneController.text.trim());
+      if (validatedPhone == null && selectedExistingOwner.value == null) {
+        Get.snackbar(
+          'رقم الهاتف غير صالح',
+          'يجب أن يبدأ رقم هاتف المالك بـ (77، 78، 73، 70، 71) ويتكون من 9 أرقام',
+          backgroundColor: Colors.amber.shade100,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+    }
+
     // If owner info was changed and no existing owner was picked
     if (selectedExistingOwner.value == null && ownerNameController.text.trim().isNotEmpty) {
       final newOwner = OwnerModel(
         fullName: ownerNameController.text.trim(),
-        phonePrimary: ownerPhoneController.text.trim(),
+        phonePrimary: validatedPhone ?? ownerPhoneController.text.trim(),
         address: ownerAddressController.text.trim(),
       );
       ownerId = await _petRepo.insertOwner(newOwner);
@@ -319,7 +366,7 @@ class PatientController extends GetxController {
       final currentO = selectedExistingOwner.value!;
       await _petRepo.updateOwner(currentO.copyWith(
         fullName: ownerNameController.text.trim(),
-        phonePrimary: ownerPhoneController.text.trim(),
+        phonePrimary: validatedPhone ?? currentO.phonePrimary,
         address: ownerAddressController.text.trim(),
       ));
     }

@@ -95,9 +95,12 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                         children: [
                           const Icon(Icons.person, size: 18, color: AppColors.textSecondary),
                           const SizedBox(width: 8),
-                          Text(
-                            'المالك: ${item.ownerName ?? "غير محدد"} ${item.ownerPhone != null ? "• ${item.ownerPhone}" : ""}',
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          Expanded(
+                            child: Text(
+                              'المالك: ${item.ownerName ?? "غير محدد"} ${item.ownerPhone != null ? "• ${item.ownerPhone}" : ""}',
+                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -106,9 +109,12 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                         children: [
                           Icon(Icons.medical_services_outlined, size: 18, color: AppColors.accent),
                           const SizedBox(width: 8),
-                          Text(
-                            'الجراح: ${item.surgeonName ?? "طبيب بيطري"}',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: Text(
+                              'الجراح: ${item.surgeonName ?? "طبيب بيطري"}',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -474,25 +480,30 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  item.preOpChecklistPassed ? Icons.check_circle : Icons.pending_actions,
-                                  size: 18,
-                                  color: item.preOpChecklistPassed ? AppColors.success : AppColors.warning,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  item.preOpChecklistPassed
-                                      ? 'تم استيفاء معايير الأمان قبل الجراحة'
-                                      : 'معايير ما قبل الجراحة بحاجة للاعتماد',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: item.preOpChecklistPassed ? AppColors.success : Colors.brown,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    item.preOpChecklistPassed ? Icons.check_circle : Icons.pending_actions,
+                                    size: 18,
+                                    color: item.preOpChecklistPassed ? AppColors.success : AppColors.warning,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      item.preOpChecklistPassed
+                                          ? 'تم استيفاء معايير الأمان قبل الجراحة'
+                                          : 'معايير ما قبل الجراحة بحاجة للاعتماد',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: item.preOpChecklistPassed ? AppColors.success : Colors.brown,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             TextButton(
                               onPressed: () => controller.toggleChecklist(item),
@@ -506,33 +517,66 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Cost and action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            item.estimatedCost != null ? 'التكلفة: ${item.estimatedCost?.toInt()} ريال يمني' : '',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      // Cost badge and action buttons (properly contained)
+                      if (item.estimatedCost != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                           ),
-                          Row(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (item.status == 'scheduled')
-                                TextButton.icon(
-                                  icon: const Icon(Icons.play_arrow, size: 16),
-                                  label: const Text('بدء العملية'),
-                                  onPressed: () => controller.updateStatus(item.id!, 'in_progress', petId: item.petId),
+                              const Icon(Icons.payments_outlined, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'التكلفة التقديرية: ${item.estimatedCost?.toInt()} ريال يمني',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              if (item.status == 'in_progress' || item.status == 'scheduled')
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.task_alt, size: 16),
-                                  label: const Text('إتمام وتخريج'),
-                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
-                                  onPressed: () => Get.toNamed(AppRoutes.completeSurgery, arguments: item)?.then((_) => controller.loadSurgeries()),
-                                ),
+                              ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+
+                      // Action buttons in Wrap to prevent overflow
+                      if (item.status == 'scheduled' || item.status == 'in_progress')
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            if (item.status == 'scheduled')
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.play_arrow, size: 16),
+                                label: const Text('بدء العملية'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: const BorderSide(color: AppColors.primary),
+                                ),
+                                onPressed: () => controller.updateStatus(item.id!, 'in_progress', petId: item.petId),
+                              ),
+                            if (item.status == 'in_progress' || item.status == 'scheduled')
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.task_alt, size: 16),
+                                label: const Text('إتمام وتخريج'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.success,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => Get.toNamed(AppRoutes.completeSurgery, arguments: item)?.then((_) => controller.loadSurgeries()),
+                              ),
+                          ],
+                        ),
                     ],
                   ),
                 ),

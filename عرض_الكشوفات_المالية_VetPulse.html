@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <title>عرض تقديم الإدارة والكشوفات المالية | نظام نبض البيطري (VetPulse)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+      /* هوامش A4 قياسية دقيقة */
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+
+    /* شريط التحكم بالطباعة أعلى الصفحة - يختفي تلقائياً عند الطباعة */
+    .no-print-bar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      margin-bottom: 20px;
+    }
+
+    .btn-print {
+      background: #0d9488;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: 0.2s;
+    }
+
+    .btn-print:hover {
+      background: #0f766e;
+    }
+
+    .page-container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    /* كل صفحة عبارة عن إطار A4 مستقل */
+    .page-frame {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 25px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      min-height: 270mm;
+      max-height: 280mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+      }
+
+      .no-print-bar {
+        display: none !important;
+      }
+
+      .page-container {
+        max-width: 100%;
+        margin: 0;
+      }
+
+      .page-frame {
+        box-shadow: none !important;
+        margin: 0 !important;
+        border-radius: 12px !important;
+        min-height: 275mm !important;
+        max-height: 280mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- شريط الطباعة السريع -->
+  <div class="no-print-bar">
+    <div style="font-weight: bold; font-size: 15px;">💰 دليل الإدارة والكشوفات المالية — نظام نبض البيطري (VetPulse) | جاهز كـ PDF في 4 صفحات</div>
+    <button class="btn-print" onclick="window.print()">🖨️ اضغط هنا للطباعة أو الحفظ كـ PDF</button>
+  </div>
+
+  <div class="page-container">
+
+    <!-- =================================================================== -->
+    <!-- PAGE 1: COVER & EXECUTIVE OVERVIEW -->
+    <!-- =================================================================== -->
+    <div class="page-frame"
+      style="border: 2.5px solid #0d9488; background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccfbf1; padding-bottom: 12px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 58px; height: 58px; border-radius: 12px; border: 2px solid #5eead4;" />
+            <div>
+              <h1 style="margin: 0; color: #0f766e; font-size: 21px; font-weight: 800;">نظام نبض البيطري | VetPulse</h1>
+              <p style="margin: 2px 0 0 0; color: #0d9488; font-size: 12px; font-weight: 600;">دليل الإدارة والكشوفات المالية الذكية للعيادات والمراكز البيطرية</p>
+            </div>
+          </div>
+          <div
+            style="background: #0d9488; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            الصفحة 1 • نظرة عامة
+          </div>
+        </div>
+
+        <!-- البانر المالي الجذاب -->
+        <div style="text-align: center; margin: 8px 0 12px 0;">
+          <img src="assets/images/financial_dashboard_showcase.jpg" alt="Financial Showcase"
+            style="width: 100%; max-height: 290px; object-fit: cover; border-radius: 12px; border: 1.5px solid #99f6e4; box-shadow: 0 4px 14px rgba(15,23,42,0.1);" />
+        </div>
+
+        <div
+          style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 12px; padding: 14px 18px; margin: 10px 0; border-right: 5px solid #14b8a6;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <span
+                style="background: #0d9488; color: #ffffff; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: bold;">محاسبة مبسطة وسلسة</span>
+              <h2 style="margin: 4px 0 2px 0; font-size: 17px; color: #2dd4bf;">إدارة مالية واضحة ومباشرة لعيادتكم البيطرية</h2>
+              <p style="margin: 0; color: #cbd5e1; font-size: 11.5px;">صُمم قسم الحركات والكشوفات المالية ليوفر للطبيب وموظف الاستقبال رؤية واضحة ودقيقة لكافة إيرادات الكشوفات والعمليات ومصروفات التشغيل بكل بساطة.</p>
+            </div>
+            <div style="text-align: left; border-right: 1px solid #334155; padding-right: 14px;">
+              <div style="color: #94a3b8; font-size: 10px;">العملة المعتمدة:</div>
+              <div style="color: #f8fafc; font-weight: bold; font-size: 13px;">الريال اليمني (YER)</div>
+              <div style="color: #38bdf8; font-size: 10.5px; margin-top: 1px;">يعمل أوفلاين 100%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 بطاقات مميزات رئيسية مطابقة تماماً للتطبيق -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
+          <div
+            style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px; text-align: center;">
+            <div style="color: #0d9488; font-size: 12.5px; font-weight: bold;">📊 إجمالي الإيرادات</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">متابعة فورية لدخل الكشوفات والعمليات والأدوية</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px; text-align: center;">
+            <div style="color: #e11d48; font-size: 12.5px; font-weight: bold;">📉 ضبط المصروفات</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">تسجيل تكاليف التشغيل (ديزل، إيجار، ومستلزمات)</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px; text-align: center;">
+            <div style="color: #0284c7; font-size: 12.5px; font-weight: bold;">💰 صافي الأرباح</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">حساب تلقائي للفائض المالي المحقق للعيادة</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px; text-align: center;">
+            <div style="color: #16a34a; font-size: 12.5px; font-weight: bold;">🧾 كشوفات المربين</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">سجل مالي تفصيلي لزيارات وفواتير كل عميل</div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • إعداد: م. عبدالله عبدالمغني الأديمي</span>
+        <span>صفحة 1 من 4</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 2: HOW IT WORKS IN SIMPLE DAILY STEPS -->
+    <!-- =================================================================== -->
+    <div class="page-frame"
+      style="border: 2.5px solid #0284c7; background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%);">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bae6fd; padding-bottom: 12px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 44px; height: 44px; border-radius: 10px; border: 2px solid #38bdf8;" />
+            <div>
+              <h2 style="margin: 0; color: #0369a1; font-size: 18px; font-weight: 800;">كيف تُدار حسابات العيادة يومياً بكل بساطة؟</h2>
+              <p style="margin: 2px 0 0 0; color: #0284c7; font-size: 11px;">خطوات عملية ومباشرة تجعل النظام يعمل بسلاسة دون تعقيد</p>
+            </div>
+          </div>
+          <div
+            style="background: #0284c7; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            الصفحة 2 • الدورة اليومية
+          </div>
+        </div>
+
+        <p
+          style="font-size: 12px; color: #334155; margin: 0 0 12px 0; background: #e0f2fe; padding: 10px 14px; border-radius: 8px; border-right: 4px solid #0284c7;">
+          لا يحتاج طبيب العيادة أو موظف الاستقبال لكتابة أي معادلات حسابية؛ فبمجرد تسجيل أي كشف، فحص، أو عملية جراحية، يقوم <strong>VetPulse</strong> بتسجيل الإيراد المالي فوراً في شاشة الحسابات!
+        </p>
+
+        <!-- الخطوات البسيطة -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+          
+          <div style="background: white; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            <div style="background: #0284c7; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0;">1</div>
+            <div>
+              <h3 style="margin: 0 0 3px 0; color: #0369a1; font-size: 13.5px;">الخطوة الأولى: تسجيل خدمات الكشف والعمليات</h3>
+              <p style="font-size: 11px; color: #475569; margin: 0;">عند إتمام الكشف الطبي وإدخال أتعاب الخدمة، أو تنفيذ عملية في الجناح الجراحي، تُوثق الحركة المالية مباشرة باسم المربي ونوع الخدمة والمبلغ بالريال اليمني.</p>
+            </div>
+          </div>
+
+          <div style="background: white; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            <div style="background: #0284c7; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0;">2</div>
+            <div>
+              <h3 style="margin: 0 0 3px 0; color: #0369a1; font-size: 13.5px;">الخطوة الثانية: طرق الدفع المعتمدة في النظام</h3>
+              <p style="font-size: 11px; color: #475569; margin: 0 0 4px 0;">يتيح النظام تسجيل سداد المبالغ بالطرق الرسمية المتاحة:</p>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 10.5px;">
+                <span style="background: #f1f5f9; padding: 3px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: bold;">💵 نقداً (كاش)</span>
+                <span style="background: #f1f5f9; padding: 3px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: bold;">💳 تحويل بنكي / محفظة إلكترونية</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: white; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+            <div style="background: #0284c7; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; flex-shrink: 0;">3</div>
+            <div>
+              <h3 style="margin: 0 0 3px 0; color: #0369a1; font-size: 13.5px;">الخطوة الثالثة: تدوين المصروفات التشغيلية وصافي الأرباح</h3>
+              <p style="font-size: 11px; color: #475569; margin: 0;">يمكنكم تسجيل أي مصروف يخص العيادة (شراء ديزل للمولد، إيجار، أدوات نظافة وتعقيم، أو مستلزمات طبية)، ويقوم النظام تلقائياً بخصم المصروفات من الإيرادات لإظهار <strong>صافي الأرباح المحققة</strong>.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- شريط المؤشرات العلوية التفاعلية المطابق تماماً لبرمجة التطبيق -->
+        <div style="background: white; border: 1.5px solid #0284c7; border-radius: 10px; padding: 12px 14px;">
+          <div style="font-weight: bold; color: #0369a1; font-size: 12.5px; margin-bottom: 8px;">مؤشرات الشاشة العلوية في التطبيق (تتحدث وتتحرك بسلاسة):</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px;">
+              <div style="color: #15803d; font-size: 11px; font-weight: bold;">إجمالي الإيرادات</div>
+              <div style="font-size: 14px; font-weight: 800; color: #166534; margin-top: 2px;">98,500 <span style="font-size: 10px;">ر.ي</span></div>
+            </div>
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px;">
+              <div style="color: #b91c1c; font-size: 11px; font-weight: bold;">المصروفات التشغيلية</div>
+              <div style="font-size: 14px; font-weight: 800; color: #991b1b; margin-top: 2px;">25,600 <span style="font-size: 10px;">ر.ي</span></div>
+            </div>
+            <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 8px;">
+              <div style="color: #0f766e; font-size: 11px; font-weight: bold;">صافي الأرباح</div>
+              <div style="font-size: 14px; font-weight: 800; color: #115e59; margin-top: 2px;">72,900 <span style="font-size: 10px;">ر.ي</span></div>
+            </div>
+            <div style="background: #eef4f8; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px;">
+              <div style="color: #1e3a8a; font-size: 11px; font-weight: bold;">استشارات وجراحات</div>
+              <div style="font-size: 14px; font-weight: 800; color: #1e40af; margin-top: 2px;">15 كشف | 4 عمليات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • إعداد: م. عبدالله عبدالمغني الأديمي</span>
+        <span>صفحة 2 من 4</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 3: OWNERS ACCOUNTS & TRANSACTION STATEMENTS -->
+    <!-- =================================================================== -->
+    <div class="page-frame"
+      style="border: 2.5px solid #10b981; background: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%);">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #bbf7d0; padding-bottom: 12px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 44px; height: 44px; border-radius: 10px; border: 2px solid #34d399;" />
+            <div>
+              <h2 style="margin: 0; color: #047857; font-size: 18px; font-weight: 800;">كشوفات حسابات المربين وسجل المعاملات</h2>
+              <p style="margin: 2px 0 0 0; color: #059669; font-size: 11px;">شفافية متكاملة وتوثيق لكافة الخدمات والفواتير الصادرة لكل عميل</p>
+            </div>
+          </div>
+          <div
+            style="background: #059669; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            الصفحة 3 • كشوفات المربين
+          </div>
+        </div>
+
+        <p
+          style="font-size: 12px; color: #334155; margin: 0 0 12px 0; background: #ecfdf5; padding: 10px 14px; border-radius: 8px; border-right: 4px solid #10b981;">
+          يوفر تبويب <strong>"كشوفات حسابات المربين"</strong> سجلاً مالياً منظماً لكل عميل يتردد على العيادة، مما يتيح مراجعة كامل تاريخ تعاملاته، الفواتير الصادرة له، والمبالغ المسددة بكل سهولة واحترافية:
+        </p>
+
+        <!-- ميزات كشوفات المربين -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+          
+          <div style="background: white; border-radius: 10px; padding: 12px; border: 1px solid #d1fae5;">
+            <h3 style="margin: 0 0 4px 0; color: #065f46; font-size: 13px;">👥 سجل مالي موحد لكل مربي</h3>
+            <p style="font-size: 11px; color: #475569; margin: 0;">يظهر في القائمة اسم المربي، رقم هاتفه المعتمد، إجمالي ما دفعه في عيادتكم، وعدد الحركات المالية المسجلة باسمه بدقة تامة.</p>
+          </div>
+
+          <div style="background: white; border-radius: 10px; padding: 12px; border: 1px solid #d1fae5;">
+            <h3 style="margin: 0 0 4px 0; color: #065f46; font-size: 13px;">🔍 تفاصيل كل حركة وفاتورة</h3>
+            <p style="font-size: 11px; color: #475569; margin: 0;">عند الضغط على أي مربي، تفتح لكم شاشة تفصيلية كاملة توضح تاريخ كل زيارة، الحيوان المعالج، الخدمات المقدمة، والمبالغ المستلمة.</p>
+          </div>
+
+          <div style="background: white; border-radius: 10px; padding: 12px; border: 1px solid #d1fae5;">
+            <h3 style="margin: 0 0 4px 0; color: #065f46; font-size: 13px;">📄 كشف حساب جاهز للطباعة والتصدير</h3>
+            <p style="font-size: 11px; color: #475569; margin: 0;">يمكنكم بنقرة زر استخراج كشف حساب رسمي بصيغة PDF يتضمن ترويسة العيادة وكافة العمليات المعتمدة، لطباعته أو تسليمه للعميل.</p>
+          </div>
+
+          <div style="background: white; border-radius: 10px; padding: 12px; border: 1px solid #d1fae5;">
+            <h3 style="margin: 0 0 4px 0; color: #065f46; font-size: 13px;">📲 مشاركة سريعة عبر الواتساب</h3>
+            <p style="font-size: 11px; color: #475569; margin: 0;">إمكانية إرسال نسخة من كشف الحساب أو إشعار المعاملة المالية إلى رقم هاتف المربي عبر واتساب لتعزيز الشفافية والموثوقية.</p>
+          </div>
+
+        </div>
+
+        <!-- جدول نموذج واقعي من داخل النظام يطابق الواقع 100% -->
+        <div style="background: white; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 14px;">
+          <div style="font-weight: bold; color: #065f46; font-size: 12px; margin-bottom: 6px;">نموذج لسجل معاملات المربين من واقع العيادة:</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center;">
+            <thead>
+              <tr style="background: #f0fdf4; color: #065f46; border-bottom: 1.5px solid #a7f3d0;">
+                <th style="padding: 6px;">اسم المربي</th>
+                <th style="padding: 6px;">الحيوان</th>
+                <th style="padding: 6px;">الخدمة الطبية</th>
+                <th style="padding: 6px;">التاريخ</th>
+                <th style="padding: 6px;">المبلغ المسدد</th>
+                <th style="padding: 6px;">طريقة الدفع</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 6px; font-weight: bold;">م. أحمد الشامي</td>
+                <td style="padding: 6px;">سيمبا (قط)</td>
+                <td style="padding: 6px;">كشف سريري وعلاج معوي</td>
+                <td style="padding: 6px; color: #64748b;">2026/10/04</td>
+                <td style="padding: 6px; color: #16a34a; font-weight: bold;">8,000 ر.ي</td>
+                <td style="padding: 6px;">نقداً (كاش)</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 6px; font-weight: bold;">د. ريم باعباد</td>
+                <td style="padding: 6px;">روكي (كلب)</td>
+                <td style="padding: 6px;">تطعيم خماسي + مضاد طفيليات</td>
+                <td style="padding: 6px; color: #64748b;">2026/10/03</td>
+                <td style="padding: 6px; color: #16a34a; font-weight: bold;">12,500 ر.ي</td>
+                <td style="padding: 6px;">تحويل بنكي / محفظة</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px; font-weight: bold;">أ. طارق الحميري</td>
+                <td style="padding: 6px;">ميشو (قط)</td>
+                <td style="padding: 6px;">تنظيف أسنان وإزالة جير</td>
+                <td style="padding: 6px; color: #64748b;">2026/10/01</td>
+                <td style="padding: 6px; color: #16a34a; font-weight: bold;">6,000 ر.ي</td>
+                <td style="padding: 6px;">نقداً (كاش)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • إعداد: م. عبدالله عبدالمغني الأديمي</span>
+        <span>صفحة 3 من 4</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 4: PERFORMANCE, PRIVACY & CONTACT -->
+    <!-- =================================================================== -->
+    <div class="page-frame"
+      style="border: 2.5px solid #0f766e; background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);">
+      <div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccfbf1; padding-bottom: 12px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo"
+              style="width: 44px; height: 44px; border-radius: 10px; border: 2px solid #2dd4bf;" />
+            <div>
+              <h2 style="margin: 0; color: #115e59; font-size: 18px; font-weight: 800;">سلاسة فائقة، سرية تامة، وأمان محلي 100%</h2>
+              <p style="margin: 2px 0 0 0; color: #0f766e; font-size: 11px;">تجربة مستخدم فائقة الاستجابة مع حفظ سري لكل حسابات العيادة</p>
+            </div>
+          </div>
+          <div
+            style="background: #0f766e; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">
+            الصفحة 4 • الأمان والتواصل
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;">
+          
+          <div style="background: white; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">⚡</div>
+            <h3 style="margin: 0 0 4px 0; color: #0f766e; font-size: 13px;">تنقل فوري وسلس</h3>
+            <p style="font-size: 10.5px; color: #475569; margin: 0;">التنقل بين التبويبات والفلترة لا يعيد تحميل الصفحة إطلاقاً، بل يستجيب في أجزاء من الثانية.</p>
+          </div>
+
+          <div style="background: white; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">🔒</div>
+            <h3 style="margin: 0 0 4px 0; color: #0f766e; font-size: 13px;">سرية أرقام العيادة</h3>
+            <p style="font-size: 10.5px; color: #475569; margin: 0;">جميع بيانات الإيرادات والمصروفات مخزنة محلياً على جهازكم ولا ترفع لأي خادم على الإنترنت.</p>
+          </div>
+
+          <div style="background: white; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 24px; margin-bottom: 4px;">💾</div>
+            <h3 style="margin: 0 0 4px 0; color: #0f766e; font-size: 13px;">نسخ احتياطي آمن</h3>
+            <p style="font-size: 10.5px; color: #475569; margin: 0;">إمكانية حفظ نسخة احتياطية من قاعدة البيانات المالية على فلاش أو قرص خارجي بنقرة زر.</p>
+          </div>
+
+        </div>
+
+        <div
+          style="background: white; border-radius: 10px; padding: 12px 16px; border: 1px solid #99f6e4; margin-bottom: 14px;">
+          <h3 style="margin: 0 0 6px 0; color: #0f766e; font-size: 13px;">💡 لماذا ستشعرون بالفرق من اليوم الأول؟</h3>
+          <ul style="font-size: 11px; color: #334155; margin: 0; padding-right: 18px; line-height: 1.8;">
+            <li><strong>توثيق دقيق لكافة الخدمات:</strong> كل خدمة يكتبها الطبيب تصبح فوراً جزءاً من حسابات العيادة لمنع أي ضياع في الإيرادات.</li>
+            <li><strong>وضوح الموقف المالي:</strong> في نهاية كل يوم أو شهر، تعرفون بدقة إجمالي الإيرادات والمصروفات وصافي الربح المحقق.</li>
+            <li><strong>كشوفات حساب موثوقة:</strong> كشوفات حساب تفصيلية تمنح العميل ثقة عالية وتوثق كامل تاريخ زياراته وفواتيره.</li>
+          </ul>
+        </div>
+
+        <!-- صندوق التواصل والتدشين المعتمد -->
+        <div
+          style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: 12px; padding: 14px 18px; border-top: 4px solid #2dd4bf;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="flex: 1; min-width: 220px;">
+              <h3 style="margin: 0 0 4px 0; color: #2dd4bf; font-size: 15px;">جاهزون لتدشين النظام وتدريب فريقكم الموقر</h3>
+              <p style="margin: 0; color: #cbd5e1; font-size: 11.5px;">يشمل التدشين ضبط الحسابات الافتتاحية، تخصيص فئات المصروفات الخاصة بكم، وتدريب طاقم العيادة على استخدام الشاشة المالية في أقل من ربع ساعة.</p>
+              <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 10.5px;">نسعد دائماً بتلقي استفساراتكم وملاحظاتكم لتطوير العمل المستمر.</p>
+            </div>
+            <div
+              style="background: #334155; padding: 10px 14px; border-radius: 8px; text-align: center; border: 1px solid #475569;">
+              <div style="font-size: 10.5px; color: #94a3b8;">للتواصل المباشر والطلب:</div>
+              <div style="font-size: 14px; font-weight: bold; color: #ffffff; margin: 2px 0;">م. عبدالله عبدالمغني الأديمي</div>
+              <div style="font-size: 10.5px; color: #2dd4bf; font-weight: bold;">مهندس برمجيات ومطور أنظمة</div>
+              <div style="font-size: 10px; color: #cbd5e1; margin-top: 2px;">هاتف / واتساب • الجمهورية اليمنية</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10.5px; color: #64748b;">
+        <span>نظام نبض البيطري (VetPulse) • إعداد: م. عبدالله عبدالمغني الأديمي</span>
+        <span>صفحة 4 من 4 • نهاية الدليل المالي</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

@@ -57,13 +57,14 @@ class UsersListView extends GetView<UsersController> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: controller.selectedRole.value,
                 decoration: const InputDecoration(labelText: AppStringsAr.role),
                 items: const [
-                  DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)')),
-                  DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)')),
-                  DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)')),
-                  DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)')),
+                  DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)', overflow: TextOverflow.ellipsis)),
                 ],
                 onChanged: (v) {
                   if (v != null) controller.selectedRole.value = v;

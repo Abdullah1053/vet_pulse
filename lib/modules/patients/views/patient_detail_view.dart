@@ -288,21 +288,20 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                                       ),
                                 ),
                                 const SizedBox(height: 4),
-                                Row(
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
                                   children: [
                                     StatusChip(label: pet.species, type: ChipStatusType.info),
-                                    const SizedBox(width: 6),
                                     StatusChip(
                                       label: pet.genderDisplayArabic,
                                       type: ChipStatusType.neutral,
                                     ),
-                                    if (pet.isNeutered) ...[
-                                      const SizedBox(width: 6),
+                                    if (pet.isNeutered)
                                       const StatusChip(
                                         label: 'معقم',
                                         type: ChipStatusType.success,
                                       ),
-                                    ],
                                   ],
                                 ),
                               ],
@@ -372,17 +371,29 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.show_chart, color: AppColors.primary, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppStringsAr.weightTracking,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(Icons.show_chart, color: AppColors.primary, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    AppStringsAr.weightTracking,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           TextButton.icon(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             onPressed: () => _showAddWeightDialog(context),
                             icon: const Icon(Icons.add, size: 16),
                             label: const Text('تسجيل وزن'),
@@ -433,16 +444,23 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.assignment_outlined, color: AppColors.primary, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'سجل الكشوفات والفحوصات السريرية (SOAP)',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                            ],
+                          const Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.assignment_outlined, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'سجل الكشوفات السريرية (SOAP)',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -575,16 +593,23 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.healing, color: AppColors.primary, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'سجل العمليات الجراحية المسجلة',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                            ],
+                          const Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.healing, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'سجل العمليات الجراحية',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -655,11 +680,17 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                                       const Icon(Icons.calendar_today, size: 13, color: AppColors.textSecondary),
                                       const SizedBox(width: 4),
                                       Text(s.scheduledDate, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                                      const SizedBox(width: 14),
+                                      const SizedBox(width: 10),
                                       const Icon(Icons.person, size: 13, color: AppColors.textSecondary),
                                       const SizedBox(width: 4),
-                                      Text('الجراح: ${s.surgeonName ?? "طبيب بيطري"}',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                      Expanded(
+                                        child: Text(
+                                          'الجراح: ${s.surgeonName ?? "طبيب بيطري"}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   if (s.postOpNotes != null && s.postOpNotes!.isNotEmpty) ...[
@@ -699,16 +730,23 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.event_repeat, color: AppColors.primary, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'المواعيد والمراجعات المسجلة',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                            ],
+                          const Expanded(
+                            child: Row(
+                              children: [
+                                Icon(Icons.event_repeat, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'المواعيد والمراجعات المسجلة',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -749,16 +787,23 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.alarm, size: 16, color: AppColors.primary),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            '${f.scheduledDate} ${f.scheduledTime != null ? "(${f.scheduledTime})" : ""}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                          ),
-                                        ],
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.alarm, size: 16, color: AppColors.primary),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                '${f.scheduledDate} ${f.scheduledTime != null ? "(${f.scheduledTime})" : ""}',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
@@ -810,7 +855,16 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );

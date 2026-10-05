@@ -102,14 +102,15 @@ class NewSurgeryView extends GetView<SurgeryController> {
                     ),
                     const SizedBox(height: 14),
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: controller.categoryController.text,
                       decoration: const InputDecoration(labelText: AppStringsAr.surgeryCategory),
                       items: const [
-                        DropdownMenuItem(value: AppStringsAr.categoryElective, child: Text(AppStringsAr.categoryElective)),
-                        DropdownMenuItem(value: AppStringsAr.categorySoftTissue, child: Text(AppStringsAr.categorySoftTissue)),
-                        DropdownMenuItem(value: AppStringsAr.categoryOrthopedic, child: Text(AppStringsAr.categoryOrthopedic)),
-                        DropdownMenuItem(value: AppStringsAr.categoryDental, child: Text(AppStringsAr.categoryDental)),
-                        DropdownMenuItem(value: AppStringsAr.categoryEmergency, child: Text(AppStringsAr.categoryEmergency)),
+                        DropdownMenuItem(value: AppStringsAr.categoryElective, child: Text(AppStringsAr.categoryElective, overflow: TextOverflow.ellipsis)),
+                        DropdownMenuItem(value: AppStringsAr.categorySoftTissue, child: Text(AppStringsAr.categorySoftTissue, overflow: TextOverflow.ellipsis)),
+                        DropdownMenuItem(value: AppStringsAr.categoryOrthopedic, child: Text(AppStringsAr.categoryOrthopedic, overflow: TextOverflow.ellipsis)),
+                        DropdownMenuItem(value: AppStringsAr.categoryDental, child: Text(AppStringsAr.categoryDental, overflow: TextOverflow.ellipsis)),
+                        DropdownMenuItem(value: AppStringsAr.categoryEmergency, child: Text(AppStringsAr.categoryEmergency, overflow: TextOverflow.ellipsis)),
                       ],
                       onChanged: (v) {
                         if (v != null) controller.categoryController.text = v;

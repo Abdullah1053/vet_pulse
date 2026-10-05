@@ -42,7 +42,7 @@ class WeeklyReportsView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios, size: 18),
+                        icon: const Icon(Icons.arrow_back_ios, size: 18),
                         tooltip: 'الأسبوع السابق',
                         onPressed: controller.previousWeek,
                       ),
@@ -63,7 +63,7 @@ class WeeklyReportsView extends StatelessWidget {
                       ),
                       IconButton(
                         icon: Icon(
-                          Icons.arrow_back_ios,
+                          Icons.arrow_forward_ios,
                           size: 18,
                           color: controller.weekOffset.value == 0 ? Colors.grey.shade400 : AppColors.darkNeutral,
                         ),
@@ -159,7 +159,15 @@ class WeeklyReportsView extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(diag['diagnosis'] as String? ?? 'عام', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    Expanded(
+                                      child: Text(
+                                        diag['diagnosis'] as String? ?? 'عام',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 2,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                     Text('$count حالة (${(pct * 100).toStringAsFixed(0)}%)', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                   ],
                                 ),
@@ -218,10 +226,15 @@ class WeeklyReportsView extends StatelessWidget {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    med['med_name'] as String? ?? 'دواء',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  Expanded(
+                                    child: Text(
+                                      med['med_name'] as String? ?? 'دواء',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     '${med['total_qty']} جرعة / حقنة',
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.accent),

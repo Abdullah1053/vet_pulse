@@ -500,14 +500,15 @@ class OwnerAccountStatementView extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: paymentMethod,
                   decoration: const InputDecoration(
                     labelText: 'طريقة التحصيل *',
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)')),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية')),
+                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية', overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (val) {
                     if (val != null) {

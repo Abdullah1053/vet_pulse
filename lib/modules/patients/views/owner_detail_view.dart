@@ -107,14 +107,15 @@ class OwnerDetailController extends GetxController {
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: paymentMethod,
                   decoration: const InputDecoration(
                     labelText: 'طريقة التحصيل *',
                     border: OutlineInputBorder(),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)')),
-                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية')),
+                    DropdownMenuItem(value: 'cash', child: Text('نقداً (كاش)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'bank_transfer', child: Text('تحويل بنكي / محفظة إلكترونية', overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (val) {
                     if (val != null) setState(() => paymentMethod = val);
@@ -307,10 +308,15 @@ class OwnerDetailView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'الحيوانات التابعة لهذا المربي (${controller.pets.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.darkNeutral),
+                  Expanded(
+                    child: Text(
+                      'الحيوانات التابعة لهذا المربي (${controller.pets.length})',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.darkNeutral),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   TextButton.icon(
                     icon: const Icon(Icons.add, size: 16),
                     label: const Text('إضافة حيوان'),
@@ -499,23 +505,30 @@ class OwnerDetailView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 20),
                         ),
-                        child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'كشف الحساب والوضعية المالية',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'كشف الحساب والوضعية المالية',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(

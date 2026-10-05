@@ -25,9 +25,9 @@ class FinancialController extends GetxController {
   final RxInt surgCount = 0.obs;
   final RxDouble surgTotal = 0.0.obs;
 
-  // Lists
-  final RxList<FinancialTransactionModel> transactions = <FinancialTransactionModel>[].obs;
-  final RxList<ExpenseModel> expenses = <ExpenseModel>[].obs;
+  // All unfiltered records cached in memory for seamless 0ms instant filtering
+  final RxList<FinancialTransactionModel> allTransactions = <FinancialTransactionModel>[].obs;
+  final RxList<ExpenseModel> allExpenses = <ExpenseModel>[].obs;
   final RxList<OwnerAccountSummary> ownersAccounts = <OwnerAccountSummary>[].obs;
   final RxList<OwnerModel> allOwners = <OwnerModel>[].obs;
 
@@ -42,8 +42,10 @@ class FinancialController extends GetxController {
     loadFinancialData();
   }
 
-  Future<void> loadFinancialData() async {
-    isLoading.value = true;
+  Future<void> loadFinancialData({bool isSilent = false}) async {
+    if (!isSilent && allTransactions.isEmpty && allExpenses.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       // 1. Load summary KPIs
       final summary = await _repo.getFinancialSummary();
@@ -56,18 +58,13 @@ class FinancialController extends GetxController {
       surgCount.value = summary['surgCount'] ?? 0;
       surgTotal.value = summary['surgTotal'] ?? 0.0;
 
-      // 2. Load transactions
-      final txList = await _repo.getAllTransactions(
-        type: selectedTxType.value,
-        limit: 100,
-      );
-      transactions.assignAll(txList);
+      // 2. Load all transactions for in-memory instant filtering
+      final txList = await _repo.getAllTransactions(limit: 500);
+      allTransactions.assignAll(txList);
 
-      // 3. Load expenses
-      final expList = await _repo.getAllExpenses(
-        category: selectedExpenseCategory.value,
-      );
-      expenses.assignAll(expList);
+      // 3. Load all expenses for in-memory instant filtering
+      final expList = await _repo.getAllExpenses();
+      allExpenses.assignAll(expList);
 
       // 4. Load owners & account balances
       final ownersList = await _petRepo.getAllOwners();
@@ -88,14 +85,25 @@ class FinancialController extends GetxController {
     }
   }
 
+  // Instant in-memory filters without any loading indicators or screen reloading
+  List<FinancialTransactionModel> get filteredTransactions {
+    final type = selectedTxType.value;
+    if (type == 'all') return allTransactions;
+    return allTransactions.where((t) => t.transactionType == type).toList();
+  }
+
+  List<ExpenseModel> get filteredExpenses {
+    final cat = selectedExpenseCategory.value;
+    if (cat == 'all') return allExpenses;
+    return allExpenses.where((e) => e.category == cat).toList();
+  }
+
   void filterExpenses(String category) {
     selectedExpenseCategory.value = category;
-    loadFinancialData();
   }
 
   void filterTransactions(String type) {
     selectedTxType.value = type;
-    loadFinancialData();
   }
 
   List<OwnerAccountSummary> get filteredOwnersAccounts {
@@ -128,7 +136,7 @@ class FinancialController extends GetxController {
         notes: notes,
       );
       await _repo.insertExpense(expense);
-      await loadFinancialData();
+      await loadFinancialData(isSilent: true);
       DataSyncService.notifyAllChanged();
 
       Get.snackbar(
@@ -153,7 +161,7 @@ class FinancialController extends GetxController {
   Future<void> deleteExpense(int id) async {
     try {
       await _repo.deleteExpense(id);
-      await loadFinancialData();
+      await loadFinancialData(isSilent: true);
       DataSyncService.notifyAllChanged();
       Get.snackbar(
         'تم الحذف',
@@ -180,7 +188,7 @@ class FinancialController extends GetxController {
         paymentMethod: paymentMethod,
         notes: notes,
       );
-      await loadFinancialData();
+      await loadFinancialData(isSilent: true);
       DataSyncService.notifyAllChanged();
 
       Get.snackbar(

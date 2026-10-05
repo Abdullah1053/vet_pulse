@@ -12,6 +12,10 @@ class CustomTextField extends StatelessWidget {
   final int maxLines;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
+  final String? prefixText;
+  final Widget? prefix;
+  final TextDirection? textDirection;
+  final int? maxLength;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
@@ -30,6 +34,10 @@ class CustomTextField extends StatelessWidget {
     this.maxLines = 1,
     this.prefixIcon,
     this.suffixIcon,
+    this.prefixText,
+    this.prefix,
+    this.textDirection,
+    this.maxLength,
     this.validator,
     this.onChanged,
     this.onSubmitted,
@@ -64,11 +72,15 @@ class CustomTextField extends StatelessWidget {
           onChanged: onChanged,
           onFieldSubmitted: onSubmitted,
           inputFormatters: inputFormatters,
-          textDirection: TextDirection.rtl,
+          textDirection: textDirection ?? TextDirection.rtl,
+          maxLength: maxLength,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon,
             suffixIcon: suffixIcon,
+            prefixText: prefixText,
+            prefix: prefix,
+            counterText: '',
           ),
         ),
       ],

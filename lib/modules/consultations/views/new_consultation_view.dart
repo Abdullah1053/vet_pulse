@@ -393,27 +393,10 @@ class NewConsultationView extends GetView<ConsultationController> {
                             label: 'الجرعة المعطاة',
                             hint: 'مثال: 1.5 مل أو 1 أمبول',
                             controller: controller.clinicDoseController,
+                            prefixIcon: const Icon(Icons.healing, size: 18),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 3,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: controller.clinicRouteController.text,
-                            decoration: const InputDecoration(labelText: 'طريقة الإعطاء'),
-                            items: const [
-                              DropdownMenuItem(value: 'حقن عضلي (IM)', child: Text('حقن عضلي (IM)')),
-                              DropdownMenuItem(value: 'حقن وريدي (IV)', child: Text('حقن وريدي (IV)')),
-                              DropdownMenuItem(value: 'حقن تحت الجلد (SC)', child: Text('تحت الجلد (SC)')),
-                              DropdownMenuItem(value: 'إعطاء فموي (Oral)', child: Text('فموي (Oral)')),
-                              DropdownMenuItem(value: 'موضعي (Topical)', child: Text('موضعي (Topical)')),
-                            ],
-                            onChanged: (v) {
-                              if (v != null) controller.clinicRouteController.text = v;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
                           child: CustomTextField(
@@ -421,9 +404,46 @@ class NewConsultationView extends GetView<ConsultationController> {
                             hint: '1',
                             controller: controller.clinicQtyController,
                             keyboardType: TextInputType.number,
+                            prefixIcon: const Icon(Icons.pin, size: 18),
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: controller.clinicRouteController.text.isNotEmpty
+                          ? controller.clinicRouteController.text
+                          : 'حقن عضلي (IM)',
+                      decoration: const InputDecoration(
+                        labelText: 'طريقة الإعطاء *',
+                        prefixIcon: Icon(Icons.vaccines, color: AppColors.primary),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'حقن عضلي (IM)',
+                          child: Text('حقن عضلي (IM) - Intramuscular', overflow: TextOverflow.ellipsis),
+                        ),
+                        DropdownMenuItem(
+                          value: 'حقن وريدي (IV)',
+                          child: Text('حقن وريدي (IV) - Intravenous', overflow: TextOverflow.ellipsis),
+                        ),
+                        DropdownMenuItem(
+                          value: 'حقن تحت الجلد (SC)',
+                          child: Text('حقن تحت الجلد (SC) - Subcutaneous', overflow: TextOverflow.ellipsis),
+                        ),
+                        DropdownMenuItem(
+                          value: 'إعطاء فموي (Oral)',
+                          child: Text('إعطاء فموي (Oral)', overflow: TextOverflow.ellipsis),
+                        ),
+                        DropdownMenuItem(
+                          value: 'موضعي (Topical)',
+                          child: Text('موضعي (Topical)', overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) controller.clinicRouteController.text = v;
+                      },
                     ),
                     const SizedBox(height: 10),
 
@@ -542,25 +562,25 @@ class NewConsultationView extends GetView<ConsultationController> {
                     Row(
                       children: [
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: CustomTextField(
-                            label: 'الجرعة وطريقة الاستعمال',
-                            hint: 'مثال: 1 قرص، أو 2 مل',
+                            label: 'الجرعة',
+                            hint: '1 قرص / 2 مل',
                             controller: controller.homeDosageController,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: CustomTextField(
                             label: 'التكرار',
-                            hint: 'مرتين يومياً بعد الأكل',
+                            hint: 'مرتين يومياً',
                             controller: controller.homeFrequencyController,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          flex: 1,
+                          flex: 2,
                           child: CustomTextField(
                             label: 'المدة (أيام)',
                             hint: '5',
@@ -700,17 +720,55 @@ class NewConsultationView extends GetView<ConsultationController> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int?>(
+                          // Dedicated stylized Lead Surgeon selector
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.person_pin_outlined, color: AppColors.primary, size: 20),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'الجراح المسؤول عن العملية *',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<int?>(
                                   isExpanded: true,
                                   initialValue: controller.selectedSurgeon.value?.id,
-                                  decoration: const InputDecoration(labelText: 'الجراح المسؤول'),
+                                  decoration: InputDecoration(
+                                    hintText: 'اختر الطبيب الجراح المسؤول',
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  ),
                                   items: controller.availableSurgeons.map((d) {
                                     return DropdownMenuItem<int?>(
                                       value: d.id,
-                                      child: Text(d.fullName, overflow: TextOverflow.ellipsis, maxLines: 1),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.medical_services, size: 16, color: AppColors.primary),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'د. ${d.fullName} (${d.role})',
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   }).toList(),
                                   onChanged: (id) {
@@ -720,17 +778,16 @@ class NewConsultationView extends GetView<ConsultationController> {
                                     }
                                   },
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: CustomTextField(
-                                  label: 'التكلفة التقديرية (${AppStringsAr.currencyShort})',
-                                  hint: '25000',
-                                  controller: controller.surgeryCostController,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          CustomTextField(
+                            label: 'التكلفة التقديرية للعملية (${AppStringsAr.currencyShort})',
+                            hint: '25000',
+                            controller: controller.surgeryCostController,
+                            keyboardType: TextInputType.number,
+                            prefixIcon: const Icon(Icons.payments_outlined),
                           ),
                           const SizedBox(height: 12),
                           CustomTextField(
@@ -793,17 +850,6 @@ class NewConsultationView extends GetView<ConsultationController> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: CustomTextField(
-                                  label: 'تاريخ بدء الجلسات',
-                                  hint: 'YYYY-MM-DD',
-                                  controller: controller.planStartDateController,
-                                  readOnly: true,
-                                  onTap: () => _selectDate(context, controller.planStartDateController),
-                                  prefixIcon: const Icon(Icons.calendar_today),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: CustomTextField(
                                   label: 'وقت الحضور اليومي',
                                   hint: '10:00 ص',
                                   controller: controller.planTimeController,
@@ -813,6 +859,15 @@ class NewConsultationView extends GetView<ConsultationController> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          CustomTextField(
+                            label: 'تاريخ بدء الجلسات',
+                            hint: 'YYYY-MM-DD',
+                            controller: controller.planStartDateController,
+                            readOnly: true,
+                            onTap: () => _selectDate(context, controller.planStartDateController),
+                            prefixIcon: const Icon(Icons.calendar_today),
                           ),
                           const SizedBox(height: 12),
                           CustomTextField(

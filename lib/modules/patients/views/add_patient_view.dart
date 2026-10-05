@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
@@ -176,6 +177,7 @@ class AddPatientView extends GetView<PatientController> {
                               ),
                               const SizedBox(height: 6),
                               DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 initialValue: controller.speciesController.text,
                                 decoration: const InputDecoration(),
                                 items: const [
@@ -227,6 +229,7 @@ class AddPatientView extends GetView<PatientController> {
                               const Text('الوحدة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 6),
                               Obx(() => DropdownButtonFormField<String>(
+                                    isExpanded: true,
                                     initialValue: controller.selectedAgeUnit.value,
                                     decoration: const InputDecoration(),
                                     items: const [
@@ -422,10 +425,17 @@ class AddPatientView extends GetView<PatientController> {
                           ),
                           const SizedBox(height: 14),
                           CustomTextField(
-                            label: AppStringsAr.primaryPhone,
-                            hint: '05xxxxxxxx (لتذكيرات الواتساب)',
+                            label: '${AppStringsAr.primaryPhone} (رقم يمني +967) *',
+                            hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
                             controller: controller.ownerPhoneController,
                             keyboardType: TextInputType.phone,
+                            prefixText: '+967 ',
+                            textDirection: TextDirection.ltr,
+                            maxLength: 9,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(9),
+                            ],
                             prefixIcon: const Icon(Icons.phone),
                           ),
                           const SizedBox(height: 14),

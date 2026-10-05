@@ -204,6 +204,8 @@ class DashboardView extends GetView<DashboardController> {
               children: [
                 Obx(() => Text(
                       authController.clinicInfo.value?.clinicName ?? 'عيادة بيطرية متقدمة',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -217,6 +219,8 @@ class DashboardView extends GetView<DashboardController> {
                     user != null
                         ? '${user.fullName} (${user.roleDisplayArabic})'
                         : (authController.clinicInfo.value?.doctorName ?? 'مرحباً دكتور'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 13,
@@ -402,7 +406,7 @@ class DashboardView extends GetView<DashboardController> {
           children: [
             Expanded(
               child: _buildActionButton(
-                label: AppStringsAr.pharmacy,
+                label: 'الصيدلية والمخزون',
                 icon: Icons.inventory_2_outlined,
                 color: const Color(0xFF2A9D8F),
                 onPressed: () => Get.toNamed(AppRoutes.inventoryList),
@@ -411,7 +415,7 @@ class DashboardView extends GetView<DashboardController> {
             const SizedBox(width: 10),
             Expanded(
               child: _buildActionButton(
-                label: AppStringsAr.followUps,
+                label: 'المراجعات والمواعيد',
                 icon: Icons.event_note,
                 color: const Color(0xFFE76F51),
                 onPressed: () => Get.toNamed(AppRoutes.followUps),
@@ -445,11 +449,18 @@ class DashboardView extends GetView<DashboardController> {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
-      label: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        minimumSize: const Size(0, 48),
+        fixedSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
@@ -536,13 +547,30 @@ class DashboardView extends GetView<DashboardController> {
   }
 
   Widget _buildDrawer(BuildContext context, AuthController authController) {
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top;
+    final bottomPadding = mediaQuery.padding.bottom;
+
     return Drawer(
-      child: Column(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        physics: const ClampingScrollPhysics(),
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 50, bottom: 20, right: 20, left: 20),
+            padding: EdgeInsets.only(
+              top: topPadding > 0 ? topPadding + 16 : 40,
+              bottom: 20,
+              right: 20,
+              left: 20,
+            ),
             width: double.infinity,
-            color: AppColors.primary,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryDark],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -556,19 +584,23 @@ class DashboardView extends GetView<DashboardController> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
+                Obx(() => Text(
                   authController.clinicInfo.value?.clinicName ?? '',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
-                ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                )),
               ],
             ),
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.dashboard_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.dashboard),
             onTap: () => Get.back(),
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.assignment_outlined, color: AppColors.primary),
             title: const Text('سجل الكشوفات السريرية'),
             onTap: () {
@@ -577,6 +609,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.pets_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.patients),
             onTap: () {
@@ -585,6 +618,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.people_alt_outlined, color: AppColors.primary),
             title: const Text('سجل المربين (المالكين)'),
             onTap: () {
@@ -593,6 +627,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.medication_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.pharmacy),
             onTap: () {
@@ -601,6 +636,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.followUps),
             onTap: () {
@@ -609,6 +645,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.healing_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.surgeries),
             onTap: () {
@@ -617,6 +654,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
             title: const Text('التقارير الأسبوعية الشاملة'),
             onTap: () {
@@ -625,6 +663,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary),
             title: const Text('الإدارة المالية وكشوفات الحسابات'),
             onTap: () {
@@ -633,6 +672,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
             title: const Text('مركز التنبيهات والتذكيرات'),
             onTap: () {
@@ -641,6 +681,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.group_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.usersManagement),
             onTap: () {
@@ -649,6 +690,7 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.settings_outlined, color: AppColors.primary),
             title: const Text(AppStringsAr.clinicSetupTitle),
             onTap: () {
@@ -658,6 +700,7 @@ class DashboardView extends GetView<DashboardController> {
           ),
           const Divider(),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.restart_alt, color: Colors.teal),
             title: const Text('إعادة تهيئة بيانات العرض التجريبي'),
             subtitle: const Text('استعادة البيانات السريرية النموذجية (Demo Reset)', style: TextStyle(fontSize: 11)),
@@ -668,11 +711,12 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           ListTile(
+            dense: true,
             leading: const Icon(Icons.logout, color: AppColors.critical),
             title: const Text(AppStringsAr.logout, style: TextStyle(color: AppColors.critical)),
             onTap: authController.logout,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: bottomPadding > 0 ? bottomPadding + 16 : 24),
         ],
       ),
     );

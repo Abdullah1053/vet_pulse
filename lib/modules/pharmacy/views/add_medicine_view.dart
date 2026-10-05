@@ -69,15 +69,16 @@ class AddMedicineView extends GetView<PharmacyController> {
                               ),
                               const SizedBox(height: 6),
                               DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 initialValue: controller.formController.text,
                                 decoration: const InputDecoration(),
                                 items: const [
-                                  DropdownMenuItem(value: AppStringsAr.formTablet, child: Text(AppStringsAr.formTablet)),
-                                  DropdownMenuItem(value: AppStringsAr.formInjection, child: Text(AppStringsAr.formInjection)),
-                                  DropdownMenuItem(value: AppStringsAr.formSyrup, child: Text(AppStringsAr.formSyrup)),
-                                  DropdownMenuItem(value: AppStringsAr.formOintment, child: Text(AppStringsAr.formOintment)),
-                                  DropdownMenuItem(value: AppStringsAr.formVaccine, child: Text(AppStringsAr.formVaccine)),
-                                  DropdownMenuItem(value: AppStringsAr.formFluid, child: Text(AppStringsAr.formFluid)),
+                                  DropdownMenuItem(value: AppStringsAr.formTablet, child: Text(AppStringsAr.formTablet, overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem(value: AppStringsAr.formInjection, child: Text(AppStringsAr.formInjection, overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem(value: AppStringsAr.formSyrup, child: Text(AppStringsAr.formSyrup, overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem(value: AppStringsAr.formOintment, child: Text(AppStringsAr.formOintment, overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem(value: AppStringsAr.formVaccine, child: Text(AppStringsAr.formVaccine, overflow: TextOverflow.ellipsis)),
+                                  DropdownMenuItem(value: AppStringsAr.formFluid, child: Text(AppStringsAr.formFluid, overflow: TextOverflow.ellipsis)),
                                 ],
                                 onChanged: (v) {
                                   if (v != null) controller.formController.text = v;
