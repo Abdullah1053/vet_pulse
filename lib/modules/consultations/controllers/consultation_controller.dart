@@ -47,6 +47,7 @@ class ConsultationController extends GetxController {
   final planController = TextEditingController(); // Plan
   final costController = TextEditingController(text: '5000'); // Yemeni Rial
   final RxString selectedPaymentMethod = AppPaymentMethods.cash.obs;
+  final RxBool showCostInPrescription = true.obs; // إظهار أتعاب الكشف والخدمات في الروشتة المطبوعة
 
   // 1. In-Clinic Administered Injections & Treatments (deducted from pharmacy shelf stock)
   final RxList<PrescriptionModel> clinicTreatments = <PrescriptionModel>[].obs;
@@ -336,7 +337,13 @@ class ConsultationController extends GetxController {
       );
 
       // Navigate to printable prescription preview
-      Get.offNamed(AppRoutes.prescriptionPreview, arguments: created);
+      Get.offNamed(
+        AppRoutes.prescriptionPreview,
+        arguments: {
+          'consultation': created,
+          'showCost': showCostInPrescription.value,
+        },
+      );
     } finally {
       isLoading.value = false;
     }

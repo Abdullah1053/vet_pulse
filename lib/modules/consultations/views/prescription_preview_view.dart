@@ -14,13 +14,38 @@ import '../../../data/models/consultation_model.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/consultation_controller.dart';
 
-class PrescriptionPreviewView extends StatelessWidget {
+class PrescriptionPreviewView extends StatefulWidget {
   const PrescriptionPreviewView({super.key});
+
+  @override
+  State<PrescriptionPreviewView> createState() => _PrescriptionPreviewViewState();
+}
+
+class _PrescriptionPreviewViewState extends State<PrescriptionPreviewView> {
+  late bool _showCost;
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      bool defaultPref = true;
+      if (Get.isRegistered<ConsultationController>()) {
+        defaultPref = Get.find<ConsultationController>().showCostInPrescription.value;
+      }
+      if (Get.arguments is Map && (Get.arguments as Map).containsKey('showCost')) {
+        defaultPref = (Get.arguments as Map)['showCost'] as bool? ?? defaultPref;
+      }
+      _showCost = defaultPref;
+      _initialized = true;
+    }
+  }
 
   Future<Uint8List> _generatePdf(
     ConsultationModel consultation,
-    ClinicModel? clinic,
-  ) async {
+    ClinicModel? clinic, {
+    bool showCost = true,
+  }) async {
     final pdf = pw.Document();
 
     // Load bundled local TrueType Arabic fonts directly from assets (guaranteed offline, 0 network dependency)
@@ -237,8 +262,8 @@ class PrescriptionPreviewView extends StatelessWidget {
                   ],
                 ),
 
-                // 5. Cost of Consultation (if applicable)
-                if (consultation.visitCost > 0) ...[
+                // 5. Cost of Consultation (if applicable & requested by doctor)
+                if (showCost && consultation.visitCost > 0) ...[
                   pw.SizedBox(height: 8),
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -292,7 +317,11 @@ class PrescriptionPreviewView extends StatelessWidget {
     return pdf.save();
   }
 
-  Future<void> _shareOnWhatsApp(ConsultationModel consultation, ClinicModel? clinic) async {
+  Future<void> _shareOnWhatsApp(
+    ConsultationModel consultation,
+    ClinicModel? clinic, {
+    required bool showCost,
+  }) async {
     final buffer = StringBuffer();
     buffer.writeln('🐾 *${clinic?.clinicName ?? "عيادة بيطرية"}*');
     buffer.writeln('📋 *روشتة طبية إلكترونية*');
@@ -300,8 +329,8 @@ class PrescriptionPreviewView extends StatelessWidget {
     buffer.writeln('المريض: ${consultation.petName} (${consultation.petSpecies})');
     buffer.writeln('التشخيص: ${consultation.diagnosis}');
     buffer.writeln('التاريخ: ${consultation.visitDate.length >= 10 ? consultation.visitDate.substring(0, 10) : consultation.visitDate}');
-    if (consultation.visitCost > 0) {
-      buffer.writeln('أتعاب الكشف: ${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}');
+    if (showCost && consultation.visitCost > 0) {
+      buffer.writeln('أتعاب الكشف والخدمات: ${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}');
     }
     buffer.writeln('---------------------------');
     buffer.writeln('💊 *الأدوية الموصوفة:*');
@@ -323,9 +352,13 @@ class PrescriptionPreviewView extends StatelessWidget {
     }
   }
 
-  Future<void> _sharePdfFile(ConsultationModel consultation, ClinicModel? clinic) async {
+  Future<void> _sharePdfFile(
+    ConsultationModel consultation,
+    ClinicModel? clinic, {
+    required bool showCost,
+  }) async {
     try {
-      final bytes = await _generatePdf(consultation, clinic);
+      final bytes = await _generatePdf(consultation, clinic, showCost: showCost);
       await Printing.sharePdf(
         bytes: bytes,
         filename: 'prescription_${consultation.petName ?? "pet"}_${consultation.id ?? 1}.pdf',
@@ -337,8 +370,14 @@ class PrescriptionPreviewView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ConsultationModel? consultation = Get.arguments as ConsultationModel? ??
-        Get.find<ConsultationController>().lastCreatedConsultation.value;
+    ConsultationModel? consultation;
+    if (Get.arguments is ConsultationModel) {
+      consultation = Get.arguments as ConsultationModel;
+    } else if (Get.arguments is Map) {
+      consultation = (Get.arguments as Map)['consultation'] as ConsultationModel?;
+    } else if (Get.isRegistered<ConsultationController>()) {
+      consultation = Get.find<ConsultationController>().lastCreatedConsultation.value;
+    }
 
     final authController = Get.find<AuthController>();
     final clinic = authController.clinicInfo.value;
@@ -350,6 +389,9 @@ class PrescriptionPreviewView extends StatelessWidget {
       );
     }
 
+    final ConsultationModel validConsultation = consultation;
+    final hasCost = validConsultation.visitCost > 0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('الروشتة الطبية البيطرية'),
@@ -357,22 +399,120 @@ class PrescriptionPreviewView extends StatelessWidget {
           IconButton(
             tooltip: 'مشاركة ملف PDF',
             icon: const Icon(Icons.share, color: AppColors.primary),
-            onPressed: () => _sharePdfFile(consultation, clinic),
+            onPressed: () => _sharePdfFile(validConsultation, clinic, showCost: _showCost),
           ),
           IconButton(
             tooltip: AppStringsAr.shareWhatsApp,
             icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
-            onPressed: () => _shareOnWhatsApp(consultation, clinic),
+            onPressed: () => _shareOnWhatsApp(validConsultation, clinic, showCost: _showCost),
           ),
         ],
       ),
-      body: PdfPreview(
-        build: (format) => _generatePdf(consultation, clinic),
-        canChangeOrientation: false,
-        canChangePageFormat: false,
-        allowPrinting: true,
-        allowSharing: true,
-        pdfFileName: 'prescription_${consultation.petName ?? "pet"}_${consultation.id ?? 1}.pdf',
+      body: Column(
+        children: [
+          // Doctor control banner for Consultation Fee visibility
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: (_showCost && hasCost) ? AppColors.secondaryLight : Colors.grey.shade100,
+              border: Border(
+                bottom: BorderSide(
+                  color: (_showCost && hasCost)
+                      ? AppColors.primary.withValues(alpha: 0.3)
+                      : Colors.grey.shade300,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  (_showCost && hasCost) ? Icons.visibility : Icons.visibility_off,
+                  color: (_showCost && hasCost) ? AppColors.primary : Colors.grey.shade600,
+                  size: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'أتعاب الكشف والخدمات في الطباعة',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: (_showCost && hasCost)
+                                  ? AppColors.primaryDark
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: !hasCost
+                                  ? Colors.grey.shade400
+                                  : (_showCost ? AppColors.primary : Colors.grey.shade500),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              !hasCost ? 'مجاني' : (_showCost ? 'ظاهر' : 'مخفي'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasCost
+                            ? (_showCost
+                                ? 'سيظهر مبلغ الأتعاب (${validConsultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}) في الروشتة المطبوعة'
+                                : 'مخفي: لن يظهر أي مبلغ مالي في الروشتة المطبوعة (روشتة علاجية فقط)')
+                            : 'لا توجد أتعاب مسجلة لهذا الكشف',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: (_showCost && hasCost)
+                              ? AppColors.primaryDark.withValues(alpha: 0.8)
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _showCost && hasCost,
+                  activeTrackColor: AppColors.primary,
+                  onChanged: hasCost
+                      ? (val) {
+                          setState(() {
+                            _showCost = val;
+                            if (Get.isRegistered<ConsultationController>()) {
+                              Get.find<ConsultationController>().showCostInPrescription.value = val;
+                            }
+                          });
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: PdfPreview(
+              build: (format) => _generatePdf(validConsultation, clinic, showCost: _showCost),
+              canChangeOrientation: false,
+              canChangePageFormat: false,
+              allowPrinting: true,
+              allowSharing: true,
+              pdfFileName: 'prescription_${validConsultation.petName ?? "pet"}_${validConsultation.id ?? 1}.pdf',
+            ),
+          ),
+        ],
       ),
     );
   }

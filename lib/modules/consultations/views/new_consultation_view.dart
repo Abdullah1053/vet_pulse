@@ -985,6 +985,69 @@ class NewConsultationView extends GetView<ConsultationController> {
                         if (val != null) controller.selectedPaymentMethod.value = val;
                       },
                     )),
+                    const SizedBox(height: 14),
+                    Obx(() => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: controller.showCostInPrescription.value
+                            ? AppColors.secondaryLight
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: controller.showCostInPrescription.value
+                              ? AppColors.primary.withValues(alpha: 0.3)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            controller.showCostInPrescription.value
+                                ? Icons.receipt_long
+                                : Icons.money_off,
+                            color: controller.showCostInPrescription.value
+                                ? AppColors.primary
+                                : Colors.grey.shade600,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'إظهار أتعاب الكشف في الروشتة المطبوعة',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: controller.showCostInPrescription.value
+                                        ? AppColors.primaryDark
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  controller.showCostInPrescription.value
+                                      ? 'سيظهر مبلغ الأتعاب في أسفل الروشتة'
+                                      : 'مخفي: لن يظهر المبلغ في الروشتة (روشتة علاجية فقط)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: controller.showCostInPrescription.value
+                                        ? AppColors.primaryDark.withValues(alpha: 0.8)
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch.adaptive(
+                            value: controller.showCostInPrescription.value,
+                            activeTrackColor: AppColors.primary,
+                            onChanged: (val) => controller.showCostInPrescription.value = val,
+                          ),
+                        ],
+                      ),
+                    )),
                   ],
                 ),
               ),
