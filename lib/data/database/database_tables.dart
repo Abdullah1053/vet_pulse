@@ -49,7 +49,6 @@ class DatabaseTables {
       full_name TEXT NOT NULL,
       phone_primary TEXT NOT NULL,
       address TEXT,
-      notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   ''';

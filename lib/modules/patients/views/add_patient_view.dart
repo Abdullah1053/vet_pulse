@@ -445,6 +445,42 @@ class AddPatientView extends GetView<PatientController> {
                             controller: controller.ownerAddressController,
                             prefixIcon: const Icon(Icons.home),
                           ),
+                          const SizedBox(height: 14),
+                          Obx(() => Container(
+                            decoration: BoxDecoration(
+                              color: controller.autoSaveContactToPhone.value
+                                  ? Theme.of(context).primaryColor.withValues(alpha: 0.06)
+                                  : Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: controller.autoSaveContactToPhone.value
+                                    ? Theme.of(context).primaryColor.withValues(alpha: 0.3)
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: SwitchListTile.adaptive(
+                              value: controller.autoSaveContactToPhone.value,
+                              onChanged: (val) => controller.autoSaveContactToPhone.value = val,
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.contact_phone_outlined, size: 20, color: Color(0xFF1B6CA8)),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'حفظ في جهات اتصال الهاتف',
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              subtitle: const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'حفظ الاسم والرقم تلقائياً في سجل الهاتف لسهولة التواصل',
+                                  style: TextStyle(fontSize: 11, color: Colors.black54),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                            ),
+                          )),
                         ],
                       );
                     }),

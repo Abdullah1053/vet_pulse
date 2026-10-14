@@ -12,6 +12,7 @@ import '../../../data/repositories/consultation_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../../../core/services/data_sync_service.dart';
+import '../../../core/services/device_contact_service.dart';
 import '../../../core/config/demo_config.dart';
 
 class PatientController extends GetxController {
@@ -58,6 +59,7 @@ class PatientController extends GetxController {
   final ownerPhoneController = TextEditingController();
   final ownerAddressController = TextEditingController();
   final Rx<OwnerModel?> selectedExistingOwner = Rx<OwnerModel?>(null);
+  final RxBool autoSaveContactToPhone = true.obs;
 
   // New Weight Controller
   final newWeightController = TextEditingController();
@@ -293,6 +295,13 @@ class PatientController extends GetxController {
         address: ownerAddressController.text.trim(),
       );
       ownerId = await _petRepo.insertOwner(newOwner);
+
+      if (autoSaveContactToPhone.value) {
+        DeviceContactService.saveOwnerToContacts(
+          name: oName,
+          phone: formattedPhone,
+        );
+      }
     }
 
     final dob = computeDobFromAge();
@@ -361,6 +370,12 @@ class PatientController extends GetxController {
         address: ownerAddressController.text.trim(),
       );
       ownerId = await _petRepo.insertOwner(newOwner);
+      if (autoSaveContactToPhone.value) {
+        DeviceContactService.saveOwnerToContacts(
+          name: newOwner.fullName,
+          phone: newOwner.phonePrimary,
+        );
+      }
     } else if (selectedExistingOwner.value != null && ownerPhoneController.text.trim().isNotEmpty) {
       // update owner phone/address if edited
       final currentO = selectedExistingOwner.value!;
@@ -450,6 +465,7 @@ class PatientController extends GetxController {
     selectedGender.value = 'male';
     isNeutered.value = false;
     petPhotoPath.value = null;
+    autoSaveContactToPhone.value = true;
   }
 
   @override

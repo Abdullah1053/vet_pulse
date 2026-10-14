@@ -63,28 +63,24 @@ class DemoDataSeeder {
         'full_name': 'م. أحمد يحيى الشامي',
         'phone_primary': '0777123456',
         'address': 'صنعاء - حدة - خلف بريد حدة',
-        'notes': 'عميل مميز - مهتم جداً بجدول التطعيمات ومواعيد العناية',
       });
 
       final owner2Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'د. ريم محمد باعباد',
         'phone_primary': '0771987654',
         'address': 'صنعاء - الحي الدبلوماسي',
-        'notes': 'طبيبة بشرية - تفضل إرسال التقارير والروشتات بصيغة PDF عبر واتساب',
       });
 
       final owner3Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'أ. طارق عبدالكريم الحميري',
         'phone_primary': '0733556677',
         'address': 'صنعاء - شارع بغداد',
-        'notes': 'مربي قطط شيرازية محترف',
       });
 
       final owner4Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'فاطمة خالد اليماني',
         'phone_primary': '0775112233',
         'address': 'صنعاء - شارع الستين الجنوبي',
-        'notes': 'عميلة جديدة - تم عمل فحص وقائي شامل للحيوان',
       });
 
       // 2. Pets

@@ -3,7 +3,6 @@ class OwnerModel {
   final String fullName;
   final String phonePrimary;
   final String? address;
-  final String? notes;
   final String? createdAt;
 
   OwnerModel({
@@ -11,7 +10,6 @@ class OwnerModel {
     required this.fullName,
     required this.phonePrimary,
     this.address,
-    this.notes,
     this.createdAt,
   });
 
@@ -21,7 +19,6 @@ class OwnerModel {
       fullName: map['full_name'] as String? ?? '',
       phonePrimary: map['phone_primary'] as String? ?? '',
       address: map['address'] as String?,
-      notes: map['notes'] as String?,
       createdAt: map['created_at'] as String?,
     );
   }
@@ -32,7 +29,6 @@ class OwnerModel {
       'full_name': fullName,
       'phone_primary': phonePrimary,
       'address': address,
-      'notes': notes,
     };
   }
 
@@ -41,7 +37,6 @@ class OwnerModel {
     String? fullName,
     String? phonePrimary,
     String? address,
-    String? notes,
     String? createdAt,
   }) {
     return OwnerModel(
@@ -49,7 +44,6 @@ class OwnerModel {
       fullName: fullName ?? this.fullName,
       phonePrimary: phonePrimary ?? this.phonePrimary,
       address: address ?? this.address,
-      notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
     );
   }

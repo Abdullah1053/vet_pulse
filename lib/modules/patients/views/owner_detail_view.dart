@@ -11,6 +11,7 @@ import '../../../data/models/owner_model.dart';
 import '../../../data/models/pet_model.dart';
 import '../../../data/repositories/financial_repository.dart';
 import '../../../data/repositories/pet_repository.dart';
+import '../../../core/services/device_contact_service.dart';
 import '../../../routes/app_routes.dart';
 
 class OwnerDetailController extends GetxController {
@@ -73,6 +74,15 @@ class OwnerDetailController extends GetxController {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
+  }
+
+  Future<void> saveOwnerToPhoneContacts() async {
+    final o = owner.value;
+    if (o == null) return;
+    await DeviceContactService.saveOwnerToContacts(
+      name: o.fullName,
+      phone: o.phonePrimary,
+    );
   }
 
   void openAccountStatement() {
@@ -319,14 +329,6 @@ class OwnerDetailView extends StatelessWidget {
                           owner.address!,
                         ),
                       ],
-                      if (owner.notes != null && owner.notes!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        _buildInfoRow(
-                          Icons.note_outlined,
-                          'ملاحظات',
-                          owner.notes!,
-                        ),
-                      ],
 
                       const SizedBox(height: 16),
                       // Quick Action Buttons
@@ -362,6 +364,23 @@ class OwnerDetailView extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.saveOwnerToPhoneContacts,
+                          icon: const Icon(Icons.contact_phone_outlined, size: 18),
+                          label: const Text('حفظ المربي في جهات اتصال الهاتف'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -687,15 +706,19 @@ class OwnerDetailView extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.15),
+                      color: s.hasDebt
+                          ? Colors.red.withValues(alpha: 0.15)
+                          : AppColors.success.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'الحساب خالص ومسدد',
+                    child: Text(
+                      s.hasDebt
+                          ? 'عليه ديون: ${s.balanceDue.toStringAsFixed(0)} ر.ي'
+                          : 'الحساب خالص ومسدد',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.success,
+                        color: s.hasDebt ? Colors.red.shade800 : AppColors.success,
                       ),
                     ),
                   ),
@@ -725,12 +748,19 @@ class OwnerDetailView extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildFinancialPill(
-                      'حالة الحساب',
-                      'خالص ومسدد',
-                      AppColors.primary,
-                      AppColors.secondary.withValues(alpha: 0.1),
-                    ),
+                    child: s.hasDebt
+                        ? _buildFinancialPill(
+                            'المتبقي آجل',
+                            '${s.balanceDue.toStringAsFixed(0)} ر.ي',
+                            Colors.red.shade800,
+                            Colors.red.shade50,
+                          )
+                        : _buildFinancialPill(
+                            'حالة الحساب',
+                            'خالص ومسدد',
+                            AppColors.success,
+                            AppColors.success.withValues(alpha: 0.1),
+                          ),
                   ),
                 ],
               ),
@@ -785,6 +815,29 @@ class OwnerDetailView extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+
+              // Full Financial Process Track Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showFinancialProcessTimeline(context, controller),
+                  icon: const Icon(Icons.timeline_rounded, size: 18),
+                  label: const Text(
+                    'مسار وتتبع العمليات المالية والزيارات ⏱️',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.04),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -814,6 +867,530 @@ class OwnerDetailView extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineFilterChip(String value, String label, RxString currentFilter) {
+    return Obx(() {
+      final isSelected = currentFilter.value == value;
+      return InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => currentFilter.value = value,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.grey.shade300,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isSelected ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showFinancialProcessTimeline(
+    BuildContext context,
+    OwnerDetailController controller,
+  ) {
+    final s = controller.accountSummary.value;
+    final items = s?.statementItems ?? [];
+    final filter = 'all'.obs;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.88,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Sheet handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.timeline_rounded, color: AppColors.primary, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'مسار وتتبع العمليات المالية والزيارات',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              'سجل الحركات من البداية حتى الآن (${controller.owner.value?.fullName ?? ""})',
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Summary bar
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('إجمالي المطالبات', style: TextStyle(fontSize: 10, color: Colors.black54)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${s?.totalBilled.toStringAsFixed(0) ?? 0} ر.ي',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(height: 24, width: 1, color: Colors.grey.shade300),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('إجمالي المسدد', style: TextStyle(fontSize: 10, color: Colors.black54)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${s?.totalPaid.toStringAsFixed(0) ?? 0} ر.ي',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(height: 24, width: 1, color: Colors.grey.shade300),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('الرصيد المتبقي', style: TextStyle(fontSize: 10, color: Colors.black54)),
+                          const SizedBox(height: 2),
+                          Text(
+                            (s != null && s.hasDebt)
+                                ? '${s.balanceDue.toStringAsFixed(0)} ر.ي دَين'
+                                : '0 ر.ي (خالص)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: (s != null && s.hasDebt) ? Colors.red.shade700 : Colors.teal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Filter Tabs
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    _buildTimelineFilterChip('all', 'جميع الحركات (${items.length})', filter),
+                    const SizedBox(width: 8),
+                    _buildTimelineFilterChip('paid', 'زيارات مدفوعة', filter),
+                    const SizedBox(width: 8),
+                    _buildTimelineFilterChip('unpaid', 'زيارات آجلة / غير مدفوعة', filter),
+                    const SizedBox(width: 8),
+                    _buildTimelineFilterChip('payment', 'سندات قبض', filter),
+                  ],
+                ),
+              ),
+              const Divider(height: 12),
+
+              // Timeline List
+              Expanded(
+                child: Obx(() {
+                  final activeFilter = filter.value;
+                  final filteredItems = items.where((item) {
+                    final isPayment = item.type == 'payment';
+                    final isVisit = !isPayment;
+                    final isFullyPaid = isVisit && (item.debit > 0 && item.credit >= item.debit);
+                    final isUnpaid = isVisit && (item.debit > item.credit);
+
+                    if (activeFilter == 'paid') return isFullyPaid;
+                    if (activeFilter == 'unpaid') return isUnpaid;
+                    if (activeFilter == 'payment') return isPayment;
+                    return true;
+                  }).toList();
+
+                  if (filteredItems.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'لا توجد عمليات تطابق التصنيف المختار',
+                              style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, idx) {
+                      final item = filteredItems[idx];
+                      final isLast = idx == filteredItems.length - 1;
+                      return _buildTimelineItem(item, idx + 1, isLast);
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTimelineItem(AccountStatementItem item, int sequence, bool isLast) {
+    final isPayment = item.type == 'payment';
+    final isVisit = !isPayment;
+    final isFullyPaid = isVisit && (item.debit > 0 && item.credit >= item.debit);
+    final isUnpaid = isVisit && (item.debit > item.credit);
+    final remainingDebt = item.debit - item.credit;
+
+    Color nodeColor;
+    Color nodeBg;
+    IconData nodeIcon;
+    Color cardBg;
+    Color cardBorder;
+    Widget statusBadge;
+
+    if (isPayment) {
+      nodeColor = Colors.blue.shade700;
+      nodeBg = Colors.blue.shade50;
+      nodeIcon = Icons.payments_outlined;
+      cardBg = const Color(0xFFF6F9FE);
+      cardBorder = Colors.blue.shade200;
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade100,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          'سند قبض 💵',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue.shade900,
+          ),
+        ),
+      );
+    } else if (isFullyPaid) {
+      nodeColor = Colors.green.shade700;
+      nodeBg = Colors.green.shade50;
+      nodeIcon = Icons.check_circle_outline;
+      cardBg = const Color(0xFFF3FBF6);
+      cardBorder = Colors.green.shade300;
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.green.shade100,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          'مدفوعة بالكامل ✅',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.green.shade900,
+          ),
+        ),
+      );
+    } else {
+      // Unpaid or partially paid visit
+      nodeColor = Colors.red.shade700;
+      nodeBg = Colors.red.shade50;
+      nodeIcon = Icons.warning_amber_rounded;
+      cardBg = const Color(0xFFFFF7F7);
+      cardBorder = Colors.red.shade300;
+      statusBadge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.red.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Text(
+          item.credit > 0
+              ? 'متبقي دين: ${remainingDebt.toStringAsFixed(0)} ر.ي ⚠️'
+              : 'غير مدفوعة (آجلة) ⚠️',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: Colors.red.shade900,
+          ),
+        ),
+      );
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Timeline Rail
+          Column(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: nodeBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: nodeColor, width: 2),
+                ),
+                child: Icon(nodeIcon, size: 16, color: nodeColor),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: Colors.grey.shade300,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+
+          // Main Card
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cardBorder, width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: nodeColor.withValues(alpha: 0.05),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row: sequence, date, badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '#$sequence',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              item.date,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        statusBadge,
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Service or Payment Title
+                    Text(
+                      item.description,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.darkNeutral,
+                      ),
+                    ),
+
+                    // Pet Name if available
+                    if (item.petName != null && item.petName!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.pets, size: 14, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            'المريض: ${item.petName}',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const Divider(height: 16),
+
+                    // Financial Breakdown Row
+                    if (isPayment)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'طريقة الدفع: ${item.paymentMethod ?? "نقداً"}',
+                            style: const TextStyle(fontSize: 12, color: Colors.black87),
+                          ),
+                          Text(
+                            '+${item.credit.toStringAsFixed(0)} ر.ي',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'إجمالي الخدمة: ${item.debit.toStringAsFixed(0)} ر.ي',
+                                style: const TextStyle(fontSize: 11.5, color: Colors.black87),
+                              ),
+                              Text(
+                                'المدفوع: ${item.credit.toStringAsFixed(0)} ر.ي',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isFullyPaid ? Colors.green.shade800 : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (isUnpaid)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text(
+                                    'متبقي كدين',
+                                    style: TextStyle(fontSize: 9.5, color: Colors.red),
+                                  ),
+                                  Text(
+                                    '${remainingDebt.toStringAsFixed(0)} ر.ي',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'خالصة ومسددة',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade900,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
