@@ -12,6 +12,7 @@ class ConsultationModel {
   final String diagnosis; // Assessment
   final String? treatmentPlan; // Plan
   final double visitCost;
+  final double paidAmount;
   final String paymentMethod;
   final String? createdAt;
 
@@ -34,6 +35,7 @@ class ConsultationModel {
     required this.diagnosis,
     this.treatmentPlan,
     this.visitCost = 0.0,
+    double? paidAmount,
     this.paymentMethod = 'نقدا',
     this.createdAt,
     this.petName,
@@ -41,9 +43,12 @@ class ConsultationModel {
     this.doctorName,
     this.ownerName,
     this.prescriptions = const [],
-  });
+  }) : paidAmount = paidAmount ?? visitCost;
 
   factory ConsultationModel.fromMap(Map<String, dynamic> map, {List<PrescriptionModel> prescriptions = const []}) {
+    final cost = (map['visit_cost'] as num? ?? 0.0).toDouble();
+    final paid = (map['paid_amount'] as num? ?? cost).toDouble();
+
     return ConsultationModel(
       id: map['id'] as int?,
       petId: map['pet_id'] as int? ?? 0,
@@ -55,7 +60,8 @@ class ConsultationModel {
       examinationFindings: map['examination_findings'] as String?,
       diagnosis: map['diagnosis'] as String? ?? '',
       treatmentPlan: map['treatment_plan'] as String?,
-      visitCost: (map['visit_cost'] as num? ?? 0.0).toDouble(),
+      visitCost: cost,
+      paidAmount: paid,
       paymentMethod: map['payment_method'] as String? ?? 'نقدا',
       createdAt: map['created_at'] as String?,
       petName: map['pet_name'] as String?,
@@ -79,9 +85,13 @@ class ConsultationModel {
       'diagnosis': diagnosis,
       'treatment_plan': treatmentPlan,
       'visit_cost': visitCost,
+      'paid_amount': paidAmount,
       'payment_method': paymentMethod,
     };
   }
+
+  double get remainingAmount => (visitCost - paidAmount).clamp(0.0, double.infinity);
+  bool get isFullyPaid => remainingAmount <= 0.001;
 
   ConsultationModel copyWith({
     int? id,
@@ -95,6 +105,7 @@ class ConsultationModel {
     String? diagnosis,
     String? treatmentPlan,
     double? visitCost,
+    double? paidAmount,
     String? paymentMethod,
     String? createdAt,
     String? petName,
@@ -115,6 +126,7 @@ class ConsultationModel {
       diagnosis: diagnosis ?? this.diagnosis,
       treatmentPlan: treatmentPlan ?? this.treatmentPlan,
       visitCost: visitCost ?? this.visitCost,
+      paidAmount: paidAmount ?? this.paidAmount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       createdAt: createdAt ?? this.createdAt,
       petName: petName ?? this.petName,

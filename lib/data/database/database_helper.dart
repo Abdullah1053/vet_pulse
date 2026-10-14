@@ -6,7 +6,7 @@ import 'database_tables.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 4;
+  static const int _dbVersion = 6;
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -29,6 +29,13 @@ class DatabaseHelper {
       try {
         await _database!.execute('PRAGMA wal_checkpoint(FULL);');
       } catch (_) {}
+    }
+  }
+
+  Future<void> close() async {
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+      _database = null;
     }
   }
 
@@ -83,6 +90,42 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
       } catch (_) {}
     }
+    if (oldVersion < 5) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createCustomerPaymentsTable);
+        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
+        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createBackupLogsTable);
+        await db.execute(DatabaseTables.createBackupLogsDateIndex);
+      } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      await db.execute('PRAGMA foreign_keys = OFF;');
+      try {
+        await db.execute('DROP TABLE IF EXISTS ${DatabaseTables.tableCustomerPayments};');
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} RENAME TO temp_transactions_old;');
+        await db.execute(DatabaseTables.createTransactionsTable);
+        await db.execute(DatabaseTables.createTransactionsDateIndex);
+        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
+        await db.execute('''
+          INSERT INTO ${DatabaseTables.tableTransactions} 
+          (id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, paid_amount, remaining_amount, payment_method, transaction_date, notes, created_at)
+          SELECT id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, 
+                 COALESCE(paid_amount, amount), COALESCE(remaining_amount, 0.0), payment_method, transaction_date, notes, created_at
+          FROM temp_transactions_old;
+        ''');
+        await db.execute('DROP TABLE temp_transactions_old;');
+        await db.execute(DatabaseTables.createCustomerPaymentsTable);
+        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
+        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
+      } catch (_) {}
+      await db.execute('PRAGMA foreign_keys = ON;');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -108,6 +151,11 @@ class DatabaseHelper {
     batch.execute(DatabaseTables.createTransactionsTable);
     batch.execute(DatabaseTables.createTransactionsDateIndex);
     batch.execute(DatabaseTables.createTransactionsOwnerIndex);
+    batch.execute(DatabaseTables.createCustomerPaymentsTable);
+    batch.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
+    batch.execute(DatabaseTables.createCustomerPaymentsDateIndex);
+    batch.execute(DatabaseTables.createBackupLogsTable);
+    batch.execute(DatabaseTables.createBackupLogsDateIndex);
 
     await batch.commit();
 
@@ -212,14 +260,6 @@ class DatabaseHelper {
 
     for (final med in medicines) {
       await db.insert(DatabaseTables.tableMedicines, med);
-    }
-  }
-
-  Future<void> close() async {
-    final db = _database;
-    if (db != null && db.isOpen) {
-      await db.close();
-      _database = null;
     }
   }
 }

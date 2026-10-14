@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -6,17 +7,23 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import '../database/database_helper.dart';
+import '../database/database_tables.dart';
+import '../models/backup_log_model.dart';
 
 class DatabaseBackupInfo {
   final String path;
+  final String fileName;
   final int sizeBytes;
   final DateTime lastModified;
+  final String backupType;
 
   DatabaseBackupInfo({
     required this.path,
+    String? fileName,
     required this.sizeBytes,
     required this.lastModified,
-  });
+    this.backupType = 'internal',
+  }) : fileName = fileName ?? p.basename(path);
 
   String get formattedSize {
     if (sizeBytes < 1024) return '$sizeBytes B';
@@ -29,9 +36,54 @@ class DatabaseBackupInfo {
   }
 }
 
+class BackupConfig {
+  final String? externalDestinationPath;
+  final bool autoBackupEnabled;
+  final String autoBackupFrequency; // 'daily', 'weekly'
+  final String? lastAutoBackupDate;
+
+  BackupConfig({
+    this.externalDestinationPath,
+    this.autoBackupEnabled = false,
+    this.autoBackupFrequency = 'daily',
+    this.lastAutoBackupDate,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'externalDestinationPath': externalDestinationPath,
+    'autoBackupEnabled': autoBackupEnabled,
+    'autoBackupFrequency': autoBackupFrequency,
+    'lastAutoBackupDate': lastAutoBackupDate,
+  };
+
+  factory BackupConfig.fromMap(Map<String, dynamic> map) => BackupConfig(
+    externalDestinationPath: map['externalDestinationPath'] as String?,
+    autoBackupEnabled: map['autoBackupEnabled'] as bool? ?? false,
+    autoBackupFrequency: map['autoBackupFrequency'] as String? ?? 'daily',
+    lastAutoBackupDate: map['lastAutoBackupDate'] as String?,
+  );
+}
+
 class DatabaseBackupService {
   DatabaseBackupService._internal();
   static final DatabaseBackupService instance = DatabaseBackupService._internal();
+
+  /// Gets dedicated directory for internal backups
+  Future<Directory> getInternalBackupsDirectory() async {
+    Directory docsDir;
+    try {
+      docsDir = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      docsDir = Directory(p.dirname(dbPath));
+    }
+
+    final backupDir = Directory(p.join(docsDir.path, 'vet_pulse_backups'));
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+    }
+    return backupDir;
+  }
 
   /// Returns current active database info (size, path, last modified)
   Future<DatabaseBackupInfo?> getDatabaseInfo() async {
@@ -44,6 +96,7 @@ class DatabaseBackupService {
           path: dbPath,
           sizeBytes: stat.size,
           lastModified: stat.modified,
+          backupType: 'active',
         );
       }
     } catch (e) {
@@ -52,71 +105,211 @@ class DatabaseBackupService {
     return null;
   }
 
-  /// Exports backup file to Flash drive, chosen folder, or downloads directory
-  Future<String?> exportBackupToFilePicker() async {
-    await DatabaseHelper.instance.flushWal();
-    final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-    final sourceFile = File(dbPath);
+  // --- INTERNAL BACKUP (النسخ الاحتياطي الداخلي) ---
 
-    if (!await sourceFile.exists()) {
-      throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
-    }
+  /// Creates a manual or automated internal backup saved locally
+  Future<BackupLogModel> createInternalBackup({bool isScheduled = false}) async {
+    final now = DateTime.now();
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
+    final backupFileName = 'vet_pulse_internal_$dateSuffix.db';
 
-    final dateSuffix = DateFormat('yyyy_MM_dd_HHmm').format(DateTime.now());
-    final defaultFileName = 'vet_pulse_backup_$dateSuffix.db';
-    final bytes = await sourceFile.readAsBytes();
-
-    // 1. Try native Save File Picker (Supported on Windows, Linux, macOS, modern Android)
     try {
-      final uri = await FilePickerPlatform.instance.saveFile(
-        dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية (فلاش ميموري أو مجلد)',
-        fileName: defaultFileName,
-        bytes: bytes,
-        mimeType: 'application/x-sqlite3',
+      await DatabaseHelper.instance.flushWal();
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      final sourceFile = File(dbPath);
+
+      if (!await sourceFile.exists()) {
+        throw Exception('ملف قاعدة البيانات النشطة غير موجود على الجهاز');
+      }
+
+      final backupDir = await getInternalBackupsDirectory();
+      final targetPath = p.join(backupDir.path, backupFileName);
+
+      final copiedFile = await sourceFile.copy(targetPath);
+      final fileSize = await copiedFile.length();
+
+      final log = BackupLogModel(
+        backupName: backupFileName,
+        filePath: targetPath,
+        sizeBytes: fileSize,
+        backupType: isScheduled ? 'scheduled' : 'internal',
+        destination: 'التخزين الداخلي: مجلد vet_pulse_backups',
+        status: 'success',
+        createdAt: nowStr,
       );
 
-      if (uri != null) {
-        try {
-          return uri.toFilePath(windows: Platform.isWindows);
-        } catch (_) {
-          return uri.path;
-        }
-      }
+      await logBackupEvent(log);
+      return log;
     } catch (e) {
-      debugPrint('saveFile not supported or failed: $e, trying folder picker fallback');
-    }
-
-    // 2. Fallback: Pick directory (e.g. Flash drive folder or Downloads)
-    try {
-      final selectedDirectory = await FilePickerPlatform.instance.getDirectoryPath(
-        dialogTitle: 'اختر المجلد أو الفلاش ميموري لحفظ النسخة الاحتياطية',
+      final failLog = BackupLogModel(
+        backupName: backupFileName,
+        filePath: '',
+        sizeBytes: 0,
+        backupType: isScheduled ? 'scheduled' : 'internal',
+        destination: 'التخزين الداخلي للتطبيق',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
       );
-
-      if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
-        final targetPath = p.join(selectedDirectory, defaultFileName);
-        await sourceFile.copy(targetPath);
-        return targetPath;
-      }
-    } catch (e) {
-      debugPrint('getDirectoryPath failed: $e');
+      await logBackupEvent(failLog);
+      rethrow;
     }
-
-    // 3. Fallback to Downloads directory
-    try {
-      Directory? downloadsDir = await getDownloadsDirectory();
-      downloadsDir ??= await getApplicationDocumentsDirectory();
-
-      final targetPath = p.join(downloadsDir.path, defaultFileName);
-      await sourceFile.copy(targetPath);
-      return targetPath;
-    } catch (e) {
-      debugPrint('Fallback copy failed: $e');
-    }
-
-    return null;
   }
 
-  /// Shares backup file using system share sheet (Save to Drive, send to WhatsApp/USB/Files)
+  /// Lists all internal backups available in the local backup directory
+  Future<List<DatabaseBackupInfo>> listInternalBackups() async {
+    try {
+      final backupDir = await getInternalBackupsDirectory();
+      if (!await backupDir.exists()) return [];
+
+      final files = await backupDir
+          .list()
+          .where((entity) => entity is File && entity.path.endsWith('.db'))
+          .cast<File>()
+          .toList();
+
+      final List<DatabaseBackupInfo> list = [];
+      for (final file in files) {
+        final stat = await file.stat();
+        list.add(DatabaseBackupInfo(
+          path: file.path,
+          fileName: p.basename(file.path),
+          sizeBytes: stat.size,
+          lastModified: stat.modified,
+          backupType: 'internal',
+        ));
+      }
+
+      // Sort newest first
+      list.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+      return list;
+    } catch (e) {
+      debugPrint('Error listing internal backups: $e');
+      return [];
+    }
+  }
+
+  /// Deletes an internal backup file safely
+  Future<bool> deleteInternalBackup(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error deleting backup: $e');
+    }
+    return false;
+  }
+
+  // --- EXTERNAL BACKUP (النسخ الاحتياطي الخارجي) ---
+
+  /// Exports backup to an external destination (USB Flash drive, external folder, or file picker)
+  Future<BackupLogModel> exportExternalBackup({String? destinationDirectory}) async {
+    final now = DateTime.now();
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
+    final defaultFileName = 'vet_pulse_external_$dateSuffix.db';
+
+    try {
+      await DatabaseHelper.instance.flushWal();
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      final sourceFile = File(dbPath);
+
+      if (!await sourceFile.exists()) {
+        throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
+      }
+
+      String? targetPath;
+
+      // 1. If explicit destination directory passed or configured
+      String? destDir = destinationDirectory;
+      if (destDir == null || destDir.isEmpty) {
+        final config = await getBackupConfig();
+        if (config.externalDestinationPath != null &&
+            await Directory(config.externalDestinationPath!).exists()) {
+          destDir = config.externalDestinationPath;
+        }
+      }
+
+      if (destDir != null && await Directory(destDir).exists()) {
+        targetPath = p.join(destDir, defaultFileName);
+        await sourceFile.copy(targetPath);
+      } else {
+        // Fallback: prompt user to pick folder or save file
+        final bytes = await sourceFile.readAsBytes();
+
+        try {
+          final uri = await FilePickerPlatform.instance.saveFile(
+            dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية (فلاش ميموري أو مجلد خارجي)',
+            fileName: defaultFileName,
+            bytes: bytes,
+            mimeType: 'application/x-sqlite3',
+          );
+          if (uri != null) {
+            try {
+              targetPath = uri.toFilePath(windows: Platform.isWindows);
+            } catch (_) {
+              targetPath = uri.path;
+            }
+          }
+        } catch (_) {}
+
+        if (targetPath == null) {
+          final selectedFolder = await FilePickerPlatform.instance.getDirectoryPath(
+            dialogTitle: 'اختر مجلد الفلاش ميموري أو القرص الخارجي',
+          );
+          if (selectedFolder != null && selectedFolder.isNotEmpty) {
+            targetPath = p.join(selectedFolder, defaultFileName);
+            await sourceFile.copy(targetPath);
+          }
+        }
+
+        if (targetPath == null) {
+          throw Exception('تم إلغاء عملية اختيار الوجهة الخارجية للنسخ الاحتياطي');
+        }
+      }
+
+      final savedFile = File(targetPath);
+      final size = await savedFile.length();
+
+      final log = BackupLogModel(
+        backupName: defaultFileName,
+        filePath: targetPath,
+        sizeBytes: size,
+        backupType: 'external',
+        destination: targetPath,
+        status: 'success',
+        createdAt: nowStr,
+      );
+
+      await logBackupEvent(log);
+      return log;
+    } catch (e) {
+      final failLog = BackupLogModel(
+        backupName: defaultFileName,
+        filePath: '',
+        sizeBytes: 0,
+        backupType: 'external',
+        destination: destinationDirectory ?? 'وجهة خارجية',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
+      );
+      await logBackupEvent(failLog);
+      rethrow;
+    }
+  }
+
+  /// Exports backup via file picker (compatibility method)
+  Future<String?> exportBackupToFilePicker() async {
+    final log = await exportExternalBackup();
+    return log.filePath;
+  }
+
+  /// Shares backup file using system share sheet (Google Drive, WhatsApp, Bluetooth, etc.)
   Future<bool> shareBackupViaSystem() async {
     await DatabaseHelper.instance.flushWal();
     final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
@@ -137,8 +330,103 @@ class DatabaseBackupService {
     return true;
   }
 
+  // --- RESTORE BACKUP (استعادة النسخة الاحتياطية مع التحقق من الصلاحيات) ---
+
+  /// Restores database with mandatory role and safety checks
+  Future<String> restoreFromFile(
+    String backupFilePath, {
+    String userRole = 'lead_doctor',
+  }) async {
+    // 1. Role Permission Guard: Only lead doctor or authorized admin can restore
+    if (userRole != 'lead_doctor' && userRole != 'admin') {
+      throw Exception('عذراً، عملية استعادة النسخة الاحتياطية تتطلب صلاحيات الطبيب المسؤول (Lead Doctor) حصرياً لحماية بيانات العيادة.');
+    }
+
+    final backupFile = File(backupFilePath);
+    if (!await backupFile.exists()) {
+      throw Exception('ملف النسخة الاحتياطية غير موجود: $backupFilePath');
+    }
+
+    final fileSize = await backupFile.length();
+    if (fileSize < 100) {
+      throw Exception('الملف فارغ أو تالف وغير صالح كقاعدة بيانات');
+    }
+
+    // 2. Validate SQLite Header ("SQLite format 3\0")
+    final headerBytes = await backupFile.openRead(0, 16).first;
+    const expectedHeader = [
+      0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00
+    ];
+    bool isValidSqlite = headerBytes.length >= 16;
+    if (isValidSqlite) {
+      for (int i = 0; i < 16; i++) {
+        if (headerBytes[i] != expectedHeader[i]) {
+          isValidSqlite = false;
+          break;
+        }
+      }
+    }
+
+    if (!isValidSqlite) {
+      throw Exception('الملف المحدد ليس ملف قاعدة بيانات SQLite صالح لتطبيق نبض البيطري');
+    }
+
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+
+    try {
+      // Step 1: Close active database cleanly
+      await DatabaseHelper.instance.close();
+
+      // Step 2: Target path
+      final activeDbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+
+      // Remove any leftover WAL/SHM journal files
+      final walFile = File('$activeDbPath-wal');
+      if (await walFile.exists()) await walFile.delete();
+      final shmFile = File('$activeDbPath-shm');
+      if (await shmFile.exists()) await shmFile.delete();
+
+      // Step 3: Overwrite with backup
+      await backupFile.copy(activeDbPath);
+
+      // Step 4: Reopen database and verify integrity
+      final newDb = await DatabaseHelper.instance.database;
+      final integrityRes = await newDb.rawQuery('PRAGMA integrity_check;');
+      final status = integrityRes.isNotEmpty ? integrityRes.first.values.first.toString() : '';
+
+      if (status != 'ok') {
+        throw Exception('فشل فحص سلامة البيانات المستعادة: $status');
+      }
+
+      // Log success in audit table
+      await logBackupEvent(BackupLogModel(
+        backupName: p.basename(backupFilePath),
+        filePath: backupFilePath,
+        sizeBytes: fileSize,
+        backupType: 'restore',
+        destination: 'قاعدة البيانات النشطة (تمت الاستعادة بنجاح)',
+        status: 'success',
+        createdAt: nowStr,
+      ));
+
+      return 'تمت استعادة قاعدة البيانات بنجاح (${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB)';
+    } catch (e) {
+      await logBackupEvent(BackupLogModel(
+        backupName: p.basename(backupFilePath),
+        filePath: backupFilePath,
+        sizeBytes: fileSize,
+        backupType: 'restore',
+        destination: 'قاعدة البيانات النشطة',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
+      ));
+      rethrow;
+    }
+  }
+
   /// Restores database from a user-selected backup file (.db)
-  Future<String> restoreFromBackupPicker() async {
+  Future<String> restoreFromBackupPicker({String userRole = 'lead_doctor'}) async {
     final pickedFiles = await FilePickerPlatform.instance.pickFiles(
       dialogTitle: 'اختر ملف النسخة الاحتياطية (.db)',
       type: FileType.any,
@@ -153,62 +441,72 @@ class DatabaseBackupService {
       throw Exception('تعذر قراءة مسار الملف المحدد');
     }
 
-    return await restoreFromFile(pickedPath);
+    return await restoreFromFile(pickedPath, userRole: userRole);
   }
 
-  /// Validates and restores database from a specific file path
-  Future<String> restoreFromFile(String backupFilePath) async {
-    final backupFile = File(backupFilePath);
-    if (!await backupFile.exists()) {
-      throw Exception('ملف النسخة الاحتياطية غير موجود');
-    }
+  // --- LOGGING & AUDIT TRAIL (سجل عمليات النسخ والتدقيق) ---
 
-    final fileSize = await backupFile.length();
-    if (fileSize < 100) {
-      throw Exception('الملف فارغ أو تالف وغير صالح كقاعدة بيانات');
+  /// Records backup or restore event in tableBackupLogs
+  Future<void> logBackupEvent(BackupLogModel log) async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      await db.insert(DatabaseTables.tableBackupLogs, log.toMap());
+    } catch (e) {
+      debugPrint('Error inserting backup log: $e');
     }
+  }
 
-    // Validate SQLite Header ("SQLite format 3\0")
-    final headerBytes = await backupFile.openRead(0, 16).first;
-    const expectedHeader = [0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00];
-    bool isValidSqlite = headerBytes.length >= 16;
-    if (isValidSqlite) {
-      for (int i = 0; i < 16; i++) {
-        if (headerBytes[i] != expectedHeader[i]) {
-          isValidSqlite = false;
-          break;
-        }
+  /// Retrieves all backup and restore logs
+  Future<List<BackupLogModel>> getBackupLogs() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final rows = await db.query(
+        DatabaseTables.tableBackupLogs,
+        orderBy: 'created_at DESC, id DESC',
+        limit: 100,
+      );
+      return rows.map((r) => BackupLogModel.fromMap(r)).toList();
+    } catch (e) {
+      debugPrint('Error getting backup logs: $e');
+      return [];
+    }
+  }
+
+  // --- CONFIGURATION PERSISTENCE ---
+
+  Future<File> _getConfigFile() async {
+    Directory dir;
+    try {
+      dir = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      dir = Directory(p.dirname(dbPath));
+    }
+    return File(p.join(dir.path, 'vet_pulse_backup_config.json'));
+  }
+
+  /// Loads current backup configuration
+  Future<BackupConfig> getBackupConfig() async {
+    try {
+      final file = await _getConfigFile();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final map = jsonDecode(content) as Map<String, dynamic>;
+        return BackupConfig.fromMap(map);
       }
+    } catch (e) {
+      debugPrint('Error reading backup config: $e');
     }
+    return BackupConfig();
+  }
 
-    if (!isValidSqlite) {
-      throw Exception('الملف المحدد ليس قاعدة بيانات SQLite صالحة لتطبيق نبض البيطري');
+  /// Saves backup configuration
+  Future<void> saveBackupConfig(BackupConfig config) async {
+    try {
+      final file = await _getConfigFile();
+      await file.writeAsString(jsonEncode(config.toMap()));
+    } catch (e) {
+      debugPrint('Error saving backup config: $e');
     }
-
-    // Step 1: Close active database
-    await DatabaseHelper.instance.close();
-
-    // Step 2: Target path
-    final activeDbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-
-    // Remove any leftover WAL/SHM journal files
-    final walFile = File('$activeDbPath-wal');
-    if (await walFile.exists()) await walFile.delete();
-    final shmFile = File('$activeDbPath-shm');
-    if (await shmFile.exists()) await shmFile.delete();
-
-    // Step 3: Overwrite with backup
-    await backupFile.copy(activeDbPath);
-
-    // Step 4: Reopen database and verify integrity
-    final newDb = await DatabaseHelper.instance.database;
-    final integrityRes = await newDb.rawQuery('PRAGMA integrity_check;');
-    final status = integrityRes.isNotEmpty ? integrityRes.first.values.first.toString() : '';
-
-    if (status != 'ok') {
-      throw Exception('فشل فحص سلامة البيانات المستعادة: $status');
-    }
-
-    return 'تمت استعادة قاعدة البيانات بنجاح (${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB)';
   }
 }

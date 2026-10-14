@@ -59,12 +59,12 @@ void main() {
     expect(summary['totalExpenses'], greaterThan(0));
     expect(summary['totalIncome'], greaterThan(0));
 
-    // Verify Owner Account Statement (Ahmad Al-Shami debt = 10,000 YER)
+    // Verify Owner Account Statement (Ahmad Al-Shami remaining deferred debt = 2,500 YER)
     final firstOwnerId = owners.first['id'] as int;
     final owner1Statement = await finRepo.getOwnerAccountSummary(firstOwnerId);
     expect(owner1Statement, isNotNull);
     expect(owner1Statement!.totalBilled, greaterThanOrEqualTo(41500));
-    expect(owner1Statement.balanceDue, equals(10000.0));
+    expect(owner1Statement.balanceDue, equals(2500.0));
     expect(owner1Statement.hasDebt, isTrue);
 
     // Test resetDemoData (verifies deletions order and re-seeding)

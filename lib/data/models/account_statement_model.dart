@@ -1,12 +1,15 @@
+import 'customer_payment_model.dart';
+
 class AccountStatementItem {
   final int? id;
   final String date;
   final String type; // 'consultation', 'surgery', 'payment', 'pharmacy', 'other'
   final String description;
   final String? petName;
-  final double debit; // تكلفة الخدمة المسددة
-  final double credit; // المدفوع
-  final double balance; // الرصيد الحالي
+  final double debit; // تكلفة الخدمة / المطالبة
+  final double credit; // الدفعة المسددة
+  final double balance; // الرصيد التراكمي
+  final String? paymentMethod;
   final String? notes;
 
   AccountStatementItem({
@@ -18,6 +21,7 @@ class AccountStatementItem {
     required this.debit,
     required this.credit,
     required this.balance,
+    this.paymentMethod,
     this.notes,
   });
 
@@ -28,9 +32,11 @@ class AccountStatementItem {
       case 'surgery':
         return 'عملية جراحية';
       case 'payment':
-        return 'سند قبض';
+        return 'سند قبض / دفعة';
       case 'pharmacy':
-        return 'صيدلية';
+        return 'مشتريات صيدلية';
+      case 'opening_balance':
+        return 'رصيد سابق منقول';
       default:
         return 'حركة حساب';
     }
@@ -43,10 +49,11 @@ class OwnerAccountSummary {
   final String phonePrimary;
   final String? phoneSecondary;
   final String? address;
-  final double totalBilled; // إجمالي الفواتير
-  final double totalPaid; // إجمالي المسدد
-  final double balanceDue; // الرصيد
+  final double totalBilled; // إجمالي قيمة الخدمات والمشتريات
+  final double totalPaid; // إجمالي المبالغ المسددة فعلياً
+  final double balanceDue; // إجمالي المبالغ المتبقية والآجلة
   final List<AccountStatementItem> statementItems;
+  final List<CustomerPaymentModel> paymentLedger;
 
   OwnerAccountSummary({
     required this.ownerId,
@@ -58,7 +65,24 @@ class OwnerAccountSummary {
     required this.totalPaid,
     required this.balanceDue,
     this.statementItems = const [],
+    this.paymentLedger = const [],
   });
 
-  bool get hasDebt => false;
+  /// هل على العميل مبالغ آجلة مستحقة السداد؟
+  bool get hasDebt => balanceDue > 0.001;
+
+  /// هل الحساب خالص ومسدد بالكامل؟
+  bool get isFullySettled => balanceDue <= 0.001;
+
+  /// المبلغ المتبقي والآجل (موجب دائماً)
+  double get remainingDue => balanceDue > 0 ? balanceDue : 0.0;
+
+  /// نص حالة الحساب باللغة العربية
+  String get statusDisplayArabic {
+    if (isFullySettled) {
+      return 'خالص ومسدد بالكامل';
+    } else {
+      return 'رصيد متبقي آجل: ${remainingDue.toStringAsFixed(0)} ر.ي';
+    }
+  }
 }

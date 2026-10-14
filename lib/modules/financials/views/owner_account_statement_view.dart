@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
@@ -20,6 +21,10 @@ class OwnerAccountStatementController extends GetxController {
   final Rx<OwnerAccountSummary?> summary = Rx<OwnerAccountSummary?>(null);
   final RxBool isLoading = true.obs;
 
+  // Date range filters
+  final Rx<DateTime?> startDate = Rx<DateTime?>(null);
+  final Rx<DateTime?> endDate = Rx<DateTime?>(null);
+
   ClinicModel? get clinic => _authController.clinicInfo.value;
 
   @override
@@ -37,11 +42,27 @@ class OwnerAccountStatementController extends GetxController {
   Future<void> loadStatement() async {
     isLoading.value = true;
     try {
-      final s = await _repo.getOwnerAccountSummary(ownerId);
+      final s = await _repo.getOwnerAccountSummary(
+        ownerId,
+        startDate: startDate.value,
+        endDate: endDate.value,
+      );
       summary.value = s;
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void setDateRange(DateTime start, DateTime end) {
+    startDate.value = start;
+    endDate.value = end;
+    loadStatement();
+  }
+
+  void clearDateRange() {
+    startDate.value = null;
+    endDate.value = null;
+    loadStatement();
   }
 
   Future<void> recordPayment(double amount, String paymentMethod, String? notes) async {
@@ -56,10 +77,11 @@ class OwnerAccountStatementController extends GetxController {
       Get.find<FinancialController>().loadFinancialData();
     }
     Get.snackbar(
-      'تم تسجيل سند القبض بنجاح',
-      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب المربي',
-      backgroundColor: AppColors.success.withValues(alpha: 0.2),
+      'تم تسجيل سند القبض بنجاح ✅',
+      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب العميل',
+      backgroundColor: AppColors.success.withValues(alpha: 0.15),
       colorText: AppColors.success,
+      duration: const Duration(seconds: 4),
     );
   }
 
@@ -70,11 +92,12 @@ class OwnerAccountStatementController extends GetxController {
 
     final msg = '''
 *كشف حساب مالي - عيادة نبض البيطرية*
-المربي: ${s.ownerName}
+العميل: ${s.ownerName}
 ------------------------------
 إجمالي الخدمات: ${s.totalBilled.toStringAsFixed(0)} ر.ي
 إجمالي المسدد: ${s.totalPaid.toStringAsFixed(0)} ر.ي
-حالة الحساب: خالص ومسدد بالكامل
+المتبقي والآجل: ${s.remainingDue.toStringAsFixed(0)} ر.ي
+حالة الحساب: ${s.statusDisplayArabic}
 ------------------------------
 نشكركم على ثقتكم بنا.
 ''';
@@ -123,8 +146,8 @@ class OwnerAccountStatementView extends StatelessWidget {
         final s = controller.summary.value;
         if (s == null) {
           return const EmptyStateView(
-            title: 'لم يتم العثور على حساب المربي',
-            subtitle: 'تأكد من اختيار المربي الصحيح',
+            title: 'لم يتم العثور على حساب العميل',
+            subtitle: 'تأكد من اختيار العميل الصحيح',
             icon: Icons.account_balance_wallet_outlined,
           );
         }
@@ -138,11 +161,15 @@ class OwnerAccountStatementView extends StatelessWidget {
               _buildOwnerHeaderCard(context, controller, s),
               const SizedBox(height: 16),
 
-              // KPI Row: Billed, Paid, Remaining
+              // KPI Row: Billed, Paid, Remaining / Balance Due
               _buildKpiMetrics(context, s),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Action Buttons Row (PDF View/Print, Add Payment)
+              // Date Range Filter Toolbar
+              _buildDateFilterBar(context, controller),
+              const SizedBox(height: 16),
+
+              // Action Buttons Row (PDF View/Print, Add Payment Voucher)
               Row(
                 children: [
                   Expanded(
@@ -168,7 +195,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                       onPressed: () => _showAddPaymentDialog(context, controller),
                       icon: const Icon(Icons.add_card_outlined, size: 18),
                       label: const Text(
-                        'سند قبض',
+                        'سند قبض / دفعة',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -188,7 +215,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'سجل الحركات والخدمات السريرية (${s.statementItems.length})',
+                    'كشف الحركات والخدمات التفصيلي (${s.statementItems.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.darkNeutral,
@@ -201,11 +228,47 @@ class OwnerAccountStatementView extends StatelessWidget {
               if (s.statementItems.isEmpty) ...[
                 const EmptyStateView(
                   title: 'لا توجد حركات مالية مسجلة',
-                  subtitle: 'لم يتم تسجيل أي كشوفات أو عمليات أو دفعات بعد لهذا المربي',
+                  subtitle: 'لم يتم العثور على أي حركات خلال الفترة المحددة لهذا العميل',
                   icon: Icons.receipt_long_outlined,
                 ),
               ] else ...[
                 _buildStatementTable(context, s),
+              ],
+
+              const SizedBox(height: 24),
+
+              // Payment Ledger Section (سجل الدفعات المستقلة)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'سجل الدفعات وسندات القبض المسددة (${s.paymentLedger.length})',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkNeutral,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (s.paymentLedger.isEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'لا توجد سندات قبض مسددة بشكل مستقل بعد',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                _buildPaymentLedgerList(context, s),
               ],
             ],
           ),
@@ -219,6 +282,8 @@ class OwnerAccountStatementView extends StatelessWidget {
     OwnerAccountStatementController controller,
     OwnerAccountSummary s,
   ) {
+    final hasDebt = s.hasDebt;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -260,20 +325,33 @@ class OwnerAccountStatementView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.15),
+                    color: hasDebt
+                        ? Colors.amber.shade50
+                        : AppColors.success.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.success,
+                      color: hasDebt ? Colors.amber.shade700 : AppColors.success,
                       width: 1,
                     ),
                   ),
-                  child: const Text(
-                    'الحساب خالص ومسدد',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasDebt ? Icons.warning_amber_rounded : Icons.check_circle,
+                        size: 16,
+                        color: hasDebt ? Colors.amber.shade900 : AppColors.success,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        s.statusDisplayArabic,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: hasDebt ? Colors.amber.shade900 : AppColors.success,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -311,17 +389,87 @@ class OwnerAccountStatementView extends StatelessWidget {
         ),
         const SizedBox(width: 10),
 
-        // Balance Status
+        // Remaining / Balance Due
         Expanded(
           child: _buildMetricCard(
-            title: 'حالة الحساب',
-            amount: 'خالص ومسدد',
-            color: AppColors.primary,
-            bgColor: AppColors.secondary.withValues(alpha: 0.1),
-            icon: Icons.verified_outlined,
+            title: s.hasDebt ? 'المتبقي والآجل' : 'حالة الحساب',
+            amount: s.hasDebt
+                ? '${s.remainingDue.toStringAsFixed(0)} ر.ي'
+                : 'مسدد بالكامل',
+            color: s.hasDebt ? Colors.amber.shade900 : AppColors.primary,
+            bgColor: s.hasDebt ? Colors.amber.shade50 : AppColors.secondary.withValues(alpha: 0.1),
+            icon: s.hasDebt ? Icons.hourglass_bottom : Icons.verified_outlined,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDateFilterBar(
+    BuildContext context,
+    OwnerAccountStatementController controller,
+  ) {
+    final start = controller.startDate.value;
+    final end = controller.endDate.value;
+    final isFiltered = start != null && end != null;
+
+    final filterText = isFiltered
+        ? 'الفترة: ${DateFormat('yyyy-MM-dd').format(start)} إلى ${DateFormat('yyyy-MM-dd').format(end)}'
+        : 'كافة الحركات المالية (انقر لتحديد فترة زمنية)';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: isFiltered ? AppColors.secondaryLight : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isFiltered ? AppColors.primary.withValues(alpha: 0.4) : Colors.grey.shade300,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.date_range,
+            size: 20,
+            color: isFiltered ? AppColors.primary : AppColors.textSecondary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  initialDateRange: isFiltered
+                      ? DateTimeRange(start: start, end: end)
+                      : DateTimeRange(
+                          start: DateTime.now().subtract(const Duration(days: 30)),
+                          end: DateTime.now(),
+                        ),
+                );
+                if (picked != null) {
+                  controller.setDateRange(picked.start, picked.end);
+                }
+              },
+              child: Text(
+                filterText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isFiltered ? FontWeight.bold : FontWeight.normal,
+                  color: isFiltered ? AppColors.primaryDark : AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          if (isFiltered)
+            IconButton(
+              icon: const Icon(Icons.close, size: 18, color: AppColors.critical),
+              tooltip: 'إلغاء التصفية',
+              onPressed: controller.clearDateRange,
+            ),
+        ],
+      ),
     );
   }
 
@@ -345,7 +493,7 @@ class OwnerAccountStatementView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             amount,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 2),
@@ -370,20 +518,19 @@ class OwnerAccountStatementView extends StatelessWidget {
           headingRowColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.08)),
           columns: const [
             DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('البيان / الخدمة', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('البيان / تفاصيل الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text('المريض', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('المبلغ (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('المدفوع (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('المطلوب (مدين)', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('المسدد (دائن)', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('الرصيد التراكمي', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: s.statementItems.map((item) {
-            final amt = item.debit > 0 ? item.debit : item.credit;
             return DataRow(
               cells: [
                 DataCell(Text(item.date, style: const TextStyle(fontSize: 12))),
                 DataCell(
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 220),
+                    constraints: const BoxConstraints(maxWidth: 240),
                     child: Text(
                       item.description,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -393,35 +540,28 @@ class OwnerAccountStatementView extends StatelessWidget {
                 ),
                 DataCell(Text(item.petName ?? '-', style: const TextStyle(fontSize: 12))),
                 DataCell(Text(
-                  amt.toStringAsFixed(0),
+                  item.debit > 0 ? '${item.debit.toStringAsFixed(0)} ر.ي' : '-',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                    color: item.debit > 0 ? Colors.blue.shade900 : Colors.grey,
                   ),
                 )),
                 DataCell(Text(
-                  amt.toStringAsFixed(0),
+                  item.credit > 0 ? '${item.credit.toStringAsFixed(0)} ر.ي' : '-',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green.shade800,
+                    color: item.credit > 0 ? Colors.green.shade800 : Colors.grey,
                   ),
                 )),
                 DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'مسدد',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.success,
-                      ),
+                  Text(
+                    '${item.balance.toStringAsFixed(0)} ر.ي',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: item.balance > 0.001 ? Colors.amber.shade900 : AppColors.success,
                     ),
                   ),
                 ),
@@ -429,6 +569,60 @@ class OwnerAccountStatementView extends StatelessWidget {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentLedgerList(BuildContext context, OwnerAccountSummary s) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: s.paymentLedger.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, idx) {
+          final p = s.paymentLedger[idx];
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppColors.success.withValues(alpha: 0.15),
+              child: const Icon(Icons.receipt_long, color: AppColors.success, size: 20),
+            ),
+            title: Row(
+              children: [
+                Text(
+                  p.receiptNumber ?? '#${p.id}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    p.paymentMethodDisplayArabic,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              'التاريخ: ${p.paymentDate.length >= 10 ? p.paymentDate.substring(0, 10) : p.paymentDate}${p.notes != null && p.notes!.isNotEmpty ? ' | ${p.notes}' : ''}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            trailing: Text(
+              '${p.amount.toStringAsFixed(0)} ر.ي',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: AppColors.success,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -493,7 +687,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'المبلغ المسدد (ر.ي) *',
-                    hintText: 'مثال: 10000',
+                    hintText: 'مثال: 5000',
                     prefixIcon: Icon(Icons.money),
                     border: OutlineInputBorder(),
                   ),
@@ -544,7 +738,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                   controller: notesController,
                   decoration: const InputDecoration(
                     labelText: 'ملاحظات السند (اختياري)',
-                    hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
+                    hintText: 'سداد دفعة من الحساب الآجل...',
                     border: OutlineInputBorder(),
                   ),
                 ),

@@ -135,5 +135,5 @@ class FinancialTransactionModel {
     }
   }
 
-  bool get hasRemainingDebt => false;
+  bool get hasRemainingDebt => remainingAmount > 0.001;
 }

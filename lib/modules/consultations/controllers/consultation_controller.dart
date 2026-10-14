@@ -46,6 +46,8 @@ class ConsultationController extends GetxController {
   final diagnosisController = TextEditingController(); // Assessment
   final planController = TextEditingController(); // Plan
   final costController = TextEditingController(text: '5000'); // Yemeni Rial
+  final paidAmountController = TextEditingController(text: '5000');
+  final RxDouble remainingAmount = 0.0.obs;
   final RxString selectedPaymentMethod = AppPaymentMethods.cash.obs;
   final RxBool showCostInPrescription = true.obs; // إظهار أتعاب الكشف والخدمات في الروشتة المطبوعة
 
@@ -104,7 +106,16 @@ class ConsultationController extends GetxController {
     }
     surgeryDateController.text = DateTime.now().add(const Duration(days: 2)).toIso8601String().substring(0, 10);
     planStartDateController.text = DateTime.now().add(const Duration(days: 1)).toIso8601String().substring(0, 10);
+    costController.addListener(updateRemainingAmount);
+    paidAmountController.addListener(updateRemainingAmount);
+    updateRemainingAmount();
     loadData();
+  }
+
+  void updateRemainingAmount() {
+    final cost = double.tryParse(costController.text.trim()) ?? 0.0;
+    final paid = double.tryParse(paidAmountController.text.trim()) ?? 0.0;
+    remainingAmount.value = (cost - paid).clamp(0.0, double.infinity);
   }
 
   Future<void> loadData() async {
@@ -267,6 +278,7 @@ class ConsultationController extends GetxController {
         diagnosis: diagnosis,
         treatmentPlan: planController.text.trim(),
         visitCost: double.tryParse(costController.text.trim()) ?? 0.0,
+        paidAmount: double.tryParse(paidAmountController.text.trim()) ?? 0.0,
         paymentMethod: selectedPaymentMethod.value,
         petName: selectedPet.value!.name,
         petSpecies: selectedPet.value!.species,

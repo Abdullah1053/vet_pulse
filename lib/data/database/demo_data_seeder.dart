@@ -25,6 +25,8 @@ class DemoDataSeeder {
     final db = await DatabaseHelper.instance.database;
 
     await db.transaction((txn) async {
+      await txn.delete(DatabaseTables.tableCustomerPayments);
+      await txn.delete(DatabaseTables.tableBackupLogs);
       await txn.delete(DatabaseTables.tableTransactions);
       await txn.delete(DatabaseTables.tableExpenses);
       await txn.delete(DatabaseTables.tablePrescriptions);
@@ -163,6 +165,8 @@ class DemoDataSeeder {
         'diagnosis': 'التهاب معوي حاد خفيف (Acute Mild Gastroenteritis)',
         'treatment_plan': 'إعطاء محاليل وريدية داعمة، مضاد قيء حقناً في العيادة، ومضاد حيوي واسع الطيف بالفم للمنزل مع حمية هضمية (Gastrointestinal Diet).',
         'visit_cost': 6500.0,
+        'paid_amount': 4000.0,
+        'payment_method': 'نقدا',
       });
 
       // Prescriptions for Consult 1
@@ -203,6 +207,8 @@ class DemoDataSeeder {
         'diagnosis': 'فحص سريري سليم + تطعيم خماسي دوري (DHPPi Routine Booster)',
         'treatment_plan': 'إعطاء اللقاح تحت الجلد، وإعطاء جرعة وقائية ضد الديدان المعوية، وموعد الجرعة التنشيطية بعد 3 أسابيع.',
         'visit_cost': 8000.0,
+        'paid_amount': 0.0,
+        'payment_method': 'نقدا',
       });
 
       await txn.insert(DatabaseTables.tablePrescriptions, {
@@ -330,8 +336,8 @@ class DemoDataSeeder {
       });
 
       // 8. Financial Transactions (Ledger & Client Statements)
-      // Transaction 1: Simba Consultation (Fully paid)
-      await txn.insert(DatabaseTables.tableTransactions, {
+      // Transaction 1: Simba Consultation (Partially paid: 4000 paid, 2500 remaining deferred)
+      final tx1Id = await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner1Id,
@@ -339,15 +345,15 @@ class DemoDataSeeder {
         'reference_id': consult1Id,
         'reference_type': 'consultation',
         'amount': 6500.0,
-        'paid_amount': 6500.0,
-        'remaining_amount': 0.0,
-        'payment_method': 'cash',
+        'paid_amount': 4000.0,
+        'remaining_amount': 2500.0,
+        'payment_method': 'نقدا',
         'transaction_date': todayStr,
-        'notes': 'كشف سريري - التهاب معوي حاد (مسدد بالكامل)',
+        'notes': 'كشف سريري - التهاب معوي حاد (مسدد جزئياً 4,000 والباقي آجل 2,500)',
       });
 
-      // Transaction 2: Simba Surgery (Fully paid via kuraimi)
-      await txn.insert(DatabaseTables.tableTransactions, {
+      // Transaction 2: Simba Surgery (Fully paid via kuraimi: 35000 paid, 0 remaining)
+      final tx2Id = await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'surgery',
         'owner_id': owner1Id,
@@ -362,7 +368,7 @@ class DemoDataSeeder {
         'notes': 'عملية استئصال حصوات المثانة (مسدد بالكامل عبر كريمي)',
       });
 
-      // Transaction 3: Rocky Consultation (Fully paid)
+      // Transaction 3: Rocky Consultation (Unpaid/Deferred: 0 paid, 8000 remaining deferred)
       await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
@@ -371,15 +377,15 @@ class DemoDataSeeder {
         'reference_id': consult2Id,
         'reference_type': 'consultation',
         'amount': 8000.0,
-        'paid_amount': 8000.0,
-        'remaining_amount': 0.0,
-        'payment_method': 'cash',
+        'paid_amount': 0.0,
+        'remaining_amount': 8000.0,
+        'payment_method': 'نقدا',
         'transaction_date': pastConsultDate,
-        'notes': 'فحص دوري سنوي وتطعيم خماسي (مسدد بالكامل)',
+        'notes': 'فحص دوري سنوي وتطعيم خماسي (مبلغ آجل مستحق بالكامل)',
       });
 
-      // Transaction 4: Misho Owner direct payment / pharmacy
-      await txn.insert(DatabaseTables.tableTransactions, {
+      // Transaction 4: Misho Pharmacy (Fully paid: 4500 paid, 0 remaining)
+      final tx4Id = await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'pharmacy',
         'owner_id': owner3Id,
@@ -389,9 +395,40 @@ class DemoDataSeeder {
         'amount': 4500.0,
         'paid_amount': 4500.0,
         'remaining_amount': 0.0,
-        'payment_method': 'cash',
+        'payment_method': 'نقدا',
         'transaction_date': recentDate2,
-        'notes': 'مستلزمات وفيتامينات شعر وأوميغا 3',
+        'notes': 'مستلزمات وفيتامينات شعر وأوميغا 3 (مسدد بالكامل)',
+      });
+
+      // 9. Customer Payments (سجل الدفعات وسندات القبض المستقلة)
+      await txn.insert(DatabaseTables.tableCustomerPayments, {
+        'owner_id': owner1Id,
+        'transaction_id': tx1Id,
+        'amount': 4000.0,
+        'payment_method': 'نقدا',
+        'payment_date': todayStr,
+        'receipt_number': 'REC-1001',
+        'notes': 'دفعة أولى نقدية من كشف سمبا',
+      });
+
+      await txn.insert(DatabaseTables.tableCustomerPayments, {
+        'owner_id': owner1Id,
+        'transaction_id': tx2Id,
+        'amount': 35000.0,
+        'payment_method': 'كريمي',
+        'payment_date': pastSurgeryDate,
+        'receipt_number': 'REC-1002',
+        'notes': 'سداد كامل تكلفة عملية استئصال الحصوات عبر كريمي',
+      });
+
+      await txn.insert(DatabaseTables.tableCustomerPayments, {
+        'owner_id': owner3Id,
+        'transaction_id': tx4Id,
+        'amount': 4500.0,
+        'payment_method': 'نقدا',
+        'payment_date': recentDate2,
+        'receipt_number': 'REC-1003',
+        'notes': 'سداد كامل قيمة مستلزمات وفيتامينات ميشو نقداً',
       });
 
       // Expense transactions

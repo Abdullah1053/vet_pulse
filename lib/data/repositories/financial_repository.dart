@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/account_statement_model.dart';
+import '../models/customer_payment_model.dart';
 import '../models/expense_model.dart';
 import '../models/financial_transaction_model.dart';
 import '../models/owner_model.dart';
@@ -119,33 +120,93 @@ class FinancialRepository {
     return await db.insert(DatabaseTables.tableTransactions, tx.toMap());
   }
 
-  /// Records a cash/transfer payment voucher (سند قبض) from an owner
+  /// Records a cash/transfer payment voucher (سند قبض / دفعة) from an owner
   Future<int> recordClientPayment({
     required int ownerId,
     required double amount,
+    int? transactionId,
     int? petId,
-    String paymentMethod = 'cash',
+    String paymentMethod = 'نقدا',
     String? notes,
     DateTime? date,
+    String? receiptNumber,
   }) async {
     final db = await _dbHelper.database;
     final now = date ?? DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final receipt = receiptNumber ?? 'REC-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
-    return await db.insert(DatabaseTables.tableTransactions, {
-      'transaction_type': 'payment',
-      'category': 'direct_payment',
-      'owner_id': ownerId,
-      'pet_id': petId,
-      'reference_id': null,
-      'reference_type': 'voucher',
-      'amount': amount,
-      'paid_amount': amount,
-      'remaining_amount': 0.0,
-      'payment_method': paymentMethod,
-      'transaction_date': dateStr,
-      'notes': notes ?? 'سند قبض وتحصيل دفعة نقدية لحساب العميل',
+    return await db.transaction((txn) async {
+      // 1. Insert into customer_payments ledger
+      final paymentId = await txn.insert(DatabaseTables.tableCustomerPayments, {
+        'owner_id': ownerId,
+        'transaction_id': transactionId,
+        'amount': amount,
+        'payment_method': paymentMethod,
+        'payment_date': dateStr,
+        'receipt_number': receipt,
+        'notes': notes ?? 'سند قبض وتحصيل دفعة لحساب العميل',
+      });
+
+      // 2. Insert into financial_transactions for general accounting
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'payment',
+        'category': 'direct_payment',
+        'owner_id': ownerId,
+        'pet_id': petId,
+        'reference_id': paymentId,
+        'reference_type': 'customer_payment',
+        'amount': amount,
+        'paid_amount': amount,
+        'remaining_amount': 0.0,
+        'payment_method': paymentMethod,
+        'transaction_date': dateStr,
+        'notes': (notes != null && notes.isNotEmpty)
+            ? '$notes (سند رقم: $receipt)'
+            : 'سند قبض وتحصيل دفعة نقدية لحساب العميل (سند رقم: $receipt)',
+      });
+
+      // 3. If tied to a specific transaction, update remaining amount on it
+      if (transactionId != null) {
+        final txRows = await txn.query(
+          DatabaseTables.tableTransactions,
+          where: 'id = ?',
+          whereArgs: [transactionId],
+          limit: 1,
+        );
+        if (txRows.isNotEmpty) {
+          final tx = txRows.first;
+          final currentPaid = (tx['paid_amount'] as num?)?.toDouble() ?? 0.0;
+          final totalAmount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+          final newPaid = currentPaid + amount;
+          final newRemaining = (totalAmount - newPaid).clamp(0.0, double.infinity);
+          await txn.update(
+            DatabaseTables.tableTransactions,
+            {
+              'paid_amount': newPaid,
+              'remaining_amount': newRemaining,
+            },
+            where: 'id = ?',
+            whereArgs: [transactionId],
+          );
+        }
+      }
+
+      return paymentId;
     });
+  }
+
+  /// Retrieves all customer payments recorded for an owner
+  Future<List<CustomerPaymentModel>> getCustomerPayments(int ownerId) async {
+    final db = await _dbHelper.database;
+    final res = await db.rawQuery('''
+      SELECT cp.*, o.full_name AS owner_name, o.phone_primary AS owner_phone
+      FROM ${DatabaseTables.tableCustomerPayments} cp
+      LEFT JOIN ${DatabaseTables.tableOwners} o ON cp.owner_id = o.id
+      WHERE cp.owner_id = ?
+      ORDER BY cp.payment_date DESC, cp.id DESC
+    ''', [ownerId]);
+    return res.map((m) => CustomerPaymentModel.fromMap(m)).toList();
   }
 
   // --- FINANCIAL SUMMARY & KPIS ---
@@ -200,7 +261,11 @@ class FinancialRepository {
   }
 
   // --- OWNER ACCOUNT STATEMENT & LEDGER ---
-  Future<OwnerAccountSummary?> getOwnerAccountSummary(int ownerId) async {
+  Future<OwnerAccountSummary?> getOwnerAccountSummary(
+    int ownerId, {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     final db = await _dbHelper.database;
 
     // 1. Get Owner
@@ -213,53 +278,93 @@ class FinancialRepository {
     if (ownerRes.isEmpty) return null;
     final owner = OwnerModel.fromMap(ownerRes.first);
 
-    // 2. Query all transactions linked directly to this owner
+    // 2. Query all customer payments recorded for this owner
+    final paymentLedger = await getCustomerPayments(ownerId);
+
+    // 3. Query all transactions linked directly to this owner
     final txList = await getAllTransactions(ownerId: ownerId, limit: 500);
 
-    // 3. Also check if there are consultations or surgeries that need inclusion
-    // If transactions already exist for this owner, use them.
-    // If not, synthesize from consultations and surgeries
-    final items = <AccountStatementItem>[];
+    // Internal helper for monetary rounding to prevent floating-point inaccuracies
+    double roundCurrency(double val) => (val * 100).roundToDouble() / 100.0;
+
+    // Raw entries that will be sorted and balance-computed
+    final rawEntries = <_RawStatementEntry>[];
 
     if (txList.isNotEmpty) {
-      // Sort oldest to newest for chronological balance calculation
-      final sortedTx = List<FinancialTransactionModel>.from(txList)
-        ..sort((a, b) => a.transactionDate.compareTo(b.transactionDate));
+      final hasCustomerPayments = paymentLedger.isNotEmpty;
 
-      double runningBalance = 0.0;
+      for (final tx in txList) {
+        if (tx.transactionType == 'income') {
+          String desc = tx.categoryDisplayArabic;
+          if (tx.notes != null && tx.notes!.isNotEmpty) {
+            desc = '$desc: ${tx.notes}';
+          }
+          final dateStr = tx.transactionDate.length >= 10
+              ? tx.transactionDate.substring(0, 10)
+              : tx.transactionDate;
 
-      for (final tx in sortedTx) {
-        double debit = 0.0;
-        double credit = 0.0;
+          final debit = tx.amount;
+          final credit = hasCustomerPayments ? 0.0 : tx.paidAmount;
 
-        if (tx.transactionType == 'payment') {
-          // Client payment -> Credit (reduces debt)
-          credit = tx.paidAmount > 0 ? tx.paidAmount : tx.amount;
-        } else if (tx.transactionType == 'income') {
-          // Billed service -> Debit (client owes full amount)
-          debit = tx.amount;
-          // If they also paid part of it at the same time:
-          credit = tx.paidAmount;
+          rawEntries.add(_RawStatementEntry(
+            id: tx.id,
+            date: dateStr,
+            type: tx.category ?? 'service',
+            description: desc,
+            petName: tx.petName,
+            debit: debit,
+            credit: credit,
+            paymentMethod: tx.paymentMethod,
+            notes: tx.notes,
+          ));
+        } else if (tx.transactionType == 'payment') {
+          final alreadyInLedger = paymentLedger.any((p) =>
+              p.amount == tx.amount &&
+              p.paymentDate.startsWith(tx.transactionDate.substring(0, 10)));
+
+          if (!alreadyInLedger) {
+            final dateStr = tx.transactionDate.length >= 10
+                ? tx.transactionDate.substring(0, 10)
+                : tx.transactionDate;
+
+            rawEntries.add(_RawStatementEntry(
+              id: tx.id,
+              date: dateStr,
+              type: 'payment',
+              description: tx.notes ?? 'سند قبض / دفعة مسددة',
+              petName: tx.petName,
+              debit: 0.0,
+              credit: tx.paidAmount > 0 ? tx.paidAmount : tx.amount,
+              paymentMethod: tx.paymentMethod,
+              notes: tx.notes,
+            ));
+          }
         }
+      }
 
-        runningBalance += (debit - credit);
+      if (hasCustomerPayments) {
+        for (final p in paymentLedger) {
+          final dateStr = p.paymentDate.length >= 10
+              ? p.paymentDate.substring(0, 10)
+              : p.paymentDate;
 
-        String desc = tx.categoryDisplayArabic;
-        if (tx.notes != null && tx.notes!.isNotEmpty) {
-          desc = '$desc: ${tx.notes}';
+          String desc = 'سند قبض (${p.paymentMethodDisplayArabic})';
+          if (p.receiptNumber != null && p.receiptNumber!.isNotEmpty) {
+            desc = '$desc - ${p.receiptNumber}';
+          }
+
+          rawEntries.add(_RawStatementEntry(
+            id: p.id,
+            date: dateStr,
+            type: 'payment',
+            description: desc,
+            petName: null,
+            debit: 0.0,
+            credit: p.amount,
+            paymentMethod: p.paymentMethod,
+            notes: p.notes,
+          ));
         }
-
-        items.add(AccountStatementItem(
-          id: tx.id,
-          date: tx.transactionDate.length >= 10 ? tx.transactionDate.substring(0, 10) : tx.transactionDate,
-          type: tx.transactionType,
-          description: desc,
-          petName: tx.petName,
-          debit: debit,
-          credit: credit,
-          balance: runningBalance,
-          notes: tx.notes,
-        ));
       }
     } else {
       // Fallback: Query owner's pets' consultations and surgeries directly
@@ -279,28 +384,21 @@ class FinancialRepository {
         ORDER BY s.scheduled_date ASC
       ''', [ownerId]);
 
-      double runningBalance = 0.0;
-
       for (final c in consultsRes) {
         final cost = (c['visit_cost'] as num?)?.toDouble() ?? 0.0;
+        final paid = (c['paid_amount'] as num?)?.toDouble() ?? cost;
         final petName = c['pet_name'] as String?;
         final date = (c['visit_date'] as String? ?? '').split(' ').first;
         final diag = c['diagnosis'] as String? ?? 'فحص';
 
-        // Assume paid if not specified
-        final debit = cost;
-        final credit = cost;
-        runningBalance += (debit - credit);
-
-        items.add(AccountStatementItem(
+        rawEntries.add(_RawStatementEntry(
           id: c['id'] as int?,
           date: date,
           type: 'consultation',
           description: 'كشف سريري - $diag',
           petName: petName,
-          debit: debit,
-          credit: credit,
-          balance: runningBalance,
+          debit: cost,
+          credit: paid,
           notes: c['treatment_plan'] as String?,
         ));
       }
@@ -311,26 +409,75 @@ class FinancialRepository {
         final date = (s['scheduled_date'] as String? ?? '').split(' ').first;
         final name = s['surgery_name'] as String? ?? 'عملية جراحية';
 
-        final debit = cost;
-        final credit = cost;
-        runningBalance += (debit - credit);
-
-        items.add(AccountStatementItem(
+        rawEntries.add(_RawStatementEntry(
           id: s['id'] as int?,
           date: date,
           type: 'surgery',
           description: 'عملية جراحية - $name',
           petName: petName,
-          debit: debit,
-          credit: credit,
-          balance: runningBalance,
+          debit: cost,
+          credit: cost,
         ));
       }
     }
 
-    final totalBilled = items.fold<double>(0.0, (acc, item) => acc + item.debit);
-    final totalPaid = items.fold<double>(0.0, (acc, item) => acc + item.credit);
-    final balanceDue = totalBilled - totalPaid;
+    // Sort chronologically (oldest first)
+    rawEntries.sort((a, b) => a.date.compareTo(b.date));
+
+    double runningBalance = 0.0;
+    double openingBalance = 0.0;
+    final statementItems = <AccountStatementItem>[];
+
+    final startStr = startDate != null
+        ? '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}'
+        : null;
+    final endStr = endDate != null
+        ? '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}'
+        : null;
+
+    for (final entry in rawEntries) {
+      runningBalance = roundCurrency(runningBalance + (entry.debit - entry.credit));
+
+      if (startStr != null && entry.date.compareTo(startStr) < 0) {
+        openingBalance = runningBalance;
+        continue;
+      }
+
+      if (endStr != null && entry.date.compareTo(endStr) > 0) {
+        continue;
+      }
+
+      statementItems.add(AccountStatementItem(
+        id: entry.id,
+        date: entry.date,
+        type: entry.type,
+        description: entry.description,
+        petName: entry.petName,
+        debit: roundCurrency(entry.debit),
+        credit: roundCurrency(entry.credit),
+        balance: roundCurrency(runningBalance),
+        paymentMethod: entry.paymentMethod,
+        notes: entry.notes,
+      ));
+    }
+
+    if (startStr != null && openingBalance.abs() > 0.001) {
+      statementItems.insert(
+        0,
+        AccountStatementItem(
+          date: startStr,
+          type: 'opening_balance',
+          description: 'رصيد سابق منقول للفترة المحددة',
+          debit: openingBalance > 0 ? openingBalance : 0.0,
+          credit: openingBalance < 0 ? -openingBalance : 0.0,
+          balance: openingBalance,
+        ),
+      );
+    }
+
+    final totalBilled = roundCurrency(rawEntries.fold<double>(0.0, (acc, item) => acc + item.debit));
+    final totalPaid = roundCurrency(rawEntries.fold<double>(0.0, (acc, item) => acc + item.credit));
+    final balanceDue = roundCurrency(totalBilled - totalPaid);
 
     return OwnerAccountSummary(
       ownerId: owner.id!,
@@ -341,7 +488,8 @@ class FinancialRepository {
       totalBilled: totalBilled,
       totalPaid: totalPaid,
       balanceDue: balanceDue,
-      statementItems: items,
+      statementItems: statementItems,
+      paymentLedger: paymentLedger,
     );
   }
 
@@ -360,4 +508,28 @@ class FinancialRepository {
     }
     return list;
   }
+}
+
+class _RawStatementEntry {
+  final int? id;
+  final String date;
+  final String type;
+  final String description;
+  final String? petName;
+  final double debit;
+  final double credit;
+  final String? paymentMethod;
+  final String? notes;
+
+  _RawStatementEntry({
+    this.id,
+    required this.date,
+    required this.type,
+    required this.description,
+    this.petName,
+    required this.debit,
+    required this.credit,
+    this.paymentMethod,
+    this.notes,
+  });
 }

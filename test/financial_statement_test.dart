@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:vet_pulse/data/database/database_helper.dart';
@@ -14,6 +15,13 @@ void main() {
   databaseFactory = databaseFactoryFfi;
 
   setUpAll(() async {
+    try {
+      final dbPath = await databaseFactory.getDatabasesPath();
+      final file = File('$dbPath/vet_pulse.db');
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
     await DemoDataSeeder.resetDemoData();
   });
 

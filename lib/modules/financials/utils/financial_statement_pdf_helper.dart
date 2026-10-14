@@ -237,33 +237,35 @@ class FinancialStatementPdfHelper {
                       ),
                       pw.SizedBox(width: 8),
 
-                      // Account Status
+                      // Balance Due / Remaining
                       pw.Expanded(
                         child: pw.Container(
                           padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                           decoration: pw.BoxDecoration(
-                            color: PdfColors.teal50,
+                            color: summary.hasDebt ? PdfColors.amber50 : PdfColors.teal50,
                             borderRadius: pw.BorderRadius.circular(6),
-                            border: pw.Border.all(color: PdfColors.teal300),
+                            border: pw.Border.all(color: summary.hasDebt ? PdfColors.amber400 : PdfColors.teal300),
                           ),
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.center,
                             children: [
                               pw.Text(
-                                'حالة الحساب',
+                                summary.hasDebt ? 'المتبقي والآجل المستحق' : 'حالة الحساب',
                                 style: pw.TextStyle(
                                   font: arabicFont,
                                   fontSize: 9,
-                                  color: PdfColors.teal900,
+                                  color: summary.hasDebt ? PdfColors.amber900 : PdfColors.teal900,
                                 ),
                               ),
                               pw.SizedBox(height: 4),
                               pw.Text(
-                                'خالص ومسدد',
+                                summary.hasDebt
+                                    ? '${summary.remainingDue.toStringAsFixed(0)} ر.ي'
+                                    : 'خالص ومسدد بالكامل',
                                 style: pw.TextStyle(
                                   font: arabicBold,
                                   fontSize: 13,
-                                  color: PdfColors.teal900,
+                                  color: summary.hasDebt ? PdfColors.amber900 : PdfColors.teal900,
                                 ),
                               ),
                             ],
@@ -277,7 +279,7 @@ class FinancialStatementPdfHelper {
 
                   // Statement Items Table
                   pw.Text(
-                    'تفاصيل الخدمات السريرية والعمليات المسددة:',
+                    'تفاصيل كشف الحساب والحركات المالية والسريرية:',
                     style: pw.TextStyle(font: arabicBold, fontSize: 11, color: PdfColors.teal900),
                   ),
                   pw.SizedBox(height: 6),
@@ -286,11 +288,11 @@ class FinancialStatementPdfHelper {
                     border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                     columnWidths: const {
                       0: pw.FlexColumnWidth(1.2), // التاريخ
-                      1: pw.FlexColumnWidth(3.0), // البيان
-                      2: pw.FlexColumnWidth(1.2), // المريض
-                      3: pw.FlexColumnWidth(1.3), // المبلغ
-                      4: pw.FlexColumnWidth(1.3), // المسدد
-                      5: pw.FlexColumnWidth(1.4), // الحالة
+                      1: pw.FlexColumnWidth(2.6), // البيان
+                      2: pw.FlexColumnWidth(1.1), // المريض
+                      3: pw.FlexColumnWidth(1.2), // المطلوب (مدين)
+                      4: pw.FlexColumnWidth(1.2), // المسدد (دائن)
+                      5: pw.FlexColumnWidth(1.3), // الرصيد
                     },
                     children: [
                       // Header Row
@@ -298,41 +300,87 @@ class FinancialStatementPdfHelper {
                         decoration: const pw.BoxDecoration(color: PdfColors.teal50),
                         children: [
                           _buildTableCell('التاريخ', arabicBold, isHeader: true),
-                          _buildTableCell('البيان / الخدمة', arabicBold, isHeader: true),
+                          _buildTableCell('البيان / تفاصيل الحركة', arabicBold, isHeader: true),
                           _buildTableCell('المريض', arabicBold, isHeader: true),
-                          _buildTableCell('المبلغ (ر.ي)', arabicBold, isHeader: true),
-                          _buildTableCell('المسدد (ر.ي)', arabicBold, isHeader: true),
-                          _buildTableCell('الحالة', arabicBold, isHeader: true),
+                          _buildTableCell('المطلوب (مدين)', arabicBold, isHeader: true),
+                          _buildTableCell('المسدد (دائن)', arabicBold, isHeader: true),
+                          _buildTableCell('الرصيد التراكمي', arabicBold, isHeader: true),
                         ],
                       ),
                       // Data Rows
                       ...summary.statementItems.map((item) {
-                        final amt = item.debit > 0 ? item.debit : item.credit;
                         return pw.TableRow(
                           children: [
                             _buildTableCell(item.date, arabicFont),
                             _buildTableCell(item.description, arabicFont),
                             _buildTableCell(item.petName ?? '-', arabicFont),
                             _buildTableCell(
-                              amt.toStringAsFixed(0),
+                              item.debit > 0 ? '${item.debit.toStringAsFixed(0)} ر.ي' : '-',
                               arabicFont,
-                              textColor: PdfColors.blue900,
+                              textColor: item.debit > 0 ? PdfColors.blue900 : PdfColors.grey500,
                             ),
                             _buildTableCell(
-                              amt.toStringAsFixed(0),
+                              item.credit > 0 ? '${item.credit.toStringAsFixed(0)} ر.ي' : '-',
                               arabicFont,
-                              textColor: PdfColors.green900,
+                              textColor: item.credit > 0 ? PdfColors.green900 : PdfColors.grey500,
                             ),
                             _buildTableCell(
-                              'مسدد',
+                              '${item.balance.toStringAsFixed(0)} ر.ي',
                               arabicBold,
-                              textColor: PdfColors.teal900,
+                              textColor: item.balance > 0.001 ? PdfColors.amber900 : PdfColors.teal900,
                             ),
                           ],
                         );
                       }),
                     ],
                   ),
+
+                  if (summary.paymentLedger.isNotEmpty) ...[
+                    pw.SizedBox(height: 16),
+                    pw.Text(
+                      'سجل الدفعات وسندات القبض المسددة:',
+                      style: pw.TextStyle(font: arabicBold, fontSize: 11, color: PdfColors.teal900),
+                    ),
+                    pw.SizedBox(height: 6),
+                    pw.Table(
+                      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                      columnWidths: const {
+                        0: pw.FlexColumnWidth(1.4), // رقم السند
+                        1: pw.FlexColumnWidth(1.2), // التاريخ
+                        2: pw.FlexColumnWidth(1.2), // المبلغ
+                        3: pw.FlexColumnWidth(1.4), // طريقة الدفع
+                        4: pw.FlexColumnWidth(2.8), // ملاحظات
+                      },
+                      children: [
+                        pw.TableRow(
+                          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                          children: [
+                            _buildTableCell('رقم السند', arabicBold, isHeader: true),
+                            _buildTableCell('تاريخ الدفع', arabicBold, isHeader: true),
+                            _buildTableCell('المبلغ', arabicBold, isHeader: true),
+                            _buildTableCell('طريقة الدفع', arabicBold, isHeader: true),
+                            _buildTableCell('ملاحظات السند', arabicBold, isHeader: true),
+                          ],
+                        ),
+                        ...summary.paymentLedger.map((p) => pw.TableRow(
+                              children: [
+                                _buildTableCell(p.receiptNumber ?? '#${p.id}', arabicBold),
+                                _buildTableCell(
+                                  p.paymentDate.length >= 10 ? p.paymentDate.substring(0, 10) : p.paymentDate,
+                                  arabicFont,
+                                ),
+                                _buildTableCell(
+                                  '${p.amount.toStringAsFixed(0)} ر.ي',
+                                  arabicBold,
+                                  textColor: PdfColors.green900,
+                                ),
+                                _buildTableCell(p.paymentMethodDisplayArabic, arabicFont),
+                                _buildTableCell(p.notes ?? '-', arabicFont),
+                              ],
+                            )),
+                      ],
+                    ),
+                  ],
 
                   pw.SizedBox(height: 20),
 

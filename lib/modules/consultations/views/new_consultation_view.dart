@@ -911,14 +911,106 @@ class NewConsultationView extends GetView<ConsultationController> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    CustomTextField(
-                      label: 'أتعاب الكشف والخدمات (${AppStringsAr.currencyShort})',
-                      hint: '5000',
-                      controller: controller.costController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      prefixIcon: const Icon(Icons.payments_outlined),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CustomTextField(
+                            label: 'إجمالي الأتعاب (${AppStringsAr.currencyShort}) *',
+                            hint: '5000',
+                            controller: controller.costController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            prefixIcon: const Icon(Icons.request_quote_outlined),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: CustomTextField(
+                            label: 'المبلغ المدفوع (${AppStringsAr.currencyShort}) *',
+                            hint: 'المسدد الآن',
+                            controller: controller.paidAmountController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            prefixIcon: const Icon(Icons.price_check),
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+                    // Live remaining calculation banner
+                    Obx(() {
+                      final cost = double.tryParse(controller.costController.text.trim()) ?? 0.0;
+                      final paid = double.tryParse(controller.paidAmountController.text.trim()) ?? 0.0;
+                      final remaining = controller.remainingAmount.value;
+                      final isFullyPaid = remaining <= 0.001;
+                      final isZeroPaid = paid <= 0.001 && cost > 0;
+
+                      Color bgColor = isFullyPaid
+                          ? AppColors.success.withValues(alpha: 0.1)
+                          : (isZeroPaid
+                              ? Colors.red.shade50
+                              : Colors.amber.shade50);
+                      Color borderColor = isFullyPaid
+                          ? AppColors.success.withValues(alpha: 0.4)
+                          : (isZeroPaid
+                              ? Colors.red.shade300
+                              : Colors.amber.shade400);
+                      Color textColor = isFullyPaid
+                          ? AppColors.success
+                          : (isZeroPaid
+                              ? Colors.red.shade800
+                              : Colors.amber.shade900);
+                      IconData icon = isFullyPaid
+                          ? Icons.check_circle_outline
+                          : (isZeroPaid
+                              ? Icons.pending_actions
+                              : Icons.hourglass_bottom);
+
+                      String statusTitle;
+                      String statusSubtitle;
+                      if (isFullyPaid) {
+                        statusTitle = 'مسدد بالكامل (${paid.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                        statusSubtitle = 'لا توجد مبالغ آجلة على هذا الكشف';
+                      } else if (isZeroPaid) {
+                        statusTitle = 'مبلغ آجل بالكامل (${remaining.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                        statusSubtitle = 'سيتم ترحيل كامل المبلغ كمديونية ومستحق على حساب العميل';
+                      } else {
+                        statusTitle = 'سداد جزئي - متبقي آجل (${remaining.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                        statusSubtitle = 'تم دفع ${paid.toStringAsFixed(0)} وسيرحل المتبقي كمديونية على حساب العميل';
+                      }
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(icon, color: textColor, size: 24),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    statusTitle,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    statusSubtitle,
+                                    style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.85)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     const SizedBox(height: 14),
                     Obx(() => DropdownButtonFormField<String>(
                       isExpanded: true,

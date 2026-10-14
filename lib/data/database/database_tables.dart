@@ -13,6 +13,8 @@ class DatabaseTables {
   static const String tableSurgeries = 'surgeries';
   static const String tableExpenses = 'expenses';
   static const String tableTransactions = 'financial_transactions';
+  static const String tableCustomerPayments = 'customer_payments';
+  static const String tableBackupLogs = 'backup_logs';
 
   static const String createClinicInfoTable = '''
     CREATE TABLE $tableClinicInfo (
@@ -124,6 +126,7 @@ class DatabaseTables {
       diagnosis TEXT NOT NULL,
       treatment_plan TEXT,
       visit_cost REAL DEFAULT 0.0,
+      paid_amount REAL DEFAULT 0.0,
       payment_method TEXT DEFAULT 'نقدا',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
@@ -230,5 +233,47 @@ class DatabaseTables {
 
   static const String createTransactionsOwnerIndex = '''
     CREATE INDEX idx_transactions_owner ON $tableTransactions(owner_id);
+  ''';
+
+  static const String createCustomerPaymentsTable = '''
+    CREATE TABLE $tableCustomerPayments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL,
+      transaction_id INTEGER,
+      amount REAL NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'نقدا',
+      payment_date DATETIME NOT NULL,
+      receipt_number TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE CASCADE,
+      FOREIGN KEY (transaction_id) REFERENCES $tableTransactions (id) ON DELETE SET NULL
+    );
+  ''';
+
+  static const String createCustomerPaymentsOwnerIndex = '''
+    CREATE INDEX idx_customer_payments_owner ON $tableCustomerPayments(owner_id);
+  ''';
+
+  static const String createCustomerPaymentsDateIndex = '''
+    CREATE INDEX idx_customer_payments_date ON $tableCustomerPayments(payment_date);
+  ''';
+
+  static const String createBackupLogsTable = '''
+    CREATE TABLE $tableBackupLogs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      backup_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      size_bytes INTEGER DEFAULT 0,
+      backup_type TEXT NOT NULL DEFAULT 'internal',
+      destination TEXT,
+      status TEXT NOT NULL DEFAULT 'success',
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
+
+  static const String createBackupLogsDateIndex = '''
+    CREATE INDEX idx_backup_logs_date ON $tableBackupLogs(created_at);
   ''';
 }
