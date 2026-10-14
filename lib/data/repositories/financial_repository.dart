@@ -483,7 +483,6 @@ class FinancialRepository {
       ownerId: owner.id!,
       ownerName: owner.fullName,
       phonePrimary: owner.phonePrimary,
-      phoneSecondary: owner.phoneSecondary,
       address: owner.address,
       totalBilled: totalBilled,
       totalPaid: totalPaid,

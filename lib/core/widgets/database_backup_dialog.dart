@@ -7,16 +7,13 @@ import '../../data/services/database_backup_service.dart';
 import '../../modules/auth/controllers/auth_controller.dart';
 import '../../modules/dashboard/controllers/dashboard_controller.dart';
 import '../../modules/financials/controllers/financial_controller.dart';
+import '../../routes/app_routes.dart';
 
 class DatabaseBackupDialog extends StatefulWidget {
   const DatabaseBackupDialog({super.key});
 
-  static Future<void> show(BuildContext context) {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const DatabaseBackupDialog(),
-    );
+  static Future<void> show(BuildContext context) async {
+    await Get.toNamed(AppRoutes.databaseBackup);
   }
 
   @override

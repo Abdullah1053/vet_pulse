@@ -171,13 +171,6 @@ class FinancialStatementPdfHelper {
                               'رقم الهاتف: ${summary.phonePrimary}',
                               style: pw.TextStyle(font: arabicBold, fontSize: 10, color: PdfColors.grey900),
                             ),
-                            if (summary.phoneSecondary != null && summary.phoneSecondary!.isNotEmpty) ...[
-                              pw.SizedBox(height: 2),
-                              pw.Text(
-                                'هاتف إضافي: ${summary.phoneSecondary}',
-                                style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey700),
-                              ),
-                            ],
                           ],
                         ),
                       ],

@@ -6,7 +6,7 @@ import 'database_tables.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 6;
+  static const int _dbVersion = 7;
 
   DatabaseHelper._internal();
   static final DatabaseHelper instance = DatabaseHelper._internal();
@@ -125,6 +125,11 @@ class DatabaseHelper {
         await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
       } catch (_) {}
       await db.execute('PRAGMA foreign_keys = ON;');
+    }
+    if (oldVersion < 7) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableOwners} DROP COLUMN phone_secondary;');
+      } catch (_) {}
     }
   }
 

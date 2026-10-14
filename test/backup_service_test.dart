@@ -47,6 +47,8 @@ void main() {
       expect(list, isNotEmpty);
       expect(list.first.sizeBytes, greaterThan(0));
       expect(list.first.fileName, contains('vet_pulse_internal_'));
+      expect(list.first.directoryPath, isNotEmpty);
+      expect(list.first.shortDirectoryPath, contains('vet_pulse_backups'));
     });
 
     test('restoreFromFile rejects unauthorized user roles', () async {

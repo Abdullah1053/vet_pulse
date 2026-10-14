@@ -34,4 +34,5 @@ abstract class AppRoutes {
 
   static const financialDashboard = '/financials';
   static const ownerAccountStatement = '/financials/owner-statement';
+  static const databaseBackup = '/backup';
 }

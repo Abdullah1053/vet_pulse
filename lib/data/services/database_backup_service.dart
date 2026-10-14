@@ -25,6 +25,16 @@ class DatabaseBackupInfo {
     this.backupType = 'internal',
   }) : fileName = fileName ?? p.basename(path);
 
+  /// Path to the directory containing this backup file
+  String get directoryPath => p.dirname(path);
+
+  /// Short display path (last 2 segments, e.g. 'app_flutter/vet_pulse_backups')
+  String get shortDirectoryPath {
+    final parts = p.split(directoryPath);
+    if (parts.length <= 2) return parts.join('/');
+    return parts.sublist(parts.length - 2).join('/');
+  }
+
   String get formattedSize {
     if (sizeBytes < 1024) return '$sizeBytes B';
     if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';

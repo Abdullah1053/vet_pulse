@@ -62,7 +62,6 @@ class DemoDataSeeder {
       final owner1Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'م. أحمد يحيى الشامي',
         'phone_primary': '0777123456',
-        'phone_secondary': '0733123456',
         'address': 'صنعاء - حدة - خلف بريد حدة',
         'notes': 'عميل مميز - مهتم جداً بجدول التطعيمات ومواعيد العناية',
       });
@@ -70,7 +69,6 @@ class DemoDataSeeder {
       final owner2Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'د. ريم محمد باعباد',
         'phone_primary': '0771987654',
-        'phone_secondary': null,
         'address': 'صنعاء - الحي الدبلوماسي',
         'notes': 'طبيبة بشرية - تفضل إرسال التقارير والروشتات بصيغة PDF عبر واتساب',
       });
@@ -78,7 +76,6 @@ class DemoDataSeeder {
       final owner3Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'أ. طارق عبدالكريم الحميري',
         'phone_primary': '0733556677',
-        'phone_secondary': '0770556677',
         'address': 'صنعاء - شارع بغداد',
         'notes': 'مربي قطط شيرازية محترف',
       });
@@ -86,7 +83,6 @@ class DemoDataSeeder {
       final owner4Id = await txn.insert(DatabaseTables.tableOwners, {
         'full_name': 'فاطمة خالد اليماني',
         'phone_primary': '0775112233',
-        'phone_secondary': null,
         'address': 'صنعاء - شارع الستين الجنوبي',
         'notes': 'عميلة جديدة - تم عمل فحص وقائي شامل للحيوان',
       });

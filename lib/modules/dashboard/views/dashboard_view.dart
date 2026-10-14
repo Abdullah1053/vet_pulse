@@ -10,7 +10,6 @@ import '../../auth/controllers/auth_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../services/alerts_service.dart';
 import '../widgets/alerts_bottom_sheet.dart';
-import '../../../core/widgets/database_backup_dialog.dart';
 
 class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
@@ -706,7 +705,7 @@ class DashboardView extends GetView<DashboardController> {
             subtitle: const Text('حفظ نسخة على فلاش ميموري أو استعادتها', style: TextStyle(fontSize: 11)),
             onTap: () {
               Get.back();
-              DatabaseBackupDialog.show(context);
+              Get.toNamed(AppRoutes.databaseBackup);
             },
           ),
           const Divider(),

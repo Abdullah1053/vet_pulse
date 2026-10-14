@@ -113,8 +113,7 @@ class FinancialController extends GetxController {
     }
     return ownersAccounts.where((acc) {
       return acc.ownerName.toLowerCase().contains(q) ||
-          acc.phonePrimary.contains(q) ||
-          (acc.phoneSecondary != null && acc.phoneSecondary!.contains(q));
+          acc.phonePrimary.contains(q);
     }).toList();
   }
 

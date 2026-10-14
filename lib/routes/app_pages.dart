@@ -32,6 +32,7 @@ import '../modules/users_management/views/users_list_view.dart';
 import '../modules/financials/bindings/financial_binding.dart';
 import '../modules/financials/views/financial_dashboard_view.dart';
 import '../modules/financials/views/owner_account_statement_view.dart';
+import '../modules/backup/views/database_backup_view.dart';
 import 'app_routes.dart';
 
 class AppPages {
@@ -173,6 +174,10 @@ class AppPages {
     GetPage(
       name: AppRoutes.ownerAccountStatement,
       page: () => const OwnerAccountStatementView(),
+    ),
+    GetPage(
+      name: AppRoutes.databaseBackup,
+      page: () => const DatabaseBackupView(),
     ),
   ];
 }

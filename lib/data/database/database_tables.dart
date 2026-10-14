@@ -48,7 +48,6 @@ class DatabaseTables {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       full_name TEXT NOT NULL,
       phone_primary TEXT NOT NULL,
-      phone_secondary TEXT,
       address TEXT,
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP

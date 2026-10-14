@@ -47,7 +47,6 @@ class OwnerAccountSummary {
   final int ownerId;
   final String ownerName;
   final String phonePrimary;
-  final String? phoneSecondary;
   final String? address;
   final double totalBilled; // إجمالي قيمة الخدمات والمشتريات
   final double totalPaid; // إجمالي المبالغ المسددة فعلياً
@@ -59,7 +58,6 @@ class OwnerAccountSummary {
     required this.ownerId,
     required this.ownerName,
     required this.phonePrimary,
-    this.phoneSecondary,
     this.address,
     required this.totalBilled,
     required this.totalPaid,

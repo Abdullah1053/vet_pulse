@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
-import '../../../core/widgets/database_backup_dialog.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
@@ -10,91 +9,189 @@ import '../../../data/models/financial_transaction_model.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/financial_controller.dart';
 
-class FinancialDashboardView extends StatelessWidget {
+class FinancialDashboardView extends StatefulWidget {
   const FinancialDashboardView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(FinancialController());
+  State<FinancialDashboardView> createState() => _FinancialDashboardViewState();
+}
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 2,
-          title: const Text(
-            'الإدارة المالية والحسابات العامة',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+class _FinancialDashboardViewState extends State<FinancialDashboardView> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final FinancialController controller = Get.put(FinancialController());
+
+  final List<({IconData icon, String fullTitle, String shortTitle})> _sectionTabs = const [
+    (
+      icon: Icons.receipt_long,
+      fullTitle: 'الحركات المالية',
+      shortTitle: 'الحركات',
+    ),
+    (
+      icon: Icons.shopping_bag_outlined,
+      fullTitle: 'سجل المصروفات',
+      shortTitle: 'المصروفات',
+    ),
+    (
+      icon: Icons.people_outline,
+      fullTitle: 'كشوفات حسابات المربين',
+      shortTitle: 'كشوفات المربين',
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _sectionTabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        title: const Text(
+          'الإدارة المالية والحسابات العامة',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
+            icon: const Icon(Icons.storage_rounded, color: Colors.white),
+            onPressed: () => Get.toNamed(AppRoutes.databaseBackup),
           ),
-          actions: [
-            IconButton(
-              tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
-              icon: const Icon(Icons.storage_rounded, color: Colors.white),
-              onPressed: () => DatabaseBackupDialog.show(context),
+          IconButton(
+            tooltip: AppStringsAr.refresh,
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () => controller.loadFinancialData(),
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(66),
+          child: Container(
+            height: 66,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            color: AppColors.primary,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: List.generate(_sectionTabs.length, (index) {
+                  final isSelected = _tabController.index == index;
+                  final item = _sectionTabs[index];
+
+                  return Expanded(
+                    // Tab stretches when clicked / active to accommodate full title!
+                    flex: isSelected ? 4 : 2,
+                    child: GestureDetector(
+                      onTap: () {
+                        _tabController.animateTo(index);
+                        setState(() {});
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.14),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              item.icon,
+                              size: 19,
+                              color: isSelected ? AppColors.primary : Colors.white.withValues(alpha: 0.85),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                isSelected ? item.fullTitle : item.shortTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: isSelected ? 12.5 : 11.5,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  color: isSelected ? AppColors.primary : Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
-            IconButton(
-              tooltip: AppStringsAr.refresh,
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () => controller.loadFinancialData(),
-            ),
-          ],
-          bottom: TabBar(
-            indicatorColor: Colors.amberAccent,
-            indicatorWeight: 3.5,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white.withValues(alpha: 0.75),
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-            tabs: const [
-              Tab(icon: Icon(Icons.receipt_long, size: 20), text: 'الحركات المالية'),
-              Tab(icon: Icon(Icons.shopping_bag_outlined, size: 20), text: 'سجل المصروفات'),
-              Tab(icon: Icon(Icons.people_outline, size: 20), text: 'كشوفات حسابات المربين'),
-            ],
           ),
         ),
-        body: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return Column(
-            children: [
-              // Top KPI Summary Cards & Action Buttons
-              Container(
-                color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Column(
-                  children: [
-                    _buildKpiGrid(context, controller),
-                    const SizedBox(height: 12),
-                    _buildQuickActionButtons(context, controller),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, thickness: 1),
-
-              // TabBarViews
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    // Tab 1: Transactions
-                    _buildTransactionsTab(context, controller),
-
-                    // Tab 2: Expenses
-                    _buildExpensesTab(context, controller),
-
-                    // Tab 3: Owners Accounts & Debts
-                    _buildOwnersAccountsTab(context, controller),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }),
       ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Column(
+          children: [
+            // Top KPI Summary Cards & Action Buttons
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                children: [
+                  _buildKpiGrid(context, controller),
+                  const SizedBox(height: 12),
+                  _buildQuickActionButtons(context, controller),
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 1),
+
+            // TabBarViews
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Tab 1: Transactions
+                  _buildTransactionsTab(context, controller),
+
+                  // Tab 2: Expenses
+                  _buildExpensesTab(context, controller),
+
+                  // Tab 3: Owners Accounts & Debts
+                  _buildOwnersAccountsTab(context, controller),
+                ],
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -745,16 +842,49 @@ class FinancialDashboardView extends StatelessWidget {
   }) {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => onSelected(),
-        selectedColor: AppColors.primary.withValues(alpha: 0.15),
-        checkmarkColor: AppColors.primary,
-        labelStyle: TextStyle(
-          color: isSelected ? AppColors.primary : Colors.grey.shade700,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 12,
+      child: GestureDetector(
+        onTap: onSelected,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(
+            horizontal: isSelected ? 15 : 10,
+            vertical: 7,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.grey.shade300,
+              width: 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                const Icon(Icons.check, size: 13, color: Colors.white),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade800,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

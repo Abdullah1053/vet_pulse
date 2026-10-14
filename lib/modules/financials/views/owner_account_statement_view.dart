@@ -309,7 +309,7 @@ class OwnerAccountStatementView extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'هاتف: ${s.phonePrimary} ${s.phoneSecondary != null ? " | ${s.phoneSecondary}" : ""}',
+                        'هاتف: ${s.phonePrimary}',
                         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                       ),
                       if (s.address != null && s.address!.isNotEmpty) ...[
