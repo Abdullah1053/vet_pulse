@@ -7,8 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import '../database/database_helper.dart';
-import '../database/database_tables.dart';
 import '../models/backup_log_model.dart';
+import '../repositories/backup_repository.dart';
 
 class DatabaseBackupInfo {
   final String path;
@@ -77,6 +77,7 @@ class BackupConfig {
 class DatabaseBackupService {
   DatabaseBackupService._internal();
   static final DatabaseBackupService instance = DatabaseBackupService._internal();
+  final BackupRepository _backupRepo = BackupRepository();
 
   /// Gets dedicated directory for internal backups
   Future<Directory> getInternalBackupsDirectory() async {
@@ -459,8 +460,7 @@ class DatabaseBackupService {
   /// Records backup or restore event in tableBackupLogs
   Future<void> logBackupEvent(BackupLogModel log) async {
     try {
-      final db = await DatabaseHelper.instance.database;
-      await db.insert(DatabaseTables.tableBackupLogs, log.toMap());
+      await _backupRepo.insertBackupLog(log);
     } catch (e) {
       debugPrint('Error inserting backup log: $e');
     }
@@ -469,13 +469,7 @@ class DatabaseBackupService {
   /// Retrieves all backup and restore logs
   Future<List<BackupLogModel>> getBackupLogs() async {
     try {
-      final db = await DatabaseHelper.instance.database;
-      final rows = await db.query(
-        DatabaseTables.tableBackupLogs,
-        orderBy: 'created_at DESC, id DESC',
-        limit: 100,
-      );
-      return rows.map((r) => BackupLogModel.fromMap(r)).toList();
+      return await _backupRepo.getBackupLogs();
     } catch (e) {
       debugPrint('Error getting backup logs: $e');
       return [];

@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:get/get.dart';
 import 'package:vet_pulse/data/database/demo_data_seeder.dart';
+import 'package:vet_pulse/data/models/backup_log_model.dart';
+import 'package:vet_pulse/data/repositories/backup_repository.dart';
 import 'package:vet_pulse/data/services/database_backup_service.dart';
+import 'package:vet_pulse/modules/backup/controllers/backup_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -102,4 +106,55 @@ void main() {
       expect(File(log.filePath).existsSync(), isFalse);
     });
   });
+
+  group('BackupRepository Tests', () {
+    final repo = BackupRepository();
+
+    test('insertBackupLog and getBackupLogs work properly', () async {
+      final testLog = BackupLogModel(
+        backupName: 'test_repo_backup.db',
+        backupType: 'internal',
+        filePath: '/tmp/test_repo_backup.db',
+        sizeBytes: 12345,
+        status: 'success',
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      final id = await repo.insertBackupLog(testLog);
+      expect(id, isNonZero);
+
+      final logs = await repo.getBackupLogs();
+      expect(logs.any((l) => l.backupName == 'test_repo_backup.db'), isTrue);
+
+      final latest = await repo.getLatestBackupLog();
+      expect(latest, isNotNull);
+      expect(latest!.backupName, equals('test_repo_backup.db'));
+
+      final deletedCount = await repo.deleteBackupLog(id);
+      expect(deletedCount, equals(1));
+    });
+  });
+
+  group('BackupController Tests', () {
+    test('initializes and loads backup data correctly', () async {
+      Get.reset();
+      final controller = BackupController(
+        backupRepository: BackupRepository(),
+        backupService: DatabaseBackupService.instance,
+      );
+      controller.onInit();
+
+      expect(controller.tabController.length, equals(3));
+      expect(controller.selectedTabIndex.value, equals(0));
+
+      controller.setTabIndex(1);
+      expect(controller.selectedTabIndex.value, equals(1));
+
+      await controller.loadAllData();
+      expect(controller.activeDbInfo.value, isNotNull);
+
+      controller.onClose();
+    });
+  });
 }
+
