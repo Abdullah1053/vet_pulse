@@ -1,3 +1,4 @@
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/medicine_model.dart';
@@ -62,32 +63,38 @@ class InventoryRepository {
 
   Future<int> insertMedicine(MedicineModel medicine) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tableMedicines, medicine.toMap());
+    final res = await db.insert(DatabaseTables.tableMedicines, medicine.toMap());
+    DataSyncService.notifyInventoryChanged();
+    return res;
   }
 
   Future<int> updateMedicine(MedicineModel medicine) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tableMedicines,
       medicine.toMap(),
       where: 'id = ?',
       whereArgs: [medicine.id],
     );
+    DataSyncService.notifyInventoryChanged();
+    return res;
   }
 
   Future<int> deleteMedicine(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    final res = await db.delete(
       DatabaseTables.tableMedicines,
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifyInventoryChanged();
+    return res;
   }
 
   /// Internal Stock Transfer: Move quantity from Warehouse storage to Clinic dispensing shelf
   Future<bool> transferStock({required int medicineId, required int quantity}) async {
     final db = await _dbHelper.database;
-    return await db.transaction((txn) async {
+    final success = await db.transaction((txn) async {
       final res = await txn.query(
         DatabaseTables.tableMedicines,
         where: 'id = ?',
@@ -114,12 +121,17 @@ class InventoryRepository {
       );
       return true;
     });
+
+    if (success) {
+      DataSyncService.notifyInventoryChanged();
+    }
+    return success;
   }
 
   /// Deduct medication from clinic shelf upon prescription dispensing
   Future<bool> deductClinicStock({required int medicineId, required int quantity}) async {
     final db = await _dbHelper.database;
-    return await db.transaction((txn) async {
+    final success = await db.transaction((txn) async {
       final res = await txn.query(
         DatabaseTables.tableMedicines,
         where: 'id = ?',
@@ -139,5 +151,10 @@ class InventoryRepository {
       );
       return true;
     });
+
+    if (success) {
+      DataSyncService.notifyInventoryChanged();
+    }
+    return success;
   }
 }

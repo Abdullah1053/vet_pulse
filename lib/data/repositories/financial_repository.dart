@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/account_statement_model.dart';
@@ -32,8 +33,8 @@ class FinancialRepository {
 
   Future<int> insertExpense(ExpenseModel expense) async {
     final db = await _dbHelper.database;
-    return await db.transaction((txn) async {
-      final expenseId = await txn.insert(DatabaseTables.tableExpenses, expense.toMap());
+    final expenseId = await db.transaction((txn) async {
+      final id = await txn.insert(DatabaseTables.tableExpenses, expense.toMap());
 
       // Create linked financial transaction
       await txn.insert(DatabaseTables.tableTransactions, {
@@ -41,7 +42,7 @@ class FinancialRepository {
         'category': expense.category,
         'owner_id': null,
         'pet_id': null,
-        'reference_id': expenseId,
+        'reference_id': id,
         'reference_type': 'expense',
         'amount': expense.amount,
         'paid_amount': expense.amount,
@@ -51,13 +52,16 @@ class FinancialRepository {
         'notes': expense.notes ?? expense.title,
       });
 
-      return expenseId;
+      return id;
     });
+
+    DataSyncService.notifyAllChanged();
+    return expenseId;
   }
 
   Future<int> deleteExpense(int id) async {
     final db = await _dbHelper.database;
-    return await db.transaction((txn) async {
+    final res = await db.transaction((txn) async {
       await txn.delete(
         DatabaseTables.tableTransactions,
         where: 'reference_id = ? AND reference_type = ?',
@@ -69,6 +73,9 @@ class FinancialRepository {
         whereArgs: [id],
       );
     });
+
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 
   // --- TRANSACTIONS ---
@@ -117,7 +124,9 @@ class FinancialRepository {
 
   Future<int> insertTransaction(FinancialTransactionModel tx) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tableTransactions, tx.toMap());
+    final res = await db.insert(DatabaseTables.tableTransactions, tx.toMap());
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 
   /// Records a cash/transfer payment voucher (سند قبض / دفعة) from an owner
@@ -136,9 +145,9 @@ class FinancialRepository {
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final receipt = receiptNumber ?? 'REC-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
-    return await db.transaction((txn) async {
+    final paymentId = await db.transaction((txn) async {
       // 1. Insert into customer_payments ledger
-      final paymentId = await txn.insert(DatabaseTables.tableCustomerPayments, {
+      final id = await txn.insert(DatabaseTables.tableCustomerPayments, {
         'owner_id': ownerId,
         'transaction_id': transactionId,
         'amount': amount,
@@ -154,7 +163,7 @@ class FinancialRepository {
         'category': 'direct_payment',
         'owner_id': ownerId,
         'pet_id': petId,
-        'reference_id': paymentId,
+        'reference_id': id,
         'reference_type': 'customer_payment',
         'amount': amount,
         'paid_amount': amount,
@@ -192,8 +201,11 @@ class FinancialRepository {
         }
       }
 
-      return paymentId;
+      return id;
     });
+
+    DataSyncService.notifyAllChanged();
+    return paymentId;
   }
 
   /// Retrieves all customer payments recorded for an owner

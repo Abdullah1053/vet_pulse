@@ -1,3 +1,4 @@
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/consultation_model.dart';
@@ -109,7 +110,7 @@ class ConsultationRepository {
     required List<PrescriptionModel> prescriptions,
   }) async {
     final db = await _dbHelper.database;
-    return await db.transaction((txn) async {
+    final resultId = await db.transaction((txn) async {
       // 1. Insert consultation
       final consultationId = await txn.insert(
         DatabaseTables.tableConsultations,
@@ -187,20 +188,35 @@ class ConsultationRepository {
 
       return consultationId;
     });
+    DataSyncService.notifyConsultationChanged(petId: consultation.petId);
+    return resultId;
   }
 
   Future<int> updateConsultation(ConsultationModel consultation) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tableConsultations,
       consultation.toMap(),
       where: 'id = ?',
       whereArgs: [consultation.id],
     );
+    DataSyncService.notifyConsultationChanged(petId: consultation.petId);
+    return res;
   }
 
   Future<void> deleteConsultation(int consultationId) async {
     final db = await _dbHelper.database;
+    int? petId;
+    try {
+      final rows = await db.query(
+        DatabaseTables.tableConsultations,
+        columns: ['pet_id'],
+        where: 'id = ?',
+        whereArgs: [consultationId],
+      );
+      if (rows.isNotEmpty) petId = rows.first['pet_id'] as int?;
+    } catch (_) {}
+
     await db.transaction((txn) async {
       // 1. Find clinic-administered prescriptions to restore shelf stock
       final rxList = await txn.query(
@@ -240,6 +256,8 @@ class ConsultationRepository {
         whereArgs: [consultationId],
       );
     });
+
+    DataSyncService.notifyConsultationChanged(petId: petId);
   }
 
   Future<int> getTodayConsultationsCount() async {

@@ -17,7 +17,7 @@ class DatabaseTables {
   static const String tableBackupLogs = 'backup_logs';
 
   static const String createClinicInfoTable = '''
-    CREATE TABLE $tableClinicInfo (
+    CREATE TABLE IF NOT EXISTS $tableClinicInfo (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       clinic_name TEXT NOT NULL,
       doctor_name TEXT NOT NULL,
@@ -30,7 +30,7 @@ class DatabaseTables {
   ''';
 
   static const String createUsersTable = '''
-    CREATE TABLE $tableUsers (
+    CREATE TABLE IF NOT EXISTS $tableUsers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
@@ -44,7 +44,7 @@ class DatabaseTables {
   ''';
 
   static const String createOwnersTable = '''
-    CREATE TABLE $tableOwners (
+    CREATE TABLE IF NOT EXISTS $tableOwners (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       full_name TEXT NOT NULL,
       phone_primary TEXT NOT NULL,
@@ -54,11 +54,11 @@ class DatabaseTables {
   ''';
 
   static const String createOwnersPhoneIndex = '''
-    CREATE INDEX idx_owners_phone ON $tableOwners(phone_primary);
+    CREATE INDEX IF NOT EXISTS idx_owners_phone ON $tableOwners(phone_primary);
   ''';
 
   static const String createPetsTable = '''
-    CREATE TABLE $tablePets (
+    CREATE TABLE IF NOT EXISTS $tablePets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       owner_id INTEGER NOT NULL,
       name TEXT NOT NULL,
@@ -76,11 +76,11 @@ class DatabaseTables {
   ''';
 
   static const String createPetsMicrochipIndex = '''
-    CREATE INDEX idx_pets_microchip ON $tablePets(microchip_number);
+    CREATE INDEX IF NOT EXISTS idx_pets_microchip ON $tablePets(microchip_number);
   ''';
 
   static const String createPetWeightsTable = '''
-    CREATE TABLE $tablePetWeights (
+    CREATE TABLE IF NOT EXISTS $tablePetWeights (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pet_id INTEGER NOT NULL,
       weight REAL NOT NULL,
@@ -90,7 +90,7 @@ class DatabaseTables {
   ''';
 
   static const String createMedicinesTable = '''
-    CREATE TABLE $tableMedicines (
+    CREATE TABLE IF NOT EXISTS $tableMedicines (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trade_name TEXT NOT NULL,
       scientific_name TEXT,
@@ -108,11 +108,11 @@ class DatabaseTables {
   ''';
 
   static const String createMedicinesExpiryIndex = '''
-    CREATE INDEX idx_medicines_expiry ON $tableMedicines(expiry_date);
+    CREATE INDEX IF NOT EXISTS idx_medicines_expiry ON $tableMedicines(expiry_date);
   ''';
 
   static const String createConsultationsTable = '''
-    CREATE TABLE $tableConsultations (
+    CREATE TABLE IF NOT EXISTS $tableConsultations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pet_id INTEGER NOT NULL,
       doctor_id INTEGER NOT NULL,
@@ -133,7 +133,7 @@ class DatabaseTables {
   ''';
 
   static const String createPrescriptionsTable = '''
-    CREATE TABLE $tablePrescriptions (
+    CREATE TABLE IF NOT EXISTS $tablePrescriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       consultation_id INTEGER NOT NULL,
       medicine_id INTEGER,
@@ -151,7 +151,7 @@ class DatabaseTables {
   ''';
 
   static const String createFollowUpsTable = '''
-    CREATE TABLE $tableFollowUps (
+    CREATE TABLE IF NOT EXISTS $tableFollowUps (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pet_id INTEGER NOT NULL,
       consultation_id INTEGER,
@@ -167,11 +167,11 @@ class DatabaseTables {
   ''';
 
   static const String createFollowUpsDateIndex = '''
-    CREATE INDEX idx_followups_date ON $tableFollowUps(scheduled_date);
+    CREATE INDEX IF NOT EXISTS idx_followups_date ON $tableFollowUps(scheduled_date);
   ''';
 
   static const String createSurgeriesTable = '''
-    CREATE TABLE $tableSurgeries (
+    CREATE TABLE IF NOT EXISTS $tableSurgeries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pet_id INTEGER NOT NULL,
       lead_surgeon_id INTEGER NOT NULL,
@@ -189,7 +189,7 @@ class DatabaseTables {
   ''';
 
   static const String createExpensesTable = '''
-    CREATE TABLE $tableExpenses (
+    CREATE TABLE IF NOT EXISTS $tableExpenses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
@@ -201,11 +201,11 @@ class DatabaseTables {
   ''';
 
   static const String createExpensesDateIndex = '''
-    CREATE INDEX idx_expenses_date ON $tableExpenses(expense_date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON $tableExpenses(expense_date);
   ''';
 
   static const String createTransactionsTable = '''
-    CREATE TABLE $tableTransactions (
+    CREATE TABLE IF NOT EXISTS $tableTransactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       transaction_type TEXT NOT NULL CHECK(transaction_type IN ('income', 'expense', 'payment')),
       category TEXT,
@@ -226,15 +226,15 @@ class DatabaseTables {
   ''';
 
   static const String createTransactionsDateIndex = '''
-    CREATE INDEX idx_transactions_date ON $tableTransactions(transaction_date);
+    CREATE INDEX IF NOT EXISTS idx_transactions_date ON $tableTransactions(transaction_date);
   ''';
 
   static const String createTransactionsOwnerIndex = '''
-    CREATE INDEX idx_transactions_owner ON $tableTransactions(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_transactions_owner ON $tableTransactions(owner_id);
   ''';
 
   static const String createCustomerPaymentsTable = '''
-    CREATE TABLE $tableCustomerPayments (
+    CREATE TABLE IF NOT EXISTS $tableCustomerPayments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       owner_id INTEGER NOT NULL,
       transaction_id INTEGER,
@@ -250,15 +250,15 @@ class DatabaseTables {
   ''';
 
   static const String createCustomerPaymentsOwnerIndex = '''
-    CREATE INDEX idx_customer_payments_owner ON $tableCustomerPayments(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_customer_payments_owner ON $tableCustomerPayments(owner_id);
   ''';
 
   static const String createCustomerPaymentsDateIndex = '''
-    CREATE INDEX idx_customer_payments_date ON $tableCustomerPayments(payment_date);
+    CREATE INDEX IF NOT EXISTS idx_customer_payments_date ON $tableCustomerPayments(payment_date);
   ''';
 
   static const String createBackupLogsTable = '''
-    CREATE TABLE $tableBackupLogs (
+    CREATE TABLE IF NOT EXISTS $tableBackupLogs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       backup_name TEXT NOT NULL,
       file_path TEXT NOT NULL,
@@ -272,6 +272,33 @@ class DatabaseTables {
   ''';
 
   static const String createBackupLogsDateIndex = '''
-    CREATE INDEX idx_backup_logs_date ON $tableBackupLogs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_backup_logs_date ON $tableBackupLogs(created_at);
   ''';
+
+  static const List<String> allTablesAndIndices = [
+    createClinicInfoTable,
+    createUsersTable,
+    createOwnersTable,
+    createOwnersPhoneIndex,
+    createPetsTable,
+    createPetsMicrochipIndex,
+    createPetWeightsTable,
+    createMedicinesTable,
+    createMedicinesExpiryIndex,
+    createConsultationsTable,
+    createPrescriptionsTable,
+    createFollowUpsTable,
+    createFollowUpsDateIndex,
+    createSurgeriesTable,
+    createExpensesTable,
+    createExpensesDateIndex,
+    createTransactionsTable,
+    createTransactionsDateIndex,
+    createTransactionsOwnerIndex,
+    createCustomerPaymentsTable,
+    createCustomerPaymentsOwnerIndex,
+    createCustomerPaymentsDateIndex,
+    createBackupLogsTable,
+    createBackupLogsDateIndex,
+  ];
 }

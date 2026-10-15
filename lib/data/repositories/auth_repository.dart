@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/clinic_model.dart';
@@ -18,16 +19,19 @@ class AuthRepository {
 
   Future<int> saveClinicInfo(ClinicModel clinic) async {
     final db = await _dbHelper.database;
+    final int res;
     if (clinic.id != null) {
-      return await db.update(
+      res = await db.update(
         DatabaseTables.tableClinicInfo,
         clinic.toMap(),
         where: 'id = ?',
         whereArgs: [clinic.id],
       );
     } else {
-      return await db.insert(DatabaseTables.tableClinicInfo, clinic.toMap());
+      res = await db.insert(DatabaseTables.tableClinicInfo, clinic.toMap());
     }
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 
   Future<UserModel?> login(String username, String password) async {
@@ -66,26 +70,32 @@ class AuthRepository {
 
   Future<int> addUser(UserModel user) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tableUsers, user.toMap(),
+    final res = await db.insert(DatabaseTables.tableUsers, user.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace);
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 
   Future<int> updateUser(UserModel user) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tableUsers,
       user.toMap(),
       where: 'id = ?',
       whereArgs: [user.id],
     );
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 
   Future<int> deleteUser(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    final res = await db.delete(
       DatabaseTables.tableUsers,
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 }

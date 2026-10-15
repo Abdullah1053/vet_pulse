@@ -1,3 +1,4 @@
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/owner_model.dart';
@@ -44,26 +45,32 @@ class PetRepository {
 
   Future<int> insertOwner(OwnerModel owner) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tableOwners, owner.toMap());
+    final res = await db.insert(DatabaseTables.tableOwners, owner.toMap());
+    DataSyncService.notifyPatientChanged();
+    return res;
   }
 
   Future<int> updateOwner(OwnerModel owner) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tableOwners,
       owner.toMap(),
       where: 'id = ?',
       whereArgs: [owner.id],
     );
+    DataSyncService.notifyPatientChanged();
+    return res;
   }
 
   Future<int> deleteOwner(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    final res = await db.delete(
       DatabaseTables.tableOwners,
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifyPatientChanged();
+    return res;
   }
 
   // --- PETS ---
@@ -143,26 +150,32 @@ class PetRepository {
 
   Future<int> insertPet(PetModel pet) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tablePets, pet.toMap());
+    final res = await db.insert(DatabaseTables.tablePets, pet.toMap());
+    DataSyncService.notifyPatientChanged(petId: res);
+    return res;
   }
 
   Future<int> updatePet(PetModel pet) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tablePets,
       pet.toMap(),
       where: 'id = ?',
       whereArgs: [pet.id],
     );
+    DataSyncService.notifyPatientChanged(petId: pet.id);
+    return res;
   }
 
   Future<int> deletePet(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    final res = await db.delete(
       DatabaseTables.tablePets,
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifyPatientChanged(petId: id);
+    return res;
   }
 
   // --- PET WEIGHTS ---
@@ -179,6 +192,8 @@ class PetRepository {
 
   Future<int> addWeight(PetWeightModel weight) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tablePetWeights, weight.toMap());
+    final res = await db.insert(DatabaseTables.tablePetWeights, weight.toMap());
+    DataSyncService.notifyPatientChanged(petId: weight.petId);
+    return res;
   }
 }

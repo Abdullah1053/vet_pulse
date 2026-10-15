@@ -71,6 +71,9 @@ class DataSyncService {
         pc.loadPetFullProfile(petId);
       }
     }
+    if (Get.isRegistered<FinancialController>()) {
+      Get.find<FinancialController>().loadFinancialData();
+    }
   }
 
   static void notifyPatientChanged({int? petId}) {
@@ -110,6 +113,9 @@ class DataSyncService {
       if (petId != null && pc.selectedPet.value?.id == petId) {
         pc.loadPetFullProfile(petId);
       }
+    }
+    if (Get.isRegistered<FinancialController>()) {
+      Get.find<FinancialController>().loadFinancialData();
     }
   }
 

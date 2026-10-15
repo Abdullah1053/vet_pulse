@@ -1,3 +1,4 @@
+import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/surgery_model.dart';
@@ -72,46 +73,71 @@ class SurgeryRepository {
 
   Future<int> insertSurgery(SurgeryModel surgery) async {
     final db = await _dbHelper.database;
-    return await db.insert(DatabaseTables.tableSurgeries, surgery.toMap());
+    final res = await db.insert(DatabaseTables.tableSurgeries, surgery.toMap());
+    DataSyncService.notifySurgeryChanged(petId: surgery.petId);
+    return res;
   }
 
   Future<int> updateSurgery(SurgeryModel surgery) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    final res = await db.update(
       DatabaseTables.tableSurgeries,
       surgery.toMap(),
       where: 'id = ?',
       whereArgs: [surgery.id],
     );
+    DataSyncService.notifySurgeryChanged(petId: surgery.petId);
+    return res;
   }
 
   Future<int> togglePreOpChecklist(int id, bool passed) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    int? petId;
+    try {
+      final rows = await db.query(DatabaseTables.tableSurgeries, columns: ['pet_id'], where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) petId = rows.first['pet_id'] as int?;
+    } catch (_) {}
+    final res = await db.update(
       DatabaseTables.tableSurgeries,
       {'pre_op_checklist_passed': passed ? 1 : 0},
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifySurgeryChanged(petId: petId);
+    return res;
   }
 
   Future<int> updateSurgeryStatus(int id, String status) async {
     final db = await _dbHelper.database;
-    return await db.update(
+    int? petId;
+    try {
+      final rows = await db.query(DatabaseTables.tableSurgeries, columns: ['pet_id'], where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) petId = rows.first['pet_id'] as int?;
+    } catch (_) {}
+    final res = await db.update(
       DatabaseTables.tableSurgeries,
       {'status': status},
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifySurgeryChanged(petId: petId);
+    return res;
   }
 
   Future<int> deleteSurgery(int id) async {
     final db = await _dbHelper.database;
-    return await db.delete(
+    int? petId;
+    try {
+      final rows = await db.query(DatabaseTables.tableSurgeries, columns: ['pet_id'], where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) petId = rows.first['pet_id'] as int?;
+    } catch (_) {}
+    final res = await db.delete(
       DatabaseTables.tableSurgeries,
       where: 'id = ?',
       whereArgs: [id],
     );
+    DataSyncService.notifySurgeryChanged(petId: petId);
+    return res;
   }
 
   Future<int> getTodaySurgeriesCount() async {
