@@ -419,6 +419,29 @@ class FinancialRepository {
           credit: cost,
         ));
       }
+
+      for (final p in paymentLedger) {
+        final dateStr = p.paymentDate.length >= 10
+            ? p.paymentDate.substring(0, 10)
+            : p.paymentDate;
+
+        String desc = 'سند قبض (${p.paymentMethodDisplayArabic})';
+        if (p.receiptNumber != null && p.receiptNumber!.isNotEmpty) {
+          desc = '$desc - ${p.receiptNumber}';
+        }
+
+        rawEntries.add(_RawStatementEntry(
+          id: p.id,
+          date: dateStr,
+          type: 'payment',
+          description: desc,
+          petName: null,
+          debit: 0.0,
+          credit: p.amount,
+          paymentMethod: p.paymentMethod,
+          notes: p.notes,
+        ));
+      }
     }
 
     // Sort chronologically (oldest first)

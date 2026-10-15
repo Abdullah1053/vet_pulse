@@ -21,6 +21,7 @@ class ConsultationModel {
   final String? petSpecies;
   final String? doctorName;
   final String? ownerName;
+  final int? ownerId;
   final List<PrescriptionModel> prescriptions;
 
   ConsultationModel({
@@ -42,6 +43,7 @@ class ConsultationModel {
     this.petSpecies,
     this.doctorName,
     this.ownerName,
+    this.ownerId,
     this.prescriptions = const [],
   }) : paidAmount = paidAmount ?? visitCost;
 
@@ -68,6 +70,7 @@ class ConsultationModel {
       petSpecies: map['pet_species'] as String?,
       doctorName: map['doctor_name'] as String?,
       ownerName: map['owner_name'] as String?,
+      ownerId: map['owner_id'] as int?,
       prescriptions: prescriptions,
     );
   }
@@ -112,6 +115,7 @@ class ConsultationModel {
     String? petSpecies,
     String? doctorName,
     String? ownerName,
+    int? ownerId,
     List<PrescriptionModel>? prescriptions,
   }) {
     return ConsultationModel(
@@ -133,6 +137,7 @@ class ConsultationModel {
       petSpecies: petSpecies ?? this.petSpecies,
       doctorName: doctorName ?? this.doctorName,
       ownerName: ownerName ?? this.ownerName,
+      ownerId: ownerId ?? this.ownerId,
       prescriptions: prescriptions ?? this.prescriptions,
     );
   }

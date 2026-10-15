@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/services/device_contact_service.dart';
 import '../../../core/widgets/empty_state_view.dart';
+import '../../../data/database/demo_data_seeder.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../data/repositories/pet_repository.dart';
 import '../../../routes/app_routes.dart';
@@ -120,6 +121,55 @@ class OwnersListView extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
+            tooltip: 'توليد واستعادة البيانات التجريبية الشاملة',
+            icon: const Icon(Icons.auto_awesome, color: Colors.amber),
+            onPressed: () async {
+              final confirm = await Get.dialog<bool>(
+                AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.amber),
+                      SizedBox(width: 8),
+                      Text('توليد بيانات تجريبية شاملة'),
+                    ],
+                  ),
+                  content: const Text(
+                    'سيتم ملء وتحديث التطبيق ببيانات تجريبية كاملة للمربين والحيوانات الأليفة، بالإضافة إلى السجلات المالية وسندات القبض والمصروفات.\n\nهل تريد المتابعة؟',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('إلغاء'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      onPressed: () => Get.back(result: true),
+                      child: const Text('توليد الآن', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                Get.dialog(
+                  const Center(child: CircularProgressIndicator()),
+                  barrierDismissible: false,
+                );
+                await DemoDataSeeder.resetDemoData();
+                await controller.loadOwners();
+                Get.back();
+                Get.snackbar(
+                  'تم بنجاح',
+                  'تم توليد بيانات المربين وسجلاتهم المالية بنجاح.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green.shade800,
+                  colorText: Colors.white,
+                );
+              }
+            },
+          ),
+          IconButton(
             tooltip: AppStringsAr.refresh,
             icon: const Icon(Icons.refresh_rounded),
             onPressed: controller.loadOwners,
@@ -222,15 +272,16 @@ class OwnersListView extends StatelessWidget {
                   title: 'لا يوجد مربين مسجلين',
                   subtitle: controller.searchController.text.isNotEmpty
                       ? 'لا توجد نتائج تطابق بحثك الحالي'
-                      : 'يتم إضافة المربين تلقائياً عند تسجيل المرضى والحيوانات الأليفة',
+                      : 'يتم إضافة المربين تلقائياً أو يمكنك توليد بيانات تجريبية كاملة لعرض النظام',
                   actionText: controller.searchController.text.isNotEmpty
                       ? 'إلغاء التصفية'
-                      : 'إضافة مريض ومالك',
-                  onAction: () {
+                      : 'توليد بيانات تجريبية شاملة (Demo Data)',
+                  onAction: () async {
                     if (controller.searchController.text.isNotEmpty) {
                       controller.clearSearch();
                     } else {
-                      Get.toNamed(AppRoutes.addPatient)?.then((_) => controller.loadOwners());
+                      await DemoDataSeeder.resetDemoData();
+                      await controller.loadOwners();
                     }
                   },
                 );
@@ -429,46 +480,53 @@ class OwnersListView extends StatelessWidget {
                     ),
                   ),
 
-                  // Pet Count Chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: petsCount > 0
-                          ? const Color(0xFFE0F2FE)
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: petsCount > 0
-                            ? const Color(0xFFBAE6FD)
-                            : const Color(0xFFE2E8F0),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.pets_rounded,
-                          size: 13,
-                          color: petsCount > 0 ? const Color(0xFF0284C7) : Colors.grey,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          '$petsCount',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                            color: petsCount > 0 ? const Color(0xFF0284C7) : Colors.grey.shade700,
+                  // Pet Count Chip and Arrow
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: petsCount > 0
+                              ? const Color(0xFFE0F2FE)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: petsCount > 0
+                                ? const Color(0xFFBAE6FD)
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.pets_rounded,
+                              size: 13,
+                              color: petsCount > 0 ? const Color(0xFF0284C7) : Colors.grey,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '$petsCount',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: petsCount > 0 ? const Color(0xFF0284C7) : Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
+                    ],
                   ),
                 ],
               ),
 
               const Divider(height: 20, thickness: 1, color: Color(0xFFF1F5F9)),
 
-              // Action Buttons Row: Call, WhatsApp, Save Contact, Details
+              // Action Buttons Row: Call, WhatsApp, Account Statement
               Row(
                 children: [
                   // Call Button
@@ -477,7 +535,7 @@ class OwnersListView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       onTap: () => controller.callOwner(owner.phonePrimary),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0FDF4),
                           borderRadius: BorderRadius.circular(8),
@@ -485,15 +543,20 @@ class OwnersListView extends StatelessWidget {
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.call_rounded, size: 15, color: Color(0xFF16A34A)),
                             SizedBox(width: 6),
-                            Text(
-                              'اتصال',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF16A34A),
+                            Flexible(
+                              child: Text(
+                                'اتصال',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF16A34A),
+                                ),
                               ),
                             ),
                           ],
@@ -509,7 +572,7 @@ class OwnersListView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       onTap: () => controller.whatsappOwner(owner.phonePrimary, owner.fullName),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0FDF4),
                           borderRadius: BorderRadius.circular(8),
@@ -517,15 +580,20 @@ class OwnersListView extends StatelessWidget {
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.chat_bubble_rounded, size: 15, color: Color(0xFF25D366)),
                             SizedBox(width: 6),
-                            Text(
-                              'واتساب',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF15803D),
+                            Flexible(
+                              child: Text(
+                                'واتساب',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF15803D),
+                                ),
                               ),
                             ),
                           ],
@@ -535,56 +603,41 @@ class OwnersListView extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
 
-                  // Save to Device Contacts Button
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () => controller.saveToContacts(owner.fullName, owner.phonePrimary),
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      child: const Tooltip(
-                        message: 'حفظ في جهات اتصال الهاتف',
-                        child: Icon(
-                          Icons.contact_phone_outlined,
-                          size: 16,
-                          color: AppColors.primary,
+                  // Quick Account Statement button
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        Get.toNamed(AppRoutes.ownerAccountStatement, arguments: owner.id)
+                            ?.then((_) => controller.loadOwners());
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF0F766E).withValues(alpha: 0.25)),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // View Profile / Account
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      Get.toNamed(AppRoutes.ownerDetail, arguments: owner.id)
-                          ?.then((_) => controller.loadOwners());
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'الملف والحساب',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.receipt_long_rounded, size: 15, color: Color(0xFF0F766E)),
+                            SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                'كشف الحساب',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F766E),
+                                ),
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_ios_rounded, size: 11, color: Colors.white),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),

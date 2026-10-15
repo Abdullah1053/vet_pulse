@@ -55,6 +55,9 @@ class DatabaseHelper {
       onConfigure: _onConfigure,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: (db) async {
+        await ensureAllTablesExist(db);
+      },
     );
   }
 
@@ -271,5 +274,277 @@ class DatabaseHelper {
     for (final med in medicines) {
       await db.insert(DatabaseTables.tableMedicines, med);
     }
+  }
+
+  /// Self-healing schema validation: ensures all required tables and columns exist
+  Future<void> ensureAllTablesExist(Database db) async {
+    // Core & Financial Tables
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableClinicInfo} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clinic_name TEXT NOT NULL,
+        doctor_name TEXT NOT NULL,
+        phone TEXT,
+        address TEXT,
+        logo_path TEXT,
+        license_number TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableUsers} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('lead_doctor', 'assistant_vet', 'receptionist', 'pharmacist')),
+        phone TEXT,
+        pin_code TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableOwners} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        phone_primary TEXT NOT NULL,
+        address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_owners_phone ON ${DatabaseTables.tableOwners}(phone_primary);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tablePets} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        species TEXT NOT NULL,
+        breed TEXT,
+        gender TEXT CHECK(gender IN ('male', 'female')),
+        is_neutered INTEGER DEFAULT 0,
+        date_of_birth DATE,
+        microchip_number TEXT,
+        photo_path TEXT,
+        allergies TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_id) REFERENCES ${DatabaseTables.tableOwners} (id) ON DELETE CASCADE
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_pets_microchip ON ${DatabaseTables.tablePets}(microchip_number);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tablePetWeights} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pet_id INTEGER NOT NULL,
+        weight REAL NOT NULL,
+        recorded_date DATE NOT NULL,
+        FOREIGN KEY (pet_id) REFERENCES ${DatabaseTables.tablePets} (id) ON DELETE CASCADE
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableMedicines} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trade_name TEXT NOT NULL,
+        scientific_name TEXT,
+        form TEXT NOT NULL,
+        concentration TEXT,
+        clinic_stock INTEGER DEFAULT 0,
+        warehouse_stock INTEGER DEFAULT 0,
+        min_stock_alert INTEGER DEFAULT 5,
+        unit_cost_price REAL DEFAULT 0.0,
+        unit_sale_price REAL DEFAULT 0.0,
+        expiry_date DATE NOT NULL,
+        batch_number TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_medicines_expiry ON ${DatabaseTables.tableMedicines}(expiry_date);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableConsultations} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pet_id INTEGER NOT NULL,
+        doctor_id INTEGER NOT NULL,
+        visit_date DATETIME NOT NULL,
+        temperature REAL,
+        heart_rate INTEGER,
+        symptoms TEXT,
+        examination_findings TEXT,
+        diagnosis TEXT NOT NULL,
+        treatment_plan TEXT,
+        visit_cost REAL DEFAULT 0.0,
+        paid_amount REAL DEFAULT 0.0,
+        payment_method TEXT DEFAULT 'نقدا',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (pet_id) REFERENCES ${DatabaseTables.tablePets} (id) ON DELETE CASCADE,
+        FOREIGN KEY (doctor_id) REFERENCES ${DatabaseTables.tableUsers} (id)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tablePrescriptions} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        consultation_id INTEGER NOT NULL,
+        medicine_id INTEGER,
+        custom_name TEXT,
+        dosage TEXT NOT NULL,
+        frequency TEXT NOT NULL,
+        duration_days INTEGER NOT NULL,
+        quantity_dispensed INTEGER NOT NULL,
+        instructions TEXT,
+        is_clinic_administered INTEGER DEFAULT 0,
+        route TEXT,
+        FOREIGN KEY (consultation_id) REFERENCES ${DatabaseTables.tableConsultations} (id) ON DELETE CASCADE,
+        FOREIGN KEY (medicine_id) REFERENCES ${DatabaseTables.tableMedicines} (id)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableFollowUps} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pet_id INTEGER NOT NULL,
+        consultation_id INTEGER,
+        scheduled_date DATE NOT NULL,
+        scheduled_time TEXT,
+        reason TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'completed', 'missed', 'cancelled')),
+        reminder_sent INTEGER DEFAULT 0,
+        notes TEXT,
+        FOREIGN KEY (pet_id) REFERENCES ${DatabaseTables.tablePets} (id) ON DELETE CASCADE,
+        FOREIGN KEY (consultation_id) REFERENCES ${DatabaseTables.tableConsultations} (id)
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_followups_date ON ${DatabaseTables.tableFollowUps}(scheduled_date);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableSurgeries} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        pet_id INTEGER NOT NULL,
+        lead_surgeon_id INTEGER NOT NULL,
+        scheduled_date DATETIME NOT NULL,
+        surgery_name TEXT NOT NULL,
+        surgery_category TEXT,
+        status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+        pre_op_checklist_passed INTEGER DEFAULT 0,
+        anesthesia_protocol TEXT,
+        post_op_notes TEXT,
+        estimated_cost REAL,
+        FOREIGN KEY (pet_id) REFERENCES ${DatabaseTables.tablePets} (id) ON DELETE CASCADE,
+        FOREIGN KEY (lead_surgeon_id) REFERENCES ${DatabaseTables.tableUsers} (id)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableExpenses} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        expense_date DATE NOT NULL,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_expenses_date ON ${DatabaseTables.tableExpenses}(expense_date);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableTransactions} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_type TEXT NOT NULL CHECK(transaction_type IN ('income', 'expense', 'payment')),
+        category TEXT,
+        owner_id INTEGER,
+        pet_id INTEGER,
+        reference_id INTEGER,
+        reference_type TEXT,
+        amount REAL NOT NULL,
+        paid_amount REAL DEFAULT 0.0,
+        remaining_amount REAL DEFAULT 0.0,
+        payment_method TEXT DEFAULT 'نقدا',
+        transaction_date DATETIME NOT NULL,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_id) REFERENCES ${DatabaseTables.tableOwners} (id) ON DELETE SET NULL,
+        FOREIGN KEY (pet_id) REFERENCES ${DatabaseTables.tablePets} (id) ON DELETE SET NULL
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON ${DatabaseTables.tableTransactions}(transaction_date);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_owner ON ${DatabaseTables.tableTransactions}(owner_id);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableCustomerPayments} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_id INTEGER NOT NULL,
+        transaction_id INTEGER,
+        amount REAL NOT NULL,
+        payment_method TEXT NOT NULL DEFAULT 'نقدا',
+        payment_date DATETIME NOT NULL,
+        receipt_number TEXT,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (owner_id) REFERENCES ${DatabaseTables.tableOwners} (id) ON DELETE CASCADE,
+        FOREIGN KEY (transaction_id) REFERENCES ${DatabaseTables.tableTransactions} (id) ON DELETE SET NULL
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_customer_payments_owner ON ${DatabaseTables.tableCustomerPayments}(owner_id);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_customer_payments_date ON ${DatabaseTables.tableCustomerPayments}(payment_date);');
+    } catch (_) {}
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${DatabaseTables.tableBackupLogs} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        backup_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        size_bytes INTEGER DEFAULT 0,
+        backup_type TEXT NOT NULL DEFAULT 'internal',
+        destination TEXT,
+        status TEXT NOT NULL DEFAULT 'success',
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_backup_logs_date ON ${DatabaseTables.tableBackupLogs}(created_at);');
+    } catch (_) {}
+
+    // Ensure columns exist on legacy databases
+    try {
+      final txCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableTransactions});');
+      final txColNames = txCols.map((c) => c['name'] as String).toSet();
+      if (!txColNames.contains('paid_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      }
+      if (!txColNames.contains('remaining_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN remaining_amount REAL DEFAULT 0.0;');
+      }
+    } catch (_) {}
+
+    try {
+      final consultCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableConsultations});');
+      final consultColNames = consultCols.map((c) => c['name'] as String).toSet();
+      if (!consultColNames.contains('paid_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      }
+      if (!consultColNames.contains('payment_method')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
+      }
+    } catch (_) {}
   }
 }

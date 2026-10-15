@@ -146,6 +146,32 @@ class ConsultationDetailsDialog extends StatelessWidget {
                           'المالك: ${consultation.ownerName ?? "غير محدد"}',
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
+                        if (consultation.ownerId != null)
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              Get.toNamed(AppRoutes.ownerAccountStatement, arguments: consultation.ownerId);
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.only(top: 4.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.receipt_long_rounded, size: 12, color: AppColors.primary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'كشف حساب المربي',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                     Column(
@@ -347,6 +373,18 @@ class ConsultationDetailsDialog extends StatelessWidget {
                   'consultation': consultation,
                   'prescriptions': consultation.prescriptions,
                 },
+              );
+            },
+          ),
+        if (consultation.ownerId != null)
+          TextButton.icon(
+            icon: const Icon(Icons.receipt_long_rounded, size: 16),
+            label: const Text('كشف حساب المربي'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              Get.toNamed(
+                AppRoutes.ownerAccountStatement,
+                arguments: consultation.ownerId,
               );
             },
           ),

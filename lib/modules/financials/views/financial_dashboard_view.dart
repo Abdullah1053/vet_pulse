@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
+import '../../../data/database/demo_data_seeder.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../data/models/financial_transaction_model.dart';
@@ -67,6 +68,60 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white),
         ),
         actions: [
+          IconButton(
+            tooltip: 'توليد واستعادة البيانات التجريبية الشاملة (Demo Data)',
+            icon: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+            onPressed: () async {
+              final confirm = await Get.dialog<bool>(
+                AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.amber),
+                      SizedBox(width: 8),
+                      Text('توليد بيانات العرض التجريبية'),
+                    ],
+                  ),
+                  content: const Text(
+                    'سيتم ملء التطبيق ببيانات تجريبية كاملة وشاملة لعرض جميع إمكانيات النظام:\n\n'
+                    '• كشوفات حسابات المربين والديون السابقة\n'
+                    '• سجل سندات القبض والدفعات (نقداً وعبر المحافظ: كريمي، جوالي، جيب، فلوسك)\n'
+                    '• سجلات المصروفات وسندات الصرف الشاملة\n'
+                    '• حركات الإيرادات والاستشارات والعمليات الجراحية\n\n'
+                    'هل تريد المتابعة وتوليد هذه البيانات الآن؟',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('إلغاء'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      onPressed: () => Get.back(result: true),
+                      child: const Text('توليد البيانات الآن', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                Get.dialog(
+                  const Center(child: CircularProgressIndicator()),
+                  barrierDismissible: false,
+                );
+                await DemoDataSeeder.resetDemoData();
+                await controller.loadFinancialData();
+                Get.back();
+                Get.snackbar(
+                  'تم بنجاح',
+                  'تم إنشاء وتحديث كافة البيانات التجريبية والحسابات المالية بنجاح.',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green.shade800,
+                  colorText: Colors.white,
+                );
+              }
+            },
+          ),
           IconButton(
             tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
             icon: const Icon(Icons.storage_rounded, color: Colors.white),
@@ -407,10 +462,15 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
           child: Obx(() {
             final list = controller.filteredTransactions;
             if (list.isEmpty) {
-              return const EmptyStateView(
-                title: 'لا توجد حركات مالية مطابقة',
-                subtitle: 'سجل العمليات والكشوفات والدفعات سيظهر هنا',
+              return EmptyStateView(
+                title: 'لا توجد حركات مالية مسجلة',
+                subtitle: 'سجل العمليات والكشوفات والدفعات سيظهر هنا. يمكنك توليد بيانات تجريبية فوراً لتجربة النظام بالكامل.',
                 icon: Icons.receipt_long,
+                actionText: 'توليد بيانات تجريبية شاملة (Demo Data)',
+                onAction: () async {
+                  await DemoDataSeeder.resetDemoData();
+                  await controller.loadFinancialData();
+                },
               );
             }
 
@@ -568,10 +628,15 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
           child: Obx(() {
             final list = controller.filteredExpenses;
             if (list.isEmpty) {
-              return const EmptyStateView(
+              return EmptyStateView(
                 title: 'لا توجد مصروفات مسجلة',
-                subtitle: 'يمكنك إضافة مصروف أو فاتورة جديدة عبر زر "تسجيل سند صرف"',
+                subtitle: 'يمكنك إضافة مصروف جديد عبر زر "تسجيل سند صرف" أو توليد بيانات تجريبية فوراً لتجربة النظام.',
                 icon: Icons.shopping_cart_outlined,
+                actionText: 'توليد بيانات تجريبية شاملة (Demo Data)',
+                onAction: () async {
+                  await DemoDataSeeder.resetDemoData();
+                  await controller.loadFinancialData();
+                },
               );
             }
 
@@ -707,10 +772,23 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
           child: Obx(() {
             final list = controller.filteredOwnersAccounts;
             if (list.isEmpty) {
-              return const EmptyStateView(
-                title: 'لا يوجد مربين مطابقين للبحث',
-                subtitle: 'تأكد من كتابة الاسم أو رقم الهاتف بشكل صحيح',
+              return EmptyStateView(
+                title: controller.clientSearchQuery.value.isNotEmpty
+                    ? 'لا يوجد مربين مطابقين للبحث'
+                    : 'لا توجد حسابات مربين مسجلة',
+                subtitle: controller.clientSearchQuery.value.isNotEmpty
+                    ? 'تأكد من كتابة الاسم أو رقم الهاتف بشكل صحيح'
+                    : 'يمكنك توليد بيانات تجريبية كاملة للمربين وحساباتهم المالية الآن.',
                 icon: Icons.person_search_outlined,
+                actionText: controller.clientSearchQuery.value.isEmpty
+                    ? 'توليد بيانات تجريبية شاملة (Demo Data)'
+                    : null,
+                onAction: controller.clientSearchQuery.value.isEmpty
+                    ? () async {
+                        await DemoDataSeeder.resetDemoData();
+                        await controller.loadFinancialData();
+                      }
+                    : null,
               );
             }
 

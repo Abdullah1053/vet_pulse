@@ -16,7 +16,11 @@ void main() async {
   await DatabaseHelper.instance.database;
 
   // Seed demo clinical records if database is empty for prospective client demonstration
-  await DemoDataSeeder.seedIfEmpty();
+  try {
+    await DemoDataSeeder.seedIfEmpty();
+  } catch (e) {
+    debugPrint('DemoDataSeeder startup note: $e');
+  }
 
   // Initialize global services
   Get.put<NotificationService>(NotificationService(), permanent: true);

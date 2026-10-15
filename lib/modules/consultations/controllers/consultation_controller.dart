@@ -283,6 +283,7 @@ class ConsultationController extends GetxController {
         petName: selectedPet.value!.name,
         petSpecies: selectedPet.value!.species,
         ownerName: selectedPet.value!.ownerName,
+        ownerId: selectedPet.value!.ownerId,
         doctorName: auth.currentUser.value?.fullName ?? 'د. عبدالله خالد',
         prescriptions: allPrescriptions,
       );

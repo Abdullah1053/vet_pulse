@@ -335,9 +335,17 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                             AppStringsAr.ownerInfo,
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                          if (pet.ownerPhone != null && pet.ownerPhone!.isNotEmpty)
-                            Row(
-                              children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
+                                onPressed: () {
+                                  Get.toNamed(AppRoutes.ownerAccountStatement, arguments: pet.ownerId);
+                                },
+                                tooltip: 'كشف الحساب المالي للمربي',
+                              ),
+                              if (pet.ownerPhone != null && pet.ownerPhone!.isNotEmpty) ...[
                                 IconButton(
                                   icon: const Icon(Icons.phone, color: AppColors.primary, size: 20),
                                   onPressed: () => _makeCall(pet.ownerPhone!),
@@ -349,7 +357,8 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
                                   tooltip: 'واتساب',
                                 ),
                               ],
-                            ),
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),

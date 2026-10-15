@@ -13,6 +13,7 @@ class ConsultationRepository {
         c.*, 
         p.name AS pet_name, 
         p.species AS pet_species,
+        p.owner_id AS owner_id,
         u.full_name AS doctor_name,
         o.full_name AS owner_name
       FROM ${DatabaseTables.tableConsultations} c
@@ -39,6 +40,7 @@ class ConsultationRepository {
         c.*, 
         p.name AS pet_name, 
         p.species AS pet_species,
+        p.owner_id AS owner_id,
         u.full_name AS doctor_name,
         o.full_name AS owner_name
       FROM ${DatabaseTables.tableConsultations} c
@@ -66,6 +68,7 @@ class ConsultationRepository {
         c.*, 
         p.name AS pet_name, 
         p.species AS pet_species,
+        p.owner_id AS owner_id,
         u.full_name AS doctor_name,
         o.full_name AS owner_name
       FROM ${DatabaseTables.tableConsultations} c

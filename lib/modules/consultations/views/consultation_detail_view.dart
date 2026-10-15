@@ -5,6 +5,7 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/services/data_sync_service.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../../data/repositories/consultation_repository.dart';
+import '../../../data/repositories/pet_repository.dart';
 import '../../../routes/app_routes.dart';
 
 class ConsultationDetailView extends StatefulWidget {
@@ -26,6 +27,15 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
     if (widget.initialConsultation != null) {
       consultation = widget.initialConsultation;
       isLoading = false;
+      if (consultation!.ownerId == null && consultation!.petId > 0) {
+        PetRepository().getPetById(consultation!.petId).then((pet) {
+          if (mounted && pet?.ownerId != null) {
+            setState(() {
+              consultation = consultation!.copyWith(ownerId: pet!.ownerId);
+            });
+          }
+        });
+      }
     } else {
       _loadConsultation();
     }
@@ -34,8 +44,15 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
   Future<void> _loadConsultation() async {
     final arg = Get.arguments;
     if (arg is ConsultationModel) {
+      var item = arg;
+      if (item.ownerId == null && item.petId > 0) {
+        final pet = await PetRepository().getPetById(item.petId);
+        if (pet?.ownerId != null) {
+          item = item.copyWith(ownerId: pet!.ownerId);
+        }
+      }
       setState(() {
-        consultation = arg;
+        consultation = item;
         isLoading = false;
       });
     } else if (arg is int) {
@@ -119,6 +136,12 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
       appBar: AppBar(
         title: Text('كشف: ${item.petName ?? "المريض"}'),
         actions: [
+          if (item.ownerId != null)
+            IconButton(
+              icon: const Icon(Icons.receipt_long_rounded),
+              tooltip: 'كشف الحساب المالي للمربي',
+              onPressed: () => Get.toNamed(AppRoutes.ownerAccountStatement, arguments: item.ownerId),
+            ),
           IconButton(
             icon: const Icon(Icons.print_outlined),
             tooltip: 'معاينة وطباعة الروشتة',
@@ -146,6 +169,7 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
         child: Row(
           children: [
             Expanded(
+              flex: 3,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -163,16 +187,30 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                 onPressed: () => Get.toNamed(AppRoutes.prescriptionPreview, arguments: item),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
+            if (item.ownerId != null) ...[
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                label: const Text('كشف الحساب'),
+                onPressed: () => Get.toNamed(AppRoutes.ownerAccountStatement, arguments: item.ownerId),
+              ),
+              const SizedBox(width: 8),
+            ],
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
               icon: const Icon(Icons.pets, size: 18),
-              label: const Text('الملف الطبي'),
+              label: const Text('الملف'),
               onPressed: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
             ),
           ],
@@ -219,22 +257,49 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                             ],
                           ),
                         ),
-                        InkWell(
-                          onTap: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondaryLight,
-                              borderRadius: BorderRadius.circular(8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            InkWell(
+                              onTap: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryLight,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('الملف الطبي', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    SizedBox(width: 4),
+                                    Icon(Icons.arrow_forward_ios, size: 9, color: AppColors.primary),
+                                  ],
+                                ),
+                              ),
                             ),
-                            child: const Row(
-                              children: [
-                                Text('الملف الطبي', style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primary),
-                              ],
-                            ),
-                          ),
+                            if (item.ownerId != null) ...[
+                              const SizedBox(height: 6),
+                              InkWell(
+                                onTap: () => Get.toNamed(AppRoutes.ownerAccountStatement, arguments: item.ownerId),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1D3557).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.receipt_long_rounded, size: 12, color: Color(0xFF1D3557)),
+                                      SizedBox(width: 4),
+                                      Text('كشف حساب المربي', style: TextStyle(color: Color(0xFF1D3557), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -460,9 +525,118 @@ class _ConsultationDetailViewState extends State<ConsultationDetailView> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // 6. Consultation Financial & Owner Account Card
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text('البيانات المالية للكشف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: item.isFullyPaid
+                                ? AppColors.success.withValues(alpha: 0.15)
+                                : Colors.red.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            item.isFullyPaid ? 'مسدد بالكامل' : 'متبقي: ${item.remainingAmount.toStringAsFixed(0)} ر.ي',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: item.isFullyPaid ? AppColors.success : Colors.red.shade800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildFinancialInfoTile(
+                            title: 'رسوم الكشف والخدمات',
+                            value: '${item.visitCost.toStringAsFixed(0)} ر.ي',
+                            color: Colors.blue.shade800,
+                            bgColor: Colors.blue.shade50,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildFinancialInfoTile(
+                            title: 'المبلغ المسدد (${item.paymentMethod})',
+                            value: '${item.paidAmount.toStringAsFixed(0)} ر.ي',
+                            color: Colors.green.shade800,
+                            bgColor: Colors.green.shade50,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (item.ownerId != null) ...[
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1D3557),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                          label: const Text(
+                            'عرض كشف الحساب المالي للمربي (PDF & طباعة)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          onPressed: () => Get.toNamed(AppRoutes.ownerAccountStatement, arguments: item.ownerId),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFinancialInfoTile({
+    required String title,
+    required String value,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
