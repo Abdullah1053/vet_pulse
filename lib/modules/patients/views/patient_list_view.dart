@@ -6,9 +6,10 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/patient_controller.dart';
+import '../controllers/add_patient_controller.dart';
+import '../controllers/patient_list_controller.dart';
 
-class PatientListView extends GetView<PatientController> {
+class PatientListView extends GetView<PatientListController> {
   const PatientListView({super.key});
 
   @override
@@ -29,7 +30,9 @@ class PatientListView extends GetView<PatientController> {
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.newPetAction, style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () {
-          controller.clearForm();
+          if (Get.isRegistered<AddPatientController>()) {
+            Get.find<AddPatientController>().clearForm();
+          }
           Get.toNamed(AppRoutes.addPatient);
         },
       ),
@@ -82,9 +85,8 @@ class PatientListView extends GetView<PatientController> {
                   return Card(
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      onTap: () async {
-                        await controller.selectPet(pet);
-                        Get.toNamed(AppRoutes.patientDetail);
+                      onTap: () {
+                        Get.toNamed(AppRoutes.patientDetail, arguments: pet.id);
                       },
                       leading: CircleAvatar(
                         radius: 24,

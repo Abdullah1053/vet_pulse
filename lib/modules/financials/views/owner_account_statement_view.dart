@@ -2,122 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_payment_methods.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/account_statement_model.dart';
-import '../../../data/models/clinic_model.dart';
-import '../../../data/repositories/financial_repository.dart';
-import '../../auth/controllers/auth_controller.dart';
-import '../controllers/financial_controller.dart';
+import '../controllers/owner_statement_controller.dart';
 import '../utils/financial_statement_pdf_helper.dart';
 
-class OwnerAccountStatementController extends GetxController {
-  final FinancialRepository _repo = FinancialRepository();
-  final AuthController _authController = Get.find<AuthController>();
-
-  late int ownerId;
-  final Rx<OwnerAccountSummary?> summary = Rx<OwnerAccountSummary?>(null);
-  final RxBool isLoading = true.obs;
-
-  // Date range filters
-  final Rx<DateTime?> startDate = Rx<DateTime?>(null);
-  final Rx<DateTime?> endDate = Rx<DateTime?>(null);
-
-  ClinicModel? get clinic => _authController.clinicInfo.value;
-
-  @override
-  void onInit() {
-    super.onInit();
-    final args = Get.arguments;
-    if (args is int) {
-      ownerId = args;
-      loadStatement();
-    } else {
-      Get.back();
-    }
-  }
-
-  Future<void> loadStatement() async {
-    isLoading.value = true;
-    try {
-      final s = await _repo.getOwnerAccountSummary(
-        ownerId,
-        startDate: startDate.value,
-        endDate: endDate.value,
-      );
-      summary.value = s;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void setDateRange(DateTime start, DateTime end) {
-    startDate.value = start;
-    endDate.value = end;
-    loadStatement();
-  }
-
-  void clearDateRange() {
-    startDate.value = null;
-    endDate.value = null;
-    loadStatement();
-  }
-
-  Future<void> recordPayment(double amount, String paymentMethod, String? notes) async {
-    await _repo.recordClientPayment(
-      ownerId: ownerId,
-      amount: amount,
-      paymentMethod: paymentMethod,
-      notes: notes,
-    );
-    await loadStatement();
-    if (Get.isRegistered<FinancialController>()) {
-      Get.find<FinancialController>().loadFinancialData();
-    }
-    Get.snackbar(
-      'تم تسجيل سند القبض بنجاح ✅',
-      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب العميل',
-      backgroundColor: AppColors.success.withValues(alpha: 0.15),
-      colorText: AppColors.success,
-      duration: const Duration(seconds: 4),
-    );
-  }
-
-  Future<void> shareStatementWhatsApp() async {
-    final s = summary.value;
-    if (s == null) return;
-    final phone = s.phonePrimary.replaceAll(RegExp(r'\D'), '');
-
-    final msg = '''
-*كشف حساب مالي - عيادة نبض البيطرية*
-العميل: ${s.ownerName}
-------------------------------
-إجمالي الخدمات: ${s.totalBilled.toStringAsFixed(0)} ر.ي
-إجمالي المسدد: ${s.totalPaid.toStringAsFixed(0)} ر.ي
-المتبقي والآجل: ${s.remainingDue.toStringAsFixed(0)} ر.ي
-حالة الحساب: ${s.statusDisplayArabic}
-------------------------------
-نشكركم على ثقتكم بنا.
-''';
-
-    final uri = Uri.parse('whatsapp://send?phone=$phone&text=${Uri.encodeComponent(msg)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      Get.snackbar('واتساب', 'تعذر فتح تطبيق واتساب');
-    }
-  }
-}
-
-class OwnerAccountStatementView extends StatelessWidget {
+class OwnerAccountStatementView extends GetView<OwnerStatementController> {
   const OwnerAccountStatementView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(OwnerAccountStatementController());
-
     return Scaffold(
       appBar: AppBar(
         title: Obx(() => Text(
@@ -279,7 +175,7 @@ class OwnerAccountStatementView extends StatelessWidget {
 
   Widget _buildOwnerHeaderCard(
     BuildContext context,
-    OwnerAccountStatementController controller,
+    OwnerStatementController controller,
     OwnerAccountSummary s,
   ) {
     final hasDebt = s.hasDebt;
@@ -407,7 +303,7 @@ class OwnerAccountStatementView extends StatelessWidget {
 
   Widget _buildDateFilterBar(
     BuildContext context,
-    OwnerAccountStatementController controller,
+    OwnerStatementController controller,
   ) {
     final start = controller.startDate.value;
     final end = controller.endDate.value;
@@ -629,7 +525,7 @@ class OwnerAccountStatementView extends StatelessWidget {
 
   void _openPdfPreview(
     BuildContext context,
-    OwnerAccountStatementController controller,
+    OwnerStatementController controller,
     OwnerAccountSummary s,
   ) {
     Get.to(() => Scaffold(
@@ -660,7 +556,7 @@ class OwnerAccountStatementView extends StatelessWidget {
 
   void _showAddPaymentDialog(
     BuildContext context,
-    OwnerAccountStatementController controller,
+    OwnerStatementController controller,
   ) {
     final amountController = TextEditingController();
     final notesController = TextEditingController();

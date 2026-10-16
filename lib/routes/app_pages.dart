@@ -85,10 +85,12 @@ class AppPages {
     GetPage(
       name: AppRoutes.owners,
       page: () => const OwnersListView(),
+      binding: PatientBinding(),
     ),
     GetPage(
       name: AppRoutes.ownerDetail,
       page: () => const OwnerDetailView(),
+      binding: PatientBinding(),
     ),
 
     // Reports
@@ -175,6 +177,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.ownerAccountStatement,
       page: () => const OwnerAccountStatementView(),
+      binding: FinancialBinding(),
     ),
     GetPage(
       name: AppRoutes.databaseBackup,

@@ -1,228 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_payment_methods.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/account_statement_model.dart';
-import '../../../data/models/owner_model.dart';
-import '../../../data/models/pet_model.dart';
-import '../../../data/repositories/financial_repository.dart';
-import '../../../data/repositories/pet_repository.dart';
-import '../../../core/services/device_contact_service.dart';
 import '../../../routes/app_routes.dart';
+import '../controllers/owner_controller.dart';
 
-class OwnerDetailController extends GetxController {
-  final PetRepository _petRepo = PetRepository();
-  final FinancialRepository _financialRepo = FinancialRepository();
-
-  final Rx<OwnerModel?> owner = Rx<OwnerModel?>(null);
-  final RxList<PetModel> pets = <PetModel>[].obs;
-  final Rx<OwnerAccountSummary?> accountSummary = Rx<OwnerAccountSummary?>(
-    null,
-  );
-  final RxBool isLoading = true.obs;
-
-  late int ownerId;
-
-  @override
-  void onInit() {
-    super.onInit();
-    final args = Get.arguments;
-    if (args is int) {
-      ownerId = args;
-      loadOwnerData();
-    } else {
-      Get.back();
-    }
-  }
-
-  Future<void> loadOwnerData() async {
-    isLoading.value = true;
-    try {
-      final o = await _petRepo.getOwnerById(ownerId);
-      owner.value = o;
-      final petList = await _petRepo.getPetsByOwnerId(ownerId);
-      pets.assignAll(petList);
-      final s = await _financialRepo.getOwnerAccountSummary(ownerId);
-      accountSummary.value = s;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> callOwner() async {
-    final phone = owner.value?.phonePrimary;
-    if (phone == null) return;
-    final clean = phone.replaceAll(RegExp(r'\D'), '');
-    final uri = Uri.parse('tel:$clean');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
-  Future<void> whatsappOwner() async {
-    final phone = owner.value?.phonePrimary;
-    if (phone == null) return;
-    final clean = phone.replaceAll(RegExp(r'\D'), '');
-    final name = owner.value?.fullName ?? '';
-    final uri = Uri.parse(
-      'whatsapp://send?phone=$clean&text=${Uri.encodeComponent("مرحباً أ/ $name")}',
-    );
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
-  Future<void> saveOwnerToPhoneContacts() async {
-    final o = owner.value;
-    if (o == null) return;
-    await DeviceContactService.saveOwnerToContacts(
-      name: o.fullName,
-      phone: o.phonePrimary,
-    );
-  }
-
-  void openAccountStatement() {
-    Get.toNamed(
-      AppRoutes.ownerAccountStatement,
-      arguments: ownerId,
-    )?.then((_) => loadOwnerData());
-  }
-
-  void showAddPaymentDialog() {
-    final amountController = TextEditingController();
-    final notesController = TextEditingController();
-    String paymentMethod = AppPaymentMethods.cash;
-
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.receipt_long, color: AppColors.success),
-            const SizedBox(width: 8),
-            Text('سند قبض لحساب: ${owner.value?.fullName ?? ""}'),
-          ],
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'المبلغ المسدد (ر.ي) *',
-                    hintText: 'مثال: 10000',
-                    prefixIcon: Icon(Icons.money),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: paymentMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'طريقة التحصيل *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: AppPaymentMethods.fixedOptions.map((opt) {
-                    IconData icon;
-                    switch (opt) {
-                      case AppPaymentMethods.jawali:
-                      case AppPaymentMethods.jeeb:
-                      case AppPaymentMethods.floosak:
-                        icon = Icons.phone_android;
-                        break;
-                      case AppPaymentMethods.kuraimi:
-                        icon = Icons.account_balance;
-                        break;
-                      case AppPaymentMethods.cash:
-                      default:
-                        icon = Icons.payments_outlined;
-                        break;
-                    }
-                    return DropdownMenuItem<String>(
-                      value: opt,
-                      child: Row(
-                        children: [
-                          Icon(icon, size: 20, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            opt,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => paymentMethod = val);
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: notesController,
-                  decoration: const InputDecoration(
-                    labelText: 'ملاحظات السند (اختياري)',
-                    hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('إلغاء')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
-              if (amt <= 0) {
-                Get.snackbar('خطأ', 'يرجى إدخال مبلغ صحيح');
-                return;
-              }
-              Get.back();
-              await _financialRepo.recordClientPayment(
-                ownerId: ownerId,
-                amount: amt,
-                paymentMethod: paymentMethod,
-                notes: notesController.text.trim().isEmpty
-                    ? null
-                    : notesController.text.trim(),
-              );
-              await loadOwnerData();
-              Get.snackbar(
-                'تم حفظ سند القبض',
-                'تم قيد دفعة بقيمة ${amt.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب المربي',
-                backgroundColor: AppColors.success.withValues(alpha: 0.2),
-                colorText: AppColors.success,
-              );
-            },
-            child: const Text('حفظ سند القبض'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class OwnerDetailView extends StatelessWidget {
+class OwnerDetailView extends GetView<OwnerController> {
   const OwnerDetailView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(OwnerDetailController());
-
     return Scaffold(
       appBar: AppBar(
         title: Obx(
@@ -251,7 +41,7 @@ class OwnerDetailView extends StatelessWidget {
         },
       ),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isLoadingDetail.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -652,7 +442,7 @@ class OwnerDetailView extends StatelessWidget {
 
   Widget _buildFinancialSummaryCard(
     BuildContext context,
-    OwnerDetailController controller,
+    OwnerController controller,
   ) {
     return Obx(() {
       final s = controller.accountSummary.value;
@@ -904,7 +694,7 @@ class OwnerDetailView extends StatelessWidget {
 
   void _showFinancialProcessTimeline(
     BuildContext context,
-    OwnerDetailController controller,
+    OwnerController controller,
   ) {
     final s = controller.accountSummary.value;
     final items = s?.statementItems ?? [];

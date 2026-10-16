@@ -4,9 +4,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../controllers/pharmacy_controller.dart';
+import '../controllers/stock_transfer_controller.dart';
 
-class StockTransferView extends GetView<PharmacyController> {
+class StockTransferView extends GetView<StockTransferController> {
   const StockTransferView({super.key});
 
   @override

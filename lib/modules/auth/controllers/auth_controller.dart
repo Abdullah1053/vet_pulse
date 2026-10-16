@@ -6,12 +6,15 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../routes/app_routes.dart';
 
 class AuthController extends GetxController {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo;
+
+  AuthController([AuthRepository? authRepo]) : _authRepo = authRepo ?? AuthRepository();
 
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
   final Rx<ClinicModel?> clinicInfo = Rx<ClinicModel?>(null);
   final RxBool isLoading = false.obs;
   final RxBool isLocked = false.obs;
+  final RxString pinLockInput = ''.obs;
 
   // Controllers for login
   final usernameController = TextEditingController();
@@ -89,7 +92,29 @@ class AuthController extends GetxController {
     }
   }
 
+  void onPinKeyPress(String digit) {
+    if (pinLockInput.value.length < 4) {
+      pinLockInput.value += digit;
+      if (pinLockInput.value.length == 4) {
+        final entered = pinLockInput.value;
+        pinLockInput.value = '';
+        unlockWithPin(entered);
+      }
+    }
+  }
+
+  void onPinBackspace() {
+    if (pinLockInput.value.isNotEmpty) {
+      pinLockInput.value = pinLockInput.value.substring(0, pinLockInput.value.length - 1);
+    }
+  }
+
+  void clearPinLock() {
+    pinLockInput.value = '';
+  }
+
   void lockScreen() {
+    clearPinLock();
     isLocked.value = true;
     Get.offAllNamed(AppRoutes.pinLock);
   }

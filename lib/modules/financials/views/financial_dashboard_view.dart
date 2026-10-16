@@ -8,20 +8,12 @@ import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../data/models/financial_transaction_model.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/financial_controller.dart';
+import '../controllers/financial_dashboard_controller.dart';
 
-class FinancialDashboardView extends StatefulWidget {
+class FinancialDashboardView extends GetView<FinancialDashboardController> {
   const FinancialDashboardView({super.key});
 
-  @override
-  State<FinancialDashboardView> createState() => _FinancialDashboardViewState();
-}
-
-class _FinancialDashboardViewState extends State<FinancialDashboardView> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final FinancialController controller = Get.put(FinancialController());
-
-  final List<({IconData icon, String fullTitle, String shortTitle})> _sectionTabs = const [
+  static const List<({IconData icon, String fullTitle, String shortTitle})> _sectionTabs = [
     (
       icon: Icons.receipt_long,
       fullTitle: 'الحركات المالية',
@@ -38,23 +30,6 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
       shortTitle: 'كشوفات المربين',
     ),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _sectionTabs.length, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() {});
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,19 +120,19 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
                 color: Colors.black.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
-                children: List.generate(_sectionTabs.length, (index) {
-                  final isSelected = _tabController.index == index;
-                  final item = _sectionTabs[index];
+              child: Obx(
+                () => Row(
+                  children: List.generate(_sectionTabs.length, (index) {
+                    final isSelected = controller.selectedTabIndex.value == index;
+                    final item = _sectionTabs[index];
 
-                  return Expanded(
-                    // Tab stretches when clicked / active to accommodate full title!
-                    flex: isSelected ? 4 : 2,
-                    child: GestureDetector(
-                      onTap: () {
-                        _tabController.animateTo(index);
-                        setState(() {});
-                      },
+                    return Expanded(
+                      // Tab stretches when clicked / active to accommodate full title!
+                      flex: isSelected ? 4 : 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          controller.tabController.animateTo(index);
+                        },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 280),
                         curve: Curves.easeOutCubic,
@@ -202,7 +177,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
                     ),
                   );
                 }),
-              ),
+              )),
             ),
           ),
         ),
@@ -231,7 +206,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
             // TabBarViews
             Expanded(
               child: TabBarView(
-                controller: _tabController,
+                controller: controller.tabController,
                 children: [
                   // Tab 1: Transactions
                   _buildTransactionsTab(context, controller),
@@ -252,7 +227,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   // --- TOP KPIS (Horizontally Scrollable RTL) ---
 
-  Widget _buildKpiGrid(BuildContext context, FinancialController controller) {
+  Widget _buildKpiGrid(BuildContext context, FinancialDashboardController controller) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -384,7 +359,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
     );
   }
 
-  Widget _buildQuickActionButtons(BuildContext context, FinancialController controller) {
+  Widget _buildQuickActionButtons(BuildContext context, FinancialDashboardController controller) {
     return Row(
       children: [
         Expanded(
@@ -420,7 +395,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   // --- TAB 1: TRANSACTIONS (Instant In-Memory Filtering) ---
 
-  Widget _buildTransactionsTab(BuildContext context, FinancialController controller) {
+  Widget _buildTransactionsTab(BuildContext context, FinancialDashboardController controller) {
     return Column(
       children: [
         // Filter Chips with 0ms instant transition
@@ -576,7 +551,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   // --- TAB 2: EXPENSES (Instant In-Memory Filtering) ---
 
-  Widget _buildExpensesTab(BuildContext context, FinancialController controller) {
+  Widget _buildExpensesTab(BuildContext context, FinancialDashboardController controller) {
     return Column(
       children: [
         // Category Filter Chips with 0ms instant transition
@@ -657,7 +632,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   Widget _buildExpenseCard(
     BuildContext context,
-    FinancialController controller,
+    FinancialDashboardController controller,
     ExpenseModel exp,
   ) {
     return Card(
@@ -749,7 +724,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   // --- TAB 3: OWNERS ACCOUNTS & DEBTS ---
 
-  Widget _buildOwnersAccountsTab(BuildContext context, FinancialController controller) {
+  Widget _buildOwnersAccountsTab(BuildContext context, FinancialDashboardController controller) {
     return Column(
       children: [
         // Search Bar
@@ -809,7 +784,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   Widget _buildOwnerAccountCard(
     BuildContext context,
-    FinancialController controller,
+    FinancialDashboardController controller,
     OwnerAccountSummary acc,
   ) {
     return Card(
@@ -1197,7 +1172,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   void _showExpenseDetailsModal(
     BuildContext context,
-    FinancialController controller,
+    FinancialDashboardController controller,
     ExpenseModel exp,
   ) {
     showModalBottomSheet(
@@ -1408,11 +1383,11 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
 
   // --- DIALOGS ---
 
-  void _showAddExpenseDialog(BuildContext context, FinancialController controller) {
+  void _showAddExpenseDialog(BuildContext context, FinancialDashboardController controller) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    String category = 'operating';
+    final category = 'operating'.obs;
 
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -1427,63 +1402,61 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
             Text('تسجيل سند صرف ومصروف جديد'),
           ],
         ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      labelText: 'بيان المصروف / الفاتورة *',
-                      hintText: 'مثال: فاتورة كهرباء، شراء شاش ومستلزمات...',
-                      border: OutlineInputBorder(),
-                    ),
+        content: Obx(
+          () => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'بيان المصروف / الفاتورة *',
+                    hintText: 'مثال: فاتورة كهرباء، شراء شاش ومستلزمات...',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    initialValue: category,
-                    decoration: const InputDecoration(
-                      labelText: 'تصنيف المصروف *',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'operating', child: Text('مصاريف تشغيلية (كهرباء/طاقة/إنترنت)', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'medical_supplies', child: Text('مستلزمات طبية وتخدير وتعقيم', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'medicines', child: Text('طلبية أدوية ومخزون صيدلية', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'maintenance', child: Text('صيانة أجهزة ومعايرة', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'rent', child: Text('إيجار مقر العيادة', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'salaries', child: Text('رواتب ومكافآت', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'other', child: Text('مصروفات نثرية أخرى', overflow: TextOverflow.ellipsis)),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => category = val);
-                    },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: category.value,
+                  decoration: const InputDecoration(
+                    labelText: 'تصنيف المصروف *',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'المبلغ المدفوع (ر.ي) *',
-                      hintText: 'مثال: 45000',
-                      border: OutlineInputBorder(),
-                    ),
+                  items: const [
+                    DropdownMenuItem(value: 'operating', child: Text('مصاريف تشغيلية (كهرباء/طاقة/إنترنت)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'medical_supplies', child: Text('مستلزمات طبية وتخدير وتعقيم', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'medicines', child: Text('طلبية أدوية ومخزون صيدلية', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'maintenance', child: Text('صيانة أجهزة ومعايرة', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'rent', child: Text('إيجار مقر العيادة', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'salaries', child: Text('رواتب ومكافآت', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'other', child: Text('مصروفات نثرية أخرى', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) category.value = val;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ المدفوع (ر.ي) *',
+                    hintText: 'مثال: 45000',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'ملاحظات إضافية (اختياري)',
-                      border: OutlineInputBorder(),
-                    ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظات إضافية (اختياري)',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('إلغاء')),
@@ -1502,7 +1475,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
               Get.back();
               controller.addExpense(
                 title: title,
-                category: category,
+                category: category.value,
                 amount: amt,
                 expenseDate: dateStr,
                 notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
@@ -1515,11 +1488,11 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
     );
   }
 
-  void _showAddPaymentDialog(BuildContext context, FinancialController controller) {
-    int? selectedOwnerId = controller.allOwners.isNotEmpty ? controller.allOwners.first.id : null;
+  void _showAddPaymentDialog(BuildContext context, FinancialDashboardController controller) {
+    final selectedOwnerId = Rx<int?>(controller.allOwners.isNotEmpty ? controller.allOwners.first.id : null);
     final amountController = TextEditingController();
     final notesController = TextEditingController();
-    String paymentMethod = 'نقدا';
+    final paymentMethod = 'نقدا'.obs;
 
     Get.dialog(
       AlertDialog(
@@ -1531,116 +1504,114 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
             Text('تسجيل سند قبض / تحصيل دفعة'),
           ],
         ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<int>(
-                    isExpanded: true,
-                    initialValue: selectedOwnerId,
-                    decoration: const InputDecoration(
-                      labelText: 'اختر العميل / المربي *',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: controller.allOwners.map((o) {
-                      return DropdownMenuItem<int>(
-                        value: o.id,
-                        child: Text('${o.fullName} (${o.phonePrimary})', overflow: TextOverflow.ellipsis),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedOwnerId = val);
-                    },
+        content: Obx(
+          () => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  initialValue: selectedOwnerId.value,
+                  decoration: const InputDecoration(
+                    labelText: 'اختر العميل / المربي *',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'المبلغ المحصل (ر.ي) *',
-                      hintText: 'مثال: 15000',
-                      border: OutlineInputBorder(),
-                    ),
+                  items: controller.allOwners.map((o) {
+                    return DropdownMenuItem<int>(
+                      value: o.id,
+                      child: Text('${o.fullName} (${o.phonePrimary})', overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) selectedOwnerId.value = val;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ المحصل (ر.ي) *',
+                    hintText: 'مثال: 15000',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    initialValue: paymentMethod,
-                    decoration: const InputDecoration(
-                      labelText: 'طريقة الدفع *',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'نقدا',
-                        child: Row(
-                          children: [
-                            Icon(Icons.payments_outlined, size: 18, color: Color(0xFF2A9D8F)),
-                            SizedBox(width: 8),
-                            Text('نقدا', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'جوالي',
-                        child: Row(
-                          children: [
-                            Icon(Icons.phone_android, size: 18, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('جوالي', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'جيب',
-                        child: Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet, size: 18, color: Colors.purple),
-                            SizedBox(width: 8),
-                            Text('جيب', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'كريمي',
-                        child: Row(
-                          children: [
-                            Icon(Icons.account_balance, size: 18, color: Colors.teal),
-                            SizedBox(width: 8),
-                            Text('كريمي', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: 'فلوسك',
-                        child: Row(
-                          children: [
-                            Icon(Icons.credit_card, size: 18, color: Colors.orange),
-                            SizedBox(width: 8),
-                            Text('فلوسك', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => paymentMethod = val);
-                    },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: paymentMethod.value,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة الدفع *',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'ملاحظات السند (اختياري)',
-                      hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
-                      border: OutlineInputBorder(),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'نقدا',
+                      child: Row(
+                        children: [
+                          Icon(Icons.payments_outlined, size: 18, color: Color(0xFF2A9D8F)),
+                          SizedBox(width: 8),
+                          Text('نقدا', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
+                    DropdownMenuItem(
+                      value: 'جوالي',
+                      child: Row(
+                        children: [
+                          Icon(Icons.phone_android, size: 18, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('جوالي', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'جيب',
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet, size: 18, color: Colors.purple),
+                          SizedBox(width: 8),
+                          Text('جيب', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'كريمي',
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance, size: 18, color: Colors.teal),
+                          SizedBox(width: 8),
+                          Text('كريمي', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'فلوسك',
+                      child: Row(
+                        children: [
+                          Icon(Icons.credit_card, size: 18, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('فلوسك', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) paymentMethod.value = val;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظات السند (اختياري)',
+                    hintText: 'سداد رسوم فحص أو خدمات بيطرية...',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('إلغاء')),
@@ -1650,7 +1621,7 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              if (selectedOwnerId == null) {
+              if (selectedOwnerId.value == null) {
                 Get.snackbar('خطأ', 'يرجى اختيار المربي أولاً');
                 return;
               }
@@ -1661,9 +1632,9 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView> with Si
               }
               Get.back();
               controller.recordClientPayment(
-                ownerId: selectedOwnerId!,
+                ownerId: selectedOwnerId.value!,
                 amount: amt,
-                paymentMethod: paymentMethod,
+                paymentMethod: paymentMethod.value,
                 notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
               );
             },

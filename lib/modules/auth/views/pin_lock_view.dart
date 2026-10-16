@@ -5,38 +5,8 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/auth_controller.dart';
 
-class PinLockView extends StatefulWidget {
+class PinLockView extends GetView<AuthController> {
   const PinLockView({super.key});
-
-  @override
-  State<PinLockView> createState() => _PinLockViewState();
-}
-
-class _PinLockViewState extends State<PinLockView> {
-  final AuthController controller = Get.find<AuthController>();
-  String currentPin = '';
-
-  void _onKeyPress(String digit) {
-    if (currentPin.length < 4) {
-      setState(() {
-        currentPin += digit;
-      });
-      if (currentPin.length == 4) {
-        controller.unlockWithPin(currentPin);
-        setState(() {
-          currentPin = '';
-        });
-      }
-    }
-  }
-
-  void _onBackspace() {
-    if (currentPin.isNotEmpty) {
-      setState(() {
-        currentPin = currentPin.substring(0, currentPin.length - 1);
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,20 +46,22 @@ class _PinLockViewState extends State<PinLockView> {
                   const SizedBox(height: 32),
 
                   // PIN indicators (dots)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      final isFilled = index < currentPin.length;
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isFilled ? AppColors.primary : AppColors.border,
-                        ),
-                      );
-                    }),
+                  Obx(
+                    () => Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        final isFilled = index < controller.pinLockInput.value.length;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isFilled ? AppColors.primary : AppColors.border,
+                          ),
+                        );
+                      }),
+                    ),
                   ),
                   const SizedBox(height: 40),
 
@@ -104,12 +76,15 @@ class _PinLockViewState extends State<PinLockView> {
                     children: [
                       for (var i = 1; i <= 9; i++) _buildKey('$i'),
                       TextButton(
-                        onPressed: () => Get.offAllNamed(AppRoutes.login),
+                        onPressed: () {
+                          controller.clearPinLock();
+                          Get.offAllNamed(AppRoutes.login);
+                        },
                         child: const Text('دخول كامل', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                       ),
                       _buildKey('0'),
                       IconButton(
-                        onPressed: _onBackspace,
+                        onPressed: controller.onPinBackspace,
                         icon: const Icon(Icons.backspace_outlined, color: AppColors.textSecondary),
                       ),
                     ],
@@ -125,7 +100,7 @@ class _PinLockViewState extends State<PinLockView> {
 
   Widget _buildKey(String label) {
     return InkWell(
-      onTap: () => _onKeyPress(label),
+      onTap: () => controller.onPinKeyPress(label),
       borderRadius: BorderRadius.circular(36),
       child: Container(
         decoration: BoxDecoration(

@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../controllers/pharmacy_controller.dart';
+import '../controllers/add_medicine_controller.dart';
 
-class AddMedicineView extends GetView<PharmacyController> {
+class AddMedicineView extends GetView<AddMedicineController> {
   const AddMedicineView({super.key});
 
   Future<void> _selectExpiryDate(BuildContext context) async {

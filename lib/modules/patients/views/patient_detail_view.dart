@@ -8,40 +8,11 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/pet_model.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/patient_controller.dart';
+import '../controllers/add_patient_controller.dart';
+import '../controllers/patient_detail_controller.dart';
 
-class PatientDetailView extends StatefulWidget {
+class PatientDetailView extends GetView<PatientDetailController> {
   const PatientDetailView({super.key});
-
-  @override
-  State<PatientDetailView> createState() => _PatientDetailViewState();
-}
-
-class _PatientDetailViewState extends State<PatientDetailView> with SingleTickerProviderStateMixin {
-  late final PatientController controller;
-  TabController? _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    controller = Get.find<PatientController>();
-    _tabController = TabController(length: 4, vsync: this);
-
-    final arg = Get.arguments;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (arg != null) {
-        controller.loadPetFullProfile(arg);
-      } else if (controller.selectedPet.value != null) {
-        controller.loadPetFullProfile(controller.selectedPet.value);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController?.dispose();
-    super.dispose();
-  }
 
   void _showAddWeightDialog(BuildContext context) {
     showDialog(
@@ -176,7 +147,7 @@ class _PatientDetailViewState extends State<PatientDetailView> with SingleTicker
               icon: const Icon(Icons.edit_outlined),
               tooltip: 'تعديل بيانات المريض',
               onPressed: () {
-                controller.initEditPet(pet);
+                Get.find<AddPatientController>().initEditPet(pet);
                 Get.toNamed(AppRoutes.addPatient);
               },
             ),

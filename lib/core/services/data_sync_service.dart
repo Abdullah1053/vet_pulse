@@ -20,8 +20,8 @@ class DataSyncService {
     if (Get.isRegistered<DashboardController>()) {
       Get.find<DashboardController>().loadDashboardData();
     }
-    if (Get.isRegistered<PharmacyController>()) {
-      Get.find<PharmacyController>().loadMedicines();
+    if (Get.isRegistered<InventoryListController>()) {
+      Get.find<InventoryListController>().loadMedicines();
     }
     if (Get.isRegistered<SurgeryListController>()) {
       Get.find<SurgeryListController>().loadSurgeries();
@@ -36,13 +36,14 @@ class DataSyncService {
     if (Get.isRegistered<AlertsController>()) {
       Get.find<AlertsController>().refreshAlerts();
     }
-    if (Get.isRegistered<PatientController>()) {
-      final pc = Get.find<PatientController>();
-      pc.loadPatients();
-      pc.loadOwners();
+    if (Get.isRegistered<PatientListController>()) {
+      Get.find<PatientListController>().loadPatients();
     }
-    if (Get.isRegistered<FinancialController>()) {
-      Get.find<FinancialController>().loadFinancialData();
+    if (Get.isRegistered<OwnerController>()) {
+      Get.find<OwnerController>().loadOwners();
+    }
+    if (Get.isRegistered<FinancialDashboardController>()) {
+      Get.find<FinancialDashboardController>().loadFinancialData();
     }
   }
 
@@ -54,8 +55,8 @@ class DataSyncService {
     if (Get.isRegistered<DashboardController>()) {
       Get.find<DashboardController>().loadDashboardData();
     }
-    if (Get.isRegistered<PharmacyController>()) {
-      Get.find<PharmacyController>().loadMedicines();
+    if (Get.isRegistered<InventoryListController>()) {
+      Get.find<InventoryListController>().loadMedicines();
     }
     if (Get.isRegistered<SurgeryListController>()) {
       Get.find<SurgeryListController>().loadSurgeries();
@@ -66,26 +67,40 @@ class DataSyncService {
     if (Get.isRegistered<AlertsController>()) {
       Get.find<AlertsController>().refreshAlerts();
     }
-    if (Get.isRegistered<PatientController>()) {
-      final pc = Get.find<PatientController>();
-      pc.loadPatients();
-      if (petId != null && pc.selectedPet.value?.id == petId) {
-        pc.loadPetFullProfile(petId);
+    if (Get.isRegistered<PatientListController>()) {
+      Get.find<PatientListController>().loadPatients();
+    }
+    if (Get.isRegistered<PatientDetailController>()) {
+      final pdc = Get.find<PatientDetailController>();
+      if (petId != null && pdc.petId == petId) {
+        pdc.loadPetFullProfile(petId);
       }
     }
-    if (Get.isRegistered<FinancialController>()) {
-      Get.find<FinancialController>().loadFinancialData();
+    if (Get.isRegistered<FinancialDashboardController>()) {
+      Get.find<FinancialDashboardController>().loadFinancialData();
+    }
+    if (Get.isRegistered<OwnerStatementController>()) {
+      Get.find<OwnerStatementController>().loadStatement();
+    }
+    if (Get.isRegistered<OwnerController>()) {
+      Get.find<OwnerController>().loadOwnerData();
     }
   }
 
   static void notifyPatientChanged({int? petId}) {
     debugPrint('[DataSyncService] notifyPatientChanged (petId: $petId)');
-    if (Get.isRegistered<PatientController>()) {
-      final pc = Get.find<PatientController>();
-      pc.loadPatients();
-      pc.loadOwners();
-      if (petId != null && pc.selectedPet.value?.id == petId) {
-        pc.loadPetFullProfile(petId);
+    if (Get.isRegistered<PatientListController>()) {
+      Get.find<PatientListController>().loadPatients();
+    }
+    if (Get.isRegistered<OwnerController>()) {
+      final oc = Get.find<OwnerController>();
+      oc.loadOwners();
+      oc.loadOwnerData();
+    }
+    if (Get.isRegistered<PatientDetailController>()) {
+      final pdc = Get.find<PatientDetailController>();
+      if (petId != null && pdc.petId == petId) {
+        pdc.loadPetFullProfile(petId);
       }
     }
     if (Get.isRegistered<DashboardController>()) {
@@ -110,14 +125,20 @@ class DataSyncService {
     if (Get.isRegistered<AlertsController>()) {
       Get.find<AlertsController>().refreshAlerts();
     }
-    if (Get.isRegistered<PatientController>()) {
-      final pc = Get.find<PatientController>();
-      if (petId != null && pc.selectedPet.value?.id == petId) {
-        pc.loadPetFullProfile(petId);
+    if (Get.isRegistered<PatientDetailController>()) {
+      final pdc = Get.find<PatientDetailController>();
+      if (petId != null && pdc.petId == petId) {
+        pdc.loadPetFullProfile(petId);
       }
     }
-    if (Get.isRegistered<FinancialController>()) {
-      Get.find<FinancialController>().loadFinancialData();
+    if (Get.isRegistered<FinancialDashboardController>()) {
+      Get.find<FinancialDashboardController>().loadFinancialData();
+    }
+    if (Get.isRegistered<OwnerStatementController>()) {
+      Get.find<OwnerStatementController>().loadStatement();
+    }
+    if (Get.isRegistered<OwnerController>()) {
+      Get.find<OwnerController>().loadOwnerData();
     }
   }
 
@@ -132,18 +153,37 @@ class DataSyncService {
     if (Get.isRegistered<AlertsController>()) {
       Get.find<AlertsController>().refreshAlerts();
     }
-    if (Get.isRegistered<PatientController>()) {
-      final pc = Get.find<PatientController>();
-      if (petId != null && pc.selectedPet.value?.id == petId) {
-        pc.loadPetFullProfile(petId);
+    if (Get.isRegistered<PatientDetailController>()) {
+      final pdc = Get.find<PatientDetailController>();
+      if (petId != null && pdc.petId == petId) {
+        pdc.loadPetFullProfile(petId);
       }
     }
   }
 
   static void notifyInventoryChanged() {
     debugPrint('[DataSyncService] notifyInventoryChanged');
-    if (Get.isRegistered<PharmacyController>()) {
-      Get.find<PharmacyController>().loadMedicines();
+    if (Get.isRegistered<InventoryListController>()) {
+      Get.find<InventoryListController>().loadMedicines();
+    }
+    if (Get.isRegistered<StockTransferController>()) {
+      Get.find<StockTransferController>().loadMedicines();
+    }
+    if (Get.isRegistered<DashboardController>()) {
+      Get.find<DashboardController>().loadDashboardData();
+    }
+  }
+
+  static void notifyFinancialChanged() {
+    debugPrint('[DataSyncService] notifyFinancialChanged');
+    if (Get.isRegistered<FinancialDashboardController>()) {
+      Get.find<FinancialDashboardController>().loadFinancialData();
+    }
+    if (Get.isRegistered<OwnerStatementController>()) {
+      Get.find<OwnerStatementController>().loadStatement();
+    }
+    if (Get.isRegistered<OwnerController>()) {
+      Get.find<OwnerController>().loadOwnerData();
     }
     if (Get.isRegistered<DashboardController>()) {
       Get.find<DashboardController>().loadDashboardData();
@@ -151,30 +191,6 @@ class DataSyncService {
   }
 
   static void refreshAll() {
-    debugPrint('[DataSyncService] refreshAll');
-    if (Get.isRegistered<DashboardController>()) {
-      Get.find<DashboardController>().loadDashboardData();
-    }
-    if (Get.isRegistered<PatientController>()) {
-      Get.find<PatientController>().loadPatients();
-    }
-    if (Get.isRegistered<ConsultationsListController>()) {
-      Get.find<ConsultationsListController>().loadConsultations();
-    }
-    if (Get.isRegistered<SurgeryListController>()) {
-      Get.find<SurgeryListController>().loadSurgeries();
-    }
-    if (Get.isRegistered<SurgeryFormController>()) {
-      Get.find<SurgeryFormController>().loadPetsAndDoctors();
-    }
-    if (Get.isRegistered<FollowUpController>()) {
-      Get.find<FollowUpController>().loadFollowUps();
-    }
-    if (Get.isRegistered<PharmacyController>()) {
-      Get.find<PharmacyController>().loadMedicines();
-    }
-    if (Get.isRegistered<AlertsController>()) {
-      Get.find<AlertsController>().refreshAlerts();
-    }
+    notifyAllChanged();
   }
 }

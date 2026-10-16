@@ -7,9 +7,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../controllers/patient_controller.dart';
+import '../controllers/add_patient_controller.dart';
 
-class AddPatientView extends GetView<PatientController> {
+class AddPatientView extends GetView<AddPatientController> {
   const AddPatientView({super.key});
 
   void _showImageSourceBottomSheet(BuildContext context) {

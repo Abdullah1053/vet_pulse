@@ -6,9 +6,9 @@ import '../../../core/utils/arabic_date_helper.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/pharmacy_controller.dart';
+import '../controllers/inventory_list_controller.dart';
 
-class InventoryListView extends GetView<PharmacyController> {
+class InventoryListView extends GetView<InventoryListController> {
   const InventoryListView({super.key});
 
   @override
@@ -34,10 +34,7 @@ class InventoryListView extends GetView<PharmacyController> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.addMedicine, style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          controller.clearAddForm();
-          Get.toNamed(AppRoutes.addMedicine);
-        },
+        onPressed: () => Get.toNamed(AppRoutes.addMedicine),
       ),
       body: Column(
         children: [
