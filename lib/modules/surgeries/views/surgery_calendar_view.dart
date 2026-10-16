@@ -6,9 +6,10 @@ import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/surgery_model.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/surgery_controller.dart';
+import '../controllers/surgery_form_controller.dart';
+import '../controllers/surgery_list_controller.dart';
 
-class SurgeryCalendarView extends GetView<SurgeryController> {
+class SurgeryCalendarView extends GetView<SurgeryListController> {
   const SurgeryCalendarView({super.key});
 
   void _confirmDeleteSurgery(BuildContext context, int id, String surgeryName, {int? petId}) {
@@ -255,7 +256,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
             label: const Text(AppStringsAr.edit),
             onPressed: () {
               Navigator.of(ctx).pop();
-              controller.initEditSurgery(item);
+              Get.find<SurgeryFormController>().initEditSurgery(item);
               Get.toNamed(AppRoutes.newSurgery);
             },
           ),
@@ -297,7 +298,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.scheduleSurgery, style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () {
-          controller.clearForm();
+          Get.find<SurgeryFormController>().clearForm();
           Get.toNamed(AppRoutes.newSurgery);
         },
       ),
@@ -313,7 +314,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
             subtitle: 'يمكنك جدولة عملية جديدة وإعداد قائمة التحقق وتفاصيل التخدير',
             actionText: AppStringsAr.scheduleSurgery,
             onAction: () {
-              controller.clearForm();
+              Get.find<SurgeryFormController>().clearForm();
               Get.toNamed(AppRoutes.newSurgery);
             },
           );
@@ -386,7 +387,7 @@ class SurgeryCalendarView extends GetView<SurgeryController> {
                                   if (action == 'details') {
                                     _showSurgeryDetailsDialog(context, item);
                                   } else if (action == 'edit') {
-                                    controller.initEditSurgery(item);
+                                    Get.find<SurgeryFormController>().initEditSurgery(item);
                                     Get.toNamed(AppRoutes.newSurgery);
                                   } else if (action == 'delete') {
                                     _confirmDeleteSurgery(context, item.id!, item.surgeryName);

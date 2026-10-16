@@ -23,9 +23,11 @@ class DataSyncService {
     if (Get.isRegistered<PharmacyController>()) {
       Get.find<PharmacyController>().loadMedicines();
     }
-    if (Get.isRegistered<SurgeryController>()) {
-      Get.find<SurgeryController>().loadSurgeries();
-      Get.find<SurgeryController>().loadPets();
+    if (Get.isRegistered<SurgeryListController>()) {
+      Get.find<SurgeryListController>().loadSurgeries();
+    }
+    if (Get.isRegistered<SurgeryFormController>()) {
+      Get.find<SurgeryFormController>().loadPetsAndDoctors();
     }
     if (Get.isRegistered<FollowUpController>()) {
       Get.find<FollowUpController>().loadFollowUps();
@@ -55,8 +57,8 @@ class DataSyncService {
     if (Get.isRegistered<PharmacyController>()) {
       Get.find<PharmacyController>().loadMedicines();
     }
-    if (Get.isRegistered<SurgeryController>()) {
-      Get.find<SurgeryController>().loadSurgeries();
+    if (Get.isRegistered<SurgeryListController>()) {
+      Get.find<SurgeryListController>().loadSurgeries();
     }
     if (Get.isRegistered<FollowUpController>()) {
       Get.find<FollowUpController>().loadFollowUps();
@@ -89,8 +91,8 @@ class DataSyncService {
     if (Get.isRegistered<DashboardController>()) {
       Get.find<DashboardController>().loadDashboardData();
     }
-    if (Get.isRegistered<SurgeryController>()) {
-      Get.find<SurgeryController>().loadPets();
+    if (Get.isRegistered<SurgeryFormController>()) {
+      Get.find<SurgeryFormController>().loadPetsAndDoctors();
     }
     if (Get.isRegistered<FollowUpController>()) {
       Get.find<FollowUpController>().loadPets();
@@ -99,8 +101,8 @@ class DataSyncService {
 
   static void notifySurgeryChanged({int? petId}) {
     debugPrint('[DataSyncService] notifySurgeryChanged (petId: $petId)');
-    if (Get.isRegistered<SurgeryController>()) {
-      Get.find<SurgeryController>().loadSurgeries();
+    if (Get.isRegistered<SurgeryListController>()) {
+      Get.find<SurgeryListController>().loadSurgeries();
     }
     if (Get.isRegistered<DashboardController>()) {
       Get.find<DashboardController>().loadDashboardData();
@@ -159,8 +161,11 @@ class DataSyncService {
     if (Get.isRegistered<ConsultationsListController>()) {
       Get.find<ConsultationsListController>().loadConsultations();
     }
-    if (Get.isRegistered<SurgeryController>()) {
-      Get.find<SurgeryController>().loadSurgeries();
+    if (Get.isRegistered<SurgeryListController>()) {
+      Get.find<SurgeryListController>().loadSurgeries();
+    }
+    if (Get.isRegistered<SurgeryFormController>()) {
+      Get.find<SurgeryFormController>().loadPetsAndDoctors();
     }
     if (Get.isRegistered<FollowUpController>()) {
       Get.find<FollowUpController>().loadFollowUps();

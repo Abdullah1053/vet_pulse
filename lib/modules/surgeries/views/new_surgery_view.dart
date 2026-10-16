@@ -3,9 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../controllers/surgery_controller.dart';
+import '../controllers/surgery_form_controller.dart';
 
-class NewSurgeryView extends GetView<SurgeryController> {
+class NewSurgeryView extends GetView<SurgeryFormController> {
   const NewSurgeryView({super.key});
 
   Future<void> _selectDate(BuildContext context) async {
