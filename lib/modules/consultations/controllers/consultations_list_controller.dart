@@ -4,7 +4,10 @@ import '../../../data/models/consultation_model.dart';
 import '../../../data/repositories/consultation_repository.dart';
 
 class ConsultationsListController extends GetxController {
-  final ConsultationRepository _consultationRepo = ConsultationRepository();
+  final ConsultationRepository _consultationRepo;
+
+  ConsultationsListController([ConsultationRepository? consultationRepo])
+      : _consultationRepo = consultationRepo ?? ConsultationRepository();
 
   final RxList<ConsultationModel> allConsultations = <ConsultationModel>[].obs;
   final RxList<ConsultationModel> filteredConsultations = <ConsultationModel>[].obs;

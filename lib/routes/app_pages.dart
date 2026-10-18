@@ -97,12 +97,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.weeklyReports,
       page: () => const WeeklyReportsView(),
+      binding: DashboardBinding(),
     ),
 
     // Consultations & Prescriptions
     GetPage(
       name: AppRoutes.consultations,
       page: () => const ConsultationsListView(),
+      binding: ConsultationBinding(),
     ),
     GetPage(
       name: AppRoutes.newConsultation,

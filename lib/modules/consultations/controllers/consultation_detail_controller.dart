@@ -95,7 +95,7 @@ class ConsultationDetailController extends GetxController {
     );
 
     if (confirmed == true) {
-      await consultationRepo.deleteConsultation(item.id!);
+      await deleteConsultation(item.id!);
       DataSyncService.notifyConsultationChanged(petId: item.petId);
       Get.back();
       Get.snackbar(
@@ -103,6 +103,13 @@ class ConsultationDetailController extends GetxController {
         'تم حذف الكشف السريري وإعادة كميات الأدوية إلى المخزون بنجاح',
         backgroundColor: Colors.green.shade100,
       );
+    }
+  }
+
+  Future<void> deleteConsultation(int id) async {
+    await consultationRepo.deleteConsultation(id);
+    if (consultation.value?.id == id) {
+      consultation.value = null;
     }
   }
 }

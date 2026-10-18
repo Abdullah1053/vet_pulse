@@ -7,6 +7,7 @@ import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../controllers/consultation_controller.dart';
 import '../controllers/consultation_detail_controller.dart';
+import '../controllers/consultations_list_controller.dart';
 import '../controllers/new_consultation_controller.dart';
 import '../controllers/prescription_item_controller.dart';
 
@@ -47,6 +48,12 @@ class ConsultationBinding extends Bindings {
       () => ConsultationDetailController(
         consultationRepo: Get.find<ConsultationRepository>(),
         petRepo: Get.find<PetRepository>(),
+      ),
+    );
+
+    Get.lazyPut<ConsultationsListController>(
+      () => ConsultationsListController(
+        Get.find<ConsultationRepository>(),
       ),
     );
   }

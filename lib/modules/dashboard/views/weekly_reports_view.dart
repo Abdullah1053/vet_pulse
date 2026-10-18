@@ -4,12 +4,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../controllers/weekly_reports_controller.dart';
 
-class WeeklyReportsView extends StatelessWidget {
+class WeeklyReportsView extends GetView<WeeklyReportsController> {
   const WeeklyReportsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(WeeklyReportsController());
 
     return Scaffold(
       appBar: AppBar(

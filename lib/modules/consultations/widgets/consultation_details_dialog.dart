@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../data/models/consultation_model.dart';
-import '../../../data/repositories/consultation_repository.dart';
 import '../../../routes/app_routes.dart';
+import '../controllers/consultation_detail_controller.dart';
+import '../controllers/consultations_list_controller.dart';
 
 class ConsultationDetailsDialog extends StatelessWidget {
   final ConsultationModel consultation;
@@ -58,7 +59,11 @@ class ConsultationDetailsDialog extends StatelessWidget {
               final nav = Navigator.of(context);
               Navigator.of(ctx).pop(); // Close confirm dialog
               if (consultation.id != null) {
-                await ConsultationRepository().deleteConsultation(consultation.id!);
+                if (Get.isRegistered<ConsultationsListController>()) {
+                  await Get.find<ConsultationsListController>().deleteConsultation(consultation.id!);
+                } else if (Get.isRegistered<ConsultationDetailController>()) {
+                  await Get.find<ConsultationDetailController>().deleteConsultation(consultation.id!);
+                }
                 Get.snackbar(
                   'تم الحذف',
                   'تم حذف الكشف السريري وإعادة مخزون الأدوية بنجاح',

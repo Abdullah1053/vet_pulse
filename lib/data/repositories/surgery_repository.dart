@@ -233,4 +233,21 @@ class SurgeryRepository {
     );
     return res.first['cnt'] as int? ?? 0;
   }
+
+  Future<List<Map<String, dynamic>>> getScheduledSurgeriesForAlerts() async {
+    final db = await _dbHelper.database;
+    const sql = '''
+      SELECT 
+        s.*, 
+        p.name AS pet_name, 
+        p.species AS pet_species,
+        o.full_name AS owner_name, 
+        o.phone_primary AS owner_phone
+      FROM ${DatabaseTables.tableSurgeries} s
+      INNER JOIN ${DatabaseTables.tablePets} p ON s.pet_id = p.id
+      INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
+      WHERE s.status = 'scheduled'
+    ''';
+    return await db.rawQuery(sql);
+  }
 }

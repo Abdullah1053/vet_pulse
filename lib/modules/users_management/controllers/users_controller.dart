@@ -4,7 +4,10 @@ import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class UsersController extends GetxController {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo;
+
+  UsersController([AuthRepository? authRepo])
+      : _authRepo = authRepo ?? AuthRepository();
 
   final RxList<UserModel> users = <UserModel>[].obs;
   final RxBool isLoading = false.obs;

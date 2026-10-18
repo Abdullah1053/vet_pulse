@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../modules/dashboard/controllers/dashboard_controller.dart';
+import '../../modules/dashboard/controllers/weekly_reports_controller.dart';
 import '../../modules/dashboard/services/alerts_service.dart';
 import '../../modules/patients/controllers/patient_controller.dart';
 import '../../modules/consultations/controllers/consultations_list_controller.dart';
@@ -39,11 +40,20 @@ class DataSyncService {
     if (Get.isRegistered<PatientListController>()) {
       Get.find<PatientListController>().loadPatients();
     }
+    if (Get.isRegistered<PatientDetailController>()) {
+      final pdc = Get.find<PatientDetailController>();
+      if (pdc.petId != null) {
+        pdc.loadPetFullProfile(pdc.petId!);
+      }
+    }
     if (Get.isRegistered<OwnerController>()) {
       Get.find<OwnerController>().loadOwners();
     }
     if (Get.isRegistered<FinancialDashboardController>()) {
       Get.find<FinancialDashboardController>().loadFinancialData();
+    }
+    if (Get.isRegistered<WeeklyReportsController>()) {
+      Get.find<WeeklyReportsController>().loadWeeklyReport();
     }
   }
 

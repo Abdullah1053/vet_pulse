@@ -17,7 +17,7 @@ class DashboardView extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
-    final alertsController = Get.put(AlertsController());
+    final alertsController = Get.find<AlertsController>();
 
     return Scaffold(
       appBar: AppBar(

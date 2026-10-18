@@ -9,12 +9,11 @@ import '../../../routes/app_routes.dart';
 import '../controllers/consultations_list_controller.dart';
 import '../widgets/consultation_details_dialog.dart';
 
-class ConsultationsListView extends StatelessWidget {
+class ConsultationsListView extends GetView<ConsultationsListController> {
   const ConsultationsListView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ConsultationsListController());
 
     return Scaffold(
       appBar: AppBar(

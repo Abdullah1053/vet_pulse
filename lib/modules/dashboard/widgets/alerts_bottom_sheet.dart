@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/notification_service.dart';
-import '../services/alerts_service.dart';
+import '../controllers/alerts_controller.dart';
 
-class AlertsBottomSheet extends StatefulWidget {
+class AlertsBottomSheet extends GetView<AlertsController> {
   const AlertsBottomSheet({super.key});
 
   static void show(BuildContext context) {
@@ -20,16 +20,7 @@ class AlertsBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<AlertsBottomSheet> createState() => _AlertsBottomSheetState();
-}
-
-class _AlertsBottomSheetState extends State<AlertsBottomSheet> {
-  String selectedFilter = 'all'; // all, 1h, 6h, 12h
-
-  @override
   Widget build(BuildContext context) {
-    final controller = Get.find<AlertsController>();
-
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
@@ -157,14 +148,7 @@ class _AlertsBottomSheetState extends State<AlertsBottomSheet> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              var list = controller.alerts;
-              if (selectedFilter == '1h') {
-                list = list.where((a) => a.urgency == AlertUrgency.oneHour).toList().obs;
-              } else if (selectedFilter == '6h') {
-                list = list.where((a) => a.urgency == AlertUrgency.sixHours).toList().obs;
-              } else if (selectedFilter == '12h') {
-                list = list.where((a) => a.urgency == AlertUrgency.twelveHours).toList().obs;
-              }
+              final list = controller.filteredAlerts;
 
               if (list.isEmpty) {
                 return Center(
@@ -289,26 +273,28 @@ class _AlertsBottomSheetState extends State<AlertsBottomSheet> {
   }
 
   Widget _buildFilterTab(String key, String label) {
-    final isSelected = selectedFilter == key;
-    return InkWell(
-      onTap: () => setState(() => selectedFilter = key),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            color: isSelected ? Colors.white : AppColors.darkNeutral,
+    return Obx(() {
+      final isSelected = controller.selectedFilter.value == key;
+      return InkWell(
+        onTap: () => controller.setFilter(key),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? Colors.white : AppColors.darkNeutral,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }

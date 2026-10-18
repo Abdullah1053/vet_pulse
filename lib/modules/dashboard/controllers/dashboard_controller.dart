@@ -7,10 +7,20 @@ import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 
 class DashboardController extends GetxController {
-  final ConsultationRepository _consultationRepo = ConsultationRepository();
-  final AppointmentRepository _appointmentRepo = AppointmentRepository();
-  final InventoryRepository _inventoryRepo = InventoryRepository();
-  final SurgeryRepository _surgeryRepo = SurgeryRepository();
+  final ConsultationRepository _consultationRepo;
+  final AppointmentRepository _appointmentRepo;
+  final InventoryRepository _inventoryRepo;
+  final SurgeryRepository _surgeryRepo;
+
+  DashboardController({
+    ConsultationRepository? consultationRepo,
+    AppointmentRepository? appointmentRepo,
+    InventoryRepository? inventoryRepo,
+    SurgeryRepository? surgeryRepo,
+  })  : _consultationRepo = consultationRepo ?? ConsultationRepository(),
+        _appointmentRepo = appointmentRepo ?? AppointmentRepository(),
+        _inventoryRepo = inventoryRepo ?? InventoryRepository(),
+        _surgeryRepo = surgeryRepo ?? SurgeryRepository();
 
   final RxInt todayVisits = 0.obs;
   final RxInt todaySurgeries = 0.obs;

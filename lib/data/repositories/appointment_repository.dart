@@ -136,4 +136,21 @@ class AppointmentRepository {
     );
     return res.first['cnt'] as int? ?? 0;
   }
+
+  Future<List<Map<String, dynamic>>> getPendingFollowUpsForAlerts() async {
+    final db = await _dbHelper.database;
+    const sql = '''
+      SELECT 
+        f.*, 
+        p.name AS pet_name, 
+        p.species AS pet_species,
+        o.full_name AS owner_name, 
+        o.phone_primary AS owner_phone
+      FROM ${DatabaseTables.tableFollowUps} f
+      INNER JOIN ${DatabaseTables.tablePets} p ON f.pet_id = p.id
+      INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
+      WHERE f.status = 'pending'
+    ''';
+    return await db.rawQuery(sql);
+  }
 }
