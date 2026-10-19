@@ -46,8 +46,14 @@ class DataSyncService {
         pdc.loadPetFullProfile(pdc.petId!);
       }
     }
+    if (Get.isRegistered<OwnersListController>()) {
+      Get.find<OwnersListController>().loadOwners();
+    }
+    if (Get.isRegistered<OwnerDetailController>()) {
+      Get.find<OwnerDetailController>().loadOwnerData();
+    }
     if (Get.isRegistered<OwnerController>()) {
-      Get.find<OwnerController>().loadOwners();
+      Get.find<OwnerController>().loadOwnerData();
     }
     if (Get.isRegistered<FinancialDashboardController>()) {
       Get.find<FinancialDashboardController>().loadFinancialData();
@@ -92,6 +98,9 @@ class DataSyncService {
     if (Get.isRegistered<OwnerStatementController>()) {
       Get.find<OwnerStatementController>().loadStatement();
     }
+    if (Get.isRegistered<OwnerDetailController>()) {
+      Get.find<OwnerDetailController>().loadOwnerData();
+    }
     if (Get.isRegistered<OwnerController>()) {
       Get.find<OwnerController>().loadOwnerData();
     }
@@ -102,10 +111,14 @@ class DataSyncService {
     if (Get.isRegistered<PatientListController>()) {
       Get.find<PatientListController>().loadPatients();
     }
+    if (Get.isRegistered<OwnersListController>()) {
+      Get.find<OwnersListController>().loadOwners();
+    }
+    if (Get.isRegistered<OwnerDetailController>()) {
+      Get.find<OwnerDetailController>().loadOwnerData();
+    }
     if (Get.isRegistered<OwnerController>()) {
-      final oc = Get.find<OwnerController>();
-      oc.loadOwners();
-      oc.loadOwnerData();
+      Get.find<OwnerController>().loadOwnerData();
     }
     if (Get.isRegistered<PatientDetailController>()) {
       final pdc = Get.find<PatientDetailController>();
@@ -146,6 +159,9 @@ class DataSyncService {
     }
     if (Get.isRegistered<OwnerStatementController>()) {
       Get.find<OwnerStatementController>().loadStatement();
+    }
+    if (Get.isRegistered<OwnerDetailController>()) {
+      Get.find<OwnerDetailController>().loadOwnerData();
     }
     if (Get.isRegistered<OwnerController>()) {
       Get.find<OwnerController>().loadOwnerData();
@@ -191,6 +207,9 @@ class DataSyncService {
     }
     if (Get.isRegistered<OwnerStatementController>()) {
       Get.find<OwnerStatementController>().loadStatement();
+    }
+    if (Get.isRegistered<OwnerDetailController>()) {
+      Get.find<OwnerDetailController>().loadOwnerData();
     }
     if (Get.isRegistered<OwnerController>()) {
       Get.find<OwnerController>().loadOwnerData();

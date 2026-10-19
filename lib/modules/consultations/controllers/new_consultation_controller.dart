@@ -8,7 +8,6 @@ import '../../../data/models/clinic_model.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../../data/models/follow_up_model.dart';
 import '../../../data/models/pet_model.dart';
-import '../../../data/models/prescription_model.dart';
 import '../../../data/models/surgery_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/appointment_repository.dart';
@@ -94,7 +93,10 @@ class NewConsultationController extends GetxController {
       if (args.latestWeight != null) {
         prescriptionController.calcWeightController.text = args.latestWeight.toString();
       }
+    } else if (args is int) {
+      _loadPetById(args);
     }
+
     surgeryDateController.text =
         DateTime.now().add(const Duration(days: 2)).toIso8601String().substring(0, 10);
     planStartDateController.text =
@@ -106,6 +108,20 @@ class NewConsultationController extends GetxController {
     loadData();
   }
 
+  Future<void> _loadPetById(int petId) async {
+    try {
+      final pet = await petRepo.getPetById(petId);
+      if (pet != null) {
+        selectedPet.value = pet;
+        if (pet.latestWeight != null) {
+          prescriptionController.calcWeightController.text = pet.latestWeight.toString();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading pet by id in NewConsultationController: $e');
+    }
+  }
+
   void updateRemainingAmount() {
     final cost = double.tryParse(costController.text.trim()) ?? 0.0;
     final paid = double.tryParse(paidAmountController.text.trim()) ?? 0.0;
@@ -115,7 +131,21 @@ class NewConsultationController extends GetxController {
   Future<void> loadData() async {
     isLoading.value = true;
     try {
-      allPets.assignAll(await petRepo.getAllPets());
+      final pets = await petRepo.getAllPets();
+      allPets.assignAll(pets);
+
+      // If selectedPet is still null and petId was passed via arguments, match from allPets
+      if (selectedPet.value == null && Get.arguments is int) {
+        final petId = Get.arguments as int;
+        final match = pets.cast<PetModel?>().firstWhere((p) => p?.id == petId, orElse: () => null);
+        if (match != null) {
+          selectedPet.value = match;
+          if (match.latestWeight != null) {
+            prescriptionController.calcWeightController.text = match.latestWeight.toString();
+          }
+        }
+      }
+
       clinicInfo.value = await authRepo.getClinicInfo();
 
       final allUsers = await authRepo.getAllUsers();
@@ -149,10 +179,7 @@ class NewConsultationController extends GetxController {
 
     isLoading.value = true;
     try {
-      final allPrescriptions = <PrescriptionModel>[
-        ...prescriptionController.clinicTreatments,
-        ...prescriptionController.homePrescriptions,
-      ];
+      final allPrescriptions = prescriptionController.buildAllPrescriptions();
 
       final consultation = ConsultationModel(
         petId: selectedPet.value!.id!,
@@ -229,20 +256,36 @@ class NewConsultationController extends GetxController {
         }
       }
 
-      DataSyncService.notifyConsultationChanged(petId: selectedPet.value!.id!);
+      // Wrap sync in try-catch so listener issues never block navigation
+      try {
+        DataSyncService.notifyConsultationChanged(petId: selectedPet.value!.id!);
+      } catch (syncErr) {
+        debugPrint('Sync listener error ignored during consultation save: $syncErr');
+      }
 
-      Get.snackbar(
-        'نجاح الكشف السريري',
-        'تم تسجيل الكشف وصرف الأدوية وتحديث المخزون والمواعيد بنجاح',
-        backgroundColor: Colors.green.shade100,
-      );
-
-      Get.offNamed(
+      // Execute navigation FIRST
+      await Get.offNamed(
         AppRoutes.prescriptionPreview,
         arguments: {
           'consultation': created,
           'showCost': showCostInPrescription.value,
         },
+      );
+
+      // Trigger snackbar AFTER route transition starts
+      Get.snackbar(
+        'نجاح الكشف السريري',
+        'تم حفظ الكشف السريري بنجاح',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade900,
+      );
+    } catch (e, stack) {
+      debugPrint('Error saving consultation: $e\n$stack');
+      Get.snackbar(
+        'خطأ في الحفظ',
+        'تعذر حفظ الكشف السريري: $e',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
       );
     } finally {
       isLoading.value = false;

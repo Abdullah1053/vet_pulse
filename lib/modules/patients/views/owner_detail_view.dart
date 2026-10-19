@@ -6,9 +6,9 @@ import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../routes/app_routes.dart';
-import '../controllers/owner_controller.dart';
+import '../controllers/owner_detail_controller.dart';
 
-class OwnerDetailView extends GetView<OwnerController> {
+class OwnerDetailView extends GetView<OwnerDetailController> {
   const OwnerDetailView({super.key});
 
   @override
@@ -442,7 +442,7 @@ class OwnerDetailView extends GetView<OwnerController> {
 
   Widget _buildFinancialSummaryCard(
     BuildContext context,
-    OwnerController controller,
+    OwnerDetailController controller,
   ) {
     return Obx(() {
       final s = controller.accountSummary.value;
@@ -694,7 +694,7 @@ class OwnerDetailView extends GetView<OwnerController> {
 
   void _showFinancialProcessTimeline(
     BuildContext context,
-    OwnerController controller,
+    OwnerDetailController controller,
   ) {
     final s = controller.accountSummary.value;
     final items = s?.statementItems ?? [];

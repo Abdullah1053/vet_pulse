@@ -13,6 +13,7 @@ import '../../../data/models/clinic_model.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/consultation_controller.dart';
+import '../controllers/new_consultation_controller.dart';
 
 class PrescriptionPreviewView extends StatefulWidget {
   const PrescriptionPreviewView({super.key});
@@ -30,7 +31,9 @@ class _PrescriptionPreviewViewState extends State<PrescriptionPreviewView> {
     super.didChangeDependencies();
     if (!_initialized) {
       bool defaultPref = true;
-      if (Get.isRegistered<ConsultationController>()) {
+      if (Get.isRegistered<NewConsultationController>()) {
+        defaultPref = Get.find<NewConsultationController>().showCostInPrescription.value;
+      } else if (Get.isRegistered<ConsultationController>()) {
         defaultPref = Get.find<ConsultationController>().showCostInPrescription.value;
       }
       if (Get.arguments is Map && (Get.arguments as Map).containsKey('showCost')) {
@@ -375,6 +378,8 @@ class _PrescriptionPreviewViewState extends State<PrescriptionPreviewView> {
       consultation = Get.arguments as ConsultationModel;
     } else if (Get.arguments is Map) {
       consultation = (Get.arguments as Map)['consultation'] as ConsultationModel?;
+    } else if (Get.isRegistered<NewConsultationController>()) {
+      consultation = Get.find<NewConsultationController>().lastCreatedConsultation.value;
     } else if (Get.isRegistered<ConsultationController>()) {
       consultation = Get.find<ConsultationController>().lastCreatedConsultation.value;
     }

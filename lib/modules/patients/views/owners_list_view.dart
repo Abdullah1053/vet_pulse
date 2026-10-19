@@ -7,9 +7,9 @@ import '../../../data/database/demo_data_seeder.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../routes/app_routes.dart';
 
-import '../controllers/owner_controller.dart';
+import '../controllers/owners_list_controller.dart';
 
-class OwnersListView extends GetView<OwnerController> {
+class OwnersListView extends GetView<OwnersListController> {
   const OwnersListView({super.key});
 
   @override
@@ -244,7 +244,7 @@ class OwnersListView extends GetView<OwnerController> {
 
   Widget _buildOwnerCard(
     BuildContext context,
-    OwnerController controller,
+    OwnersListController controller,
     OwnerModel owner,
     int petsCount,
   ) {

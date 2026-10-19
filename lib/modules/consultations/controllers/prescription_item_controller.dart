@@ -171,6 +171,10 @@ class PrescriptionItemController extends GetxController {
     }
   }
 
+  List<PrescriptionModel> buildAllPrescriptions() {
+    return [...clinicTreatments, ...homePrescriptions];
+  }
+
   @override
   void onClose() {
     clinicDoseController.dispose();

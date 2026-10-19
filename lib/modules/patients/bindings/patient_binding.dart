@@ -28,15 +28,28 @@ class PatientBinding extends Bindings {
         Get.find<SurgeryRepository>(),
         Get.find<AppointmentRepository>(),
       ),
+      fenix: true,
     );
     Get.lazyPut<AddPatientController>(
       () => AddPatientController(Get.find<PetRepository>()),
+    );
+    Get.lazyPut<OwnersListController>(
+      () => OwnersListController(Get.find<PetRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut<OwnerDetailController>(
+      () => OwnerDetailController(
+        Get.find<PetRepository>(),
+        Get.find<FinancialRepository>(),
+      ),
+      fenix: true,
     );
     Get.lazyPut<OwnerController>(
       () => OwnerController(
         Get.find<PetRepository>(),
         Get.find<FinancialRepository>(),
       ),
+      fenix: true,
     );
   }
 }
