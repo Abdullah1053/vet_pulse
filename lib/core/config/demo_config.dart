@@ -9,7 +9,7 @@ class DemoConfig {
   DemoConfig._();
 
   /// Flag to switch between Demo Edition and Full Commercial Edition
-  static const bool isDemoMode = true;
+  static const bool isDemoMode = false;
 
   /// Maximum allowed records per feature in the Demo Edition (5 in everything)
   static const int maxLimit = 5;

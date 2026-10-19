@@ -3,7 +3,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import '../../../core/config/demo_config.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/clinic_model.dart';
 
@@ -53,28 +52,6 @@ class FinancialStatementPdfHelper {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
-                  // Demo Banner Watermark
-                  if (DemoConfig.isDemoMode) ...[
-                    pw.Container(
-                      margin: const pw.EdgeInsets.only(bottom: 8),
-                      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.amber50,
-                        borderRadius: pw.BorderRadius.circular(4),
-                        border: pw.Border.all(color: PdfColors.amber400),
-                      ),
-                      child: pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.center,
-                        children: [
-                          pw.Text(
-                            '[تنبيه] نسخة عرض وتجربة تجريبية (Demo Edition) - نبض البيطري 2026',
-                            style: pw.TextStyle(font: arabicBold, fontSize: 8, color: PdfColors.amber900),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
                   // Clinic Header
                   pw.Container(
                     padding: const pw.EdgeInsets.only(bottom: 12),

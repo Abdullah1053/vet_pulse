@@ -5,7 +5,6 @@ import 'core/constants/app_strings_ar.dart';
 import 'core/constants/app_theme.dart';
 import 'core/services/notification_service.dart';
 import 'data/database/database_helper.dart';
-import 'data/database/demo_data_seeder.dart';
 import 'modules/auth/controllers/auth_controller.dart';
 import 'routes/app_pages.dart';
 
@@ -14,13 +13,6 @@ void main() async {
 
   // Initialize SQLite Database Engine & seed initial clinic data
   await DatabaseHelper.instance.database;
-
-  // Seed demo clinical records if database is empty for prospective client demonstration
-  try {
-    await DemoDataSeeder.seedIfEmpty();
-  } catch (e) {
-    debugPrint('DemoDataSeeder startup note: $e');
-  }
 
   // Initialize global services
   Get.put<NotificationService>(NotificationService(), permanent: true);

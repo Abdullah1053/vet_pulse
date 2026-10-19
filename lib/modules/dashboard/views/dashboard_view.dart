@@ -709,17 +709,19 @@ class DashboardView extends GetView<DashboardController> {
             },
           ),
           const Divider(),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.restart_alt, color: Colors.teal),
-            title: const Text('إعادة تهيئة بيانات العرض التجريبي'),
-            subtitle: const Text('استعادة البيانات السريرية النموذجية (Demo Reset)', style: TextStyle(fontSize: 11)),
-            onTap: () async {
-              Get.back();
-              await DemoDataSeeder.resetDemoData();
-              controller.loadDashboardData();
-            },
-          ),
+          if (DemoConfig.isDemoMode) ...[
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.restart_alt, color: Colors.teal),
+              title: const Text('إعادة تهيئة بيانات العرض التجريبي'),
+              subtitle: const Text('استعادة البيانات السريرية النموذجية (Demo Reset)', style: TextStyle(fontSize: 11)),
+              onTap: () async {
+                Get.back();
+                await DemoDataSeeder.resetDemoData();
+                controller.loadDashboardData();
+              },
+            ),
+          ],
           ListTile(
             dense: true,
             leading: const Icon(Icons.logout, color: AppColors.critical),

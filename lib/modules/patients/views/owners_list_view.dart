@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
-import '../../../data/database/demo_data_seeder.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../routes/app_routes.dart';
 
@@ -23,55 +22,6 @@ class OwnersListView extends GetView<OwnersListController> {
         ),
         elevation: 0,
         actions: [
-          IconButton(
-            tooltip: 'توليد واستعادة البيانات التجريبية الشاملة',
-            icon: const Icon(Icons.auto_awesome, color: Colors.amber),
-            onPressed: () async {
-              final confirm = await Get.dialog<bool>(
-                AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: const Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text('توليد بيانات تجريبية شاملة'),
-                    ],
-                  ),
-                  content: const Text(
-                    'سيتم ملء وتحديث التطبيق ببيانات تجريبية كاملة للمربين والحيوانات الأليفة، بالإضافة إلى السجلات المالية وسندات القبض والمصروفات.\n\nهل تريد المتابعة؟',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Get.back(result: false),
-                      child: const Text('إلغاء'),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                      onPressed: () => Get.back(result: true),
-                      child: const Text('توليد الآن', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm == true) {
-                Get.dialog(
-                  const Center(child: CircularProgressIndicator()),
-                  barrierDismissible: false,
-                );
-                await DemoDataSeeder.resetDemoData();
-                await controller.loadOwners();
-                Get.back();
-                Get.snackbar(
-                  'تم بنجاح',
-                  'تم توليد بيانات المربين وسجلاتهم المالية بنجاح.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: Colors.green.shade800,
-                  colorText: Colors.white,
-                );
-              }
-            },
-          ),
           IconButton(
             tooltip: AppStringsAr.refresh,
             icon: const Icon(Icons.refresh_rounded),
@@ -175,18 +125,13 @@ class OwnersListView extends GetView<OwnersListController> {
                   title: 'لا يوجد مربين مسجلين',
                   subtitle: controller.searchController.text.isNotEmpty
                       ? 'لا توجد نتائج تطابق بحثك الحالي'
-                      : 'يتم إضافة المربين تلقائياً أو يمكنك توليد بيانات تجريبية كاملة لعرض النظام',
+                      : 'يتم إضافة المربين تلقائياً عند تسجيل مريض جديد',
                   actionText: controller.searchController.text.isNotEmpty
                       ? 'إلغاء التصفية'
-                      : 'توليد بيانات تجريبية شاملة (Demo Data)',
-                  onAction: () async {
-                    if (controller.searchController.text.isNotEmpty) {
-                      controller.clearSearch();
-                    } else {
-                      await DemoDataSeeder.resetDemoData();
-                      await controller.loadOwners();
-                    }
-                  },
+                      : null,
+                  onAction: controller.searchController.text.isNotEmpty
+                      ? () => controller.clearSearch()
+                      : null,
                 );
               }
 
