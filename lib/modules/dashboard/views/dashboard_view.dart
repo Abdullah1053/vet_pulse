@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
@@ -24,14 +25,15 @@ class DashboardView extends GetView<DashboardController> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.pets, color: AppColors.primary, size: 24),
+            const Icon(Icons.pets, color: Colors.white, size: 24),
             const SizedBox(width: 8),
-            Text(
+            const Text(
               AppStringsAr.appName,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryDark,
-                  ),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: Colors.white,
+              ),
             ),
             if (DemoConfig.isDemoMode) ...[
               const SizedBox(width: 8),
@@ -63,7 +65,7 @@ class DashboardView extends GetView<DashboardController> {
               children: [
                 IconButton(
                   tooltip: 'مركز التنبيهات والتذكيرات',
-                  icon: const Icon(Icons.notifications_outlined, color: AppColors.darkNeutral),
+                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                   onPressed: () => AlertsBottomSheet.show(context),
                 ),
                 if (count > 0)
@@ -93,16 +95,8 @@ class DashboardView extends GetView<DashboardController> {
           }),
           IconButton(
             tooltip: AppStringsAr.lockApp,
-            icon: const Icon(Icons.lock_outline, color: AppColors.darkNeutral),
+            icon: const Icon(Icons.lock_outline, color: Colors.white),
             onPressed: authController.lockScreen,
-          ),
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh, color: AppColors.darkNeutral),
-            onPressed: () {
-              controller.loadDashboardData();
-              alertsController.refreshAlerts();
-            },
           ),
         ],
       ),
@@ -552,183 +546,463 @@ class DashboardView extends GetView<DashboardController> {
     final bottomPadding = mediaQuery.padding.bottom;
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        physics: const ClampingScrollPhysics(),
+      backgroundColor: Colors.white,
+      child: Column(
         children: [
-          Container(
-            padding: EdgeInsets.only(
-              top: topPadding > 0 ? topPadding + 16 : 40,
-              bottom: 20,
-              right: 20,
-              left: 20,
-            ),
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryDark],
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Modern Rich Gradient Header
+          _buildDrawerHeader(topPadding, authController),
+          // Scrollable Categorized Navigation
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
-                const Icon(Icons.pets, color: Colors.white, size: 40),
-                const SizedBox(height: 12),
-                Text(
-                  AppStringsAr.appName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                _buildDrawerSectionHeader('الرئيسية والعيادة'),
+                _buildDrawerItem(
+                  icon: Icons.dashboard_rounded,
+                  title: AppStringsAr.dashboard,
+                  isSelected: true,
+                  onTap: () => Get.back(),
                 ),
-                Obx(() => Text(
-                  authController.clinicInfo.value?.clinicName ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
-                )),
+                _buildDrawerItem(
+                  icon: Icons.storefront_rounded,
+                  title: AppStringsAr.clinicSetupTitle,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.clinicSetup);
+                  },
+                ),
+
+                _buildDrawerSectionHeader('الرعاية السريرية والجراحة'),
+                _buildDrawerItem(
+                  icon: Icons.assignment_rounded,
+                  title: 'سجل الكشوفات السريرية',
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.consultations);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.pets_rounded,
+                  title: AppStringsAr.patients,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.patientList);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.people_alt_rounded,
+                  title: 'دليل المربين والعملاء',
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.owners);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.calendar_month_rounded,
+                  title: AppStringsAr.followUps,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.followUps);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.healing_rounded,
+                  title: AppStringsAr.surgeries,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.surgeries);
+                  },
+                ),
+
+                _buildDrawerSectionHeader('الصيدلية والمالية'),
+                _buildDrawerItem(
+                  icon: Icons.medication_rounded,
+                  title: AppStringsAr.pharmacy,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.inventoryList);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.account_balance_wallet_rounded,
+                  title: 'الإدارة المالية والحسابات',
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.financialDashboard);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.bar_chart_rounded,
+                  title: 'التقارير الأسبوعية الشاملة',
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.weeklyReports);
+                  },
+                ),
+
+                _buildDrawerSectionHeader('الإدارة والأمان'),
+                _buildDrawerItem(
+                  icon: Icons.notifications_active_rounded,
+                  title: 'مركز التنبيهات والتذكيرات',
+                  onTap: () {
+                    Get.back();
+                    AlertsBottomSheet.show(context);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.admin_panel_settings_rounded,
+                  title: AppStringsAr.usersManagement,
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.usersManagement);
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.storage_rounded,
+                  title: 'النسخ الاحتياطي واستعادة البيانات',
+                  subtitle: 'حفظ واسترجاع على فلاش ميموري',
+                  onTap: () {
+                    Get.back();
+                    Get.toNamed(AppRoutes.databaseBackup);
+                  },
+                ),
+                if (DemoConfig.isDemoMode) ...[
+                  _buildDrawerItem(
+                    icon: Icons.restart_alt_rounded,
+                    title: 'إعادة تهيئة بيانات العرض التجريبي',
+                    subtitle: 'استعادة البيانات السريرية النموذجية',
+                    iconColor: Colors.teal,
+                    onTap: () async {
+                      Get.back();
+                      await DemoDataSeeder.resetDemoData();
+                      controller.loadDashboardData();
+                    },
+                  ),
+                ],
               ],
             ),
           ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.dashboard_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.dashboard),
-            onTap: () => Get.back(),
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.assignment_outlined, color: AppColors.primary),
-            title: const Text('سجل الكشوفات السريرية'),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.consultations);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.pets_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.patients),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.patientList);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.people_alt_outlined, color: AppColors.primary),
-            title: const Text('سجل المربين (المالكين)'),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.owners);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.medication_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.pharmacy),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.inventoryList);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.calendar_month_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.followUps),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.followUps);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.healing_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.surgeries),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.surgeries);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
-            title: const Text('التقارير الأسبوعية الشاملة'),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.weeklyReports);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary),
-            title: const Text('الإدارة المالية وكشوفات الحسابات'),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.financialDashboard);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primary),
-            title: const Text('مركز التنبيهات والتذكيرات'),
-            onTap: () {
-              Get.back();
-              AlertsBottomSheet.show(context);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.group_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.usersManagement),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.usersManagement);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.settings_outlined, color: AppColors.primary),
-            title: const Text(AppStringsAr.clinicSetupTitle),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.clinicSetup);
-            },
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.storage_rounded, color: AppColors.primary),
-            title: const Text('النسخ الاحتياطي واستعادة البيانات'),
-            subtitle: const Text('حفظ نسخة على فلاش ميموري أو استعادتها', style: TextStyle(fontSize: 11)),
-            onTap: () {
-              Get.back();
-              Get.toNamed(AppRoutes.databaseBackup);
-            },
-          ),
-          const Divider(),
-          if (DemoConfig.isDemoMode) ...[
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.restart_alt, color: Colors.teal),
-              title: const Text('إعادة تهيئة بيانات العرض التجريبي'),
-              subtitle: const Text('استعادة البيانات السريرية النموذجية (Demo Reset)', style: TextStyle(fontSize: 11)),
-              onTap: () async {
-                Get.back();
-                await DemoDataSeeder.resetDemoData();
-                controller.loadDashboardData();
-              },
+          // Footer Quick Actions (Lock Screen & Logout)
+          const Divider(height: 1),
+          _buildDrawerFooter(bottomPadding, authController),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerHeader(double topPadding, AuthController authController) {
+    return Container(
+      padding: EdgeInsets.only(
+        top: topPadding > 0 ? topPadding + 14 : 36,
+        bottom: 18,
+        right: 18,
+        left: 18,
+      ),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primaryDark, AppColors.primary],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+      ),
+      child: Obx(() {
+        final clinic = authController.clinicInfo.value;
+        final clinicName = clinic?.clinicName.isNotEmpty == true
+            ? clinic!.clinicName
+            : AppStringsAr.appName;
+        final docName = clinic?.doctorName.isNotEmpty == true
+            ? clinic!.doctorName
+            : (authController.currentUser.value?.fullName ?? 'طبيب بيطري');
+        final logoPath = authController.clinicLogoPath.value ?? clinic?.logoPath;
+        final roleBadge = authController.currentUser.value?.roleDisplayArabic ?? 'طبيب بيطري';
+
+        final hasCustomLogo = logoPath != null &&
+            logoPath.isNotEmpty &&
+            File(logoPath).existsSync();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: hasCustomLogo
+                        ? Image.file(
+                            File(logoPath),
+                            fit: BoxFit.cover,
+                            width: 54,
+                            height: 54,
+                          )
+                        : Container(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            child: const Icon(
+                              Icons.pets_rounded,
+                              color: AppColors.primary,
+                              size: 30,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        clinicName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_pin_rounded,
+                            size: 14,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              docName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Role badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.shield_rounded,
+                    color: Colors.white,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    roleBadge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.logout, color: AppColors.critical),
-            title: const Text(AppStringsAr.logout, style: TextStyle(color: AppColors.critical)),
-            onTap: authController.logout,
+        );
+      }),
+    );
+  }
+
+  Widget _buildDrawerSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 18, left: 18, top: 14, bottom: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 12,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-          SizedBox(height: bottomPadding > 0 ? bottomPadding + 16 : 24),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textMuted,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    bool isSelected = false,
+  }) {
+    final effectiveBg = isSelected
+        ? AppColors.primary.withValues(alpha: 0.08)
+        : Colors.transparent;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1.5),
+      child: Material(
+        color: effectiveBg,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: (iconColor ?? AppColors.primary).withValues(alpha: isSelected ? 0.16 : 0.09),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 19,
+                    color: iconColor ?? AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerFooter(double bottomPadding, AuthController authController) {
+    return Container(
+      color: Colors.grey.shade50,
+      padding: EdgeInsets.only(
+        top: 10,
+        bottom: bottomPadding > 0 ? bottomPadding + 10 : 16,
+        left: 12,
+        right: 12,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: BorderSide(color: Colors.grey.shade300),
+                foregroundColor: AppColors.textSecondary,
+              ),
+              icon: const Icon(Icons.lock_outline_rounded, size: 16),
+              label: const Text(
+                'قفل الشاشة',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Get.back();
+                authController.lockScreen();
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                side: BorderSide(color: AppColors.critical.withValues(alpha: 0.3)),
+                foregroundColor: AppColors.critical,
+                backgroundColor: AppColors.critical.withValues(alpha: 0.05),
+              ),
+              icon: const Icon(Icons.logout_rounded, size: 16),
+              label: const Text(
+                AppStringsAr.logout,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              onPressed: () {
+                Get.back();
+                authController.logout();
+              },
+            ),
+          ),
         ],
       ),
     );

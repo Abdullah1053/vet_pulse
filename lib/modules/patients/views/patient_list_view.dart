@@ -17,12 +17,6 @@ class PatientListView extends GetView<PatientListController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStringsAr.patients),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadPatients,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

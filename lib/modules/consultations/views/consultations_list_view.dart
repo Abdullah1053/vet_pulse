@@ -18,13 +18,6 @@ class ConsultationsListView extends GetView<ConsultationsListController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('سجل الكشوفات السريرية'),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadConsultations,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

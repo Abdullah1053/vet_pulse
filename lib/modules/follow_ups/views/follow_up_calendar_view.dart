@@ -144,13 +144,6 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStringsAr.followUps),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadFollowUps,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

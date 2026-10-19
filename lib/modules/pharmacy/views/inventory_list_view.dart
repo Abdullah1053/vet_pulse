@@ -19,13 +19,8 @@ class InventoryListView extends GetView<InventoryListController> {
         actions: [
           IconButton(
             tooltip: AppStringsAr.stockTransfer,
-            icon: const Icon(Icons.swap_horiz, color: AppColors.primary),
+            icon: const Icon(Icons.swap_horiz, color: Colors.white),
             onPressed: () => Get.toNamed(AppRoutes.stockTransfer),
-          ),
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadMedicines,
           ),
         ],
       ),

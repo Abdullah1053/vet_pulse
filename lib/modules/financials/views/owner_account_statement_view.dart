@@ -23,11 +23,6 @@ class OwnerAccountStatementView extends GetView<OwnerStatementController> {
             )),
         actions: [
           IconButton(
-            tooltip: 'تحديث البيانات',
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadStatement,
-          ),
-          IconButton(
             tooltip: 'مشاركة ملخص عبر واتساب',
             icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
             onPressed: controller.shareStatementWhatsApp,

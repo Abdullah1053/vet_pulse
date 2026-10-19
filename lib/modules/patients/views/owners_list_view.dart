@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../routes/app_routes.dart';
@@ -16,18 +15,7 @@ class OwnersListView extends GetView<OwnersListController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'دليل المربين والعملاء',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        elevation: 0,
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: controller.loadOwners,
-          ),
-        ],
+        title: const Text('دليل المربين والعملاء'),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

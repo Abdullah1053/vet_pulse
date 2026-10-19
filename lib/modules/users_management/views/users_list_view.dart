@@ -102,13 +102,6 @@ class UsersListView extends GetView<UsersController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStringsAr.usersManagement),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadUsers,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

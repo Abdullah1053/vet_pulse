@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
@@ -46,11 +45,6 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
             tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
             icon: const Icon(Icons.storage_rounded, color: Colors.white),
             onPressed: () => Get.toNamed(AppRoutes.databaseBackup),
-          ),
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => controller.loadFinancialData(),
           ),
         ],
         bottom: PreferredSize(

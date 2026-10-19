@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
 import '../controllers/weekly_reports_controller.dart';
 
 class WeeklyReportsView extends GetView<WeeklyReportsController> {
@@ -13,13 +12,6 @@ class WeeklyReportsView extends GetView<WeeklyReportsController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('التقرير الأسبوعي الشامل للعيادة'),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadWeeklyReport,
-          ),
-        ],
       ),
       body: Obx(() {
         if (controller.isLoading.value) {

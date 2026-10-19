@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/account_statement_model.dart';
@@ -18,13 +17,6 @@ class OwnerDetailView extends GetView<OwnerDetailController> {
         title: Obx(
           () => Text(controller.owner.value?.fullName ?? 'تفاصيل المربي'),
         ),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadOwnerData,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

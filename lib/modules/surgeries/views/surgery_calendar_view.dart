@@ -284,13 +284,6 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStringsAr.surgeries),
-        actions: [
-          IconButton(
-            tooltip: AppStringsAr.refresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.loadSurgeries,
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,

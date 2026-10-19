@@ -28,16 +28,6 @@ class DatabaseBackupView extends GetView<BackupController> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 2,
-        actions: [
-          Obx(
-            () => IconButton(
-              tooltip: 'تحديث البيانات',
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed:
-                  controller.isLoading.value ? null : controller.loadAllData,
-            ),
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(62),
           child: Container(
