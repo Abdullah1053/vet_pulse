@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../data/models/clinic_model.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
@@ -15,6 +17,13 @@ class AuthController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isLocked = false.obs;
   final RxString pinLockInput = ''.obs;
+
+  // Password visibility toggle for LoginView
+  final RxBool isPasswordHidden = true.obs;
+  void togglePasswordVisibility() => isPasswordHidden.value = !isPasswordHidden.value;
+
+  // Clinic Logo observable
+  final RxnString clinicLogoPath = RxnString();
 
   // Controllers for login
   final usernameController = TextEditingController();
@@ -40,9 +49,26 @@ class AuthController extends GetxController {
       clinicNameController.text = clinicInfo.value!.clinicName;
       doctorNameController.text = clinicInfo.value!.doctorName;
       licenseController.text = clinicInfo.value!.licenseNumber ?? '';
-      phoneController.text = clinicInfo.value!.phone ?? '';
+      phoneController.text = YemeniPhoneValidator.cleanDigits(clinicInfo.value!.phone ?? '');
       addressController.text = clinicInfo.value!.address ?? '';
+      clinicLogoPath.value = clinicInfo.value!.logoPath;
     }
+  }
+
+  Future<void> pickClinicLogo() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked != null) {
+        clinicLogoPath.value = picked.path;
+      }
+    } catch (e) {
+      debugPrint('Error picking clinic logo: $e');
+    }
+  }
+
+  void removeClinicLogo() {
+    clinicLogoPath.value = null;
   }
 
   Future<void> login() async {
@@ -127,27 +153,57 @@ class AuthController extends GetxController {
   Future<void> saveClinicProfile() async {
     final name = clinicNameController.text.trim();
     final doc = doctorNameController.text.trim();
+    final license = licenseController.text.trim();
+    final phoneRaw = phoneController.text.trim();
+    final address = addressController.text.trim();
 
-    if (name.isEmpty || doc.isEmpty) {
-      Get.snackbar('تنبيه', 'اسم العيادة واسم الطبيب مطلوبان',
-          backgroundColor: Colors.amber.shade100);
+    if (name.isEmpty) {
+      Get.snackbar('تنبيه', 'اسم المنشأة البيطرية مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (doc.isEmpty) {
+      Get.snackbar('تنبيه', 'اسم الطبيب المسؤول مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (license.isEmpty) {
+      Get.snackbar('تنبيه', 'رقم ترخيص مزاولة المهنة مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    final phoneError = YemeniPhoneValidator.validate(phoneRaw);
+    if (phoneError != null) {
+      Get.snackbar('تنبيه', phoneError,
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (address.isEmpty) {
+      Get.snackbar('تنبيه', 'عنوان المنشأة البيطرية مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
       return;
     }
 
     isLoading.value = true;
     try {
+      final formattedPhone = YemeniPhoneValidator.formatWithCountryCode(phoneRaw);
       final updated = ClinicModel(
         id: clinicInfo.value?.id,
         clinicName: name,
         doctorName: doc,
-        licenseNumber: licenseController.text.trim(),
-        phone: phoneController.text.trim(),
-        address: addressController.text.trim(),
+        licenseNumber: license,
+        phone: formattedPhone,
+        address: address,
+        logoPath: clinicLogoPath.value,
       );
       await _authRepo.saveClinicInfo(updated);
       clinicInfo.value = updated;
       Get.back();
-      Get.snackbar('تم', 'تم حفظ بيانات العيادة بنجاح',
+      Get.snackbar('تم', 'تم حفظ بيانات وهوية العيادة بنجاح',
           backgroundColor: Colors.green.shade100, colorText: Colors.green.shade900);
     } finally {
       isLoading.value = false;

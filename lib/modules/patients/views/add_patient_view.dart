@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controllers/add_patient_controller.dart';
@@ -432,6 +433,7 @@ class AddPatientView extends GetView<AddPatientController> {
                             prefixText: '+967 ',
                             textDirection: TextDirection.ltr,
                             maxLength: 9,
+                            validator: (v) => YemeniPhoneValidator.validate(v, isRequired: true),
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
                               LengthLimitingTextInputFormatter(9),

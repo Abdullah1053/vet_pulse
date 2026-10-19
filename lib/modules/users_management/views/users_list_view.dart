@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../controllers/users_controller.dart';
@@ -49,10 +51,18 @@ class UsersListView extends GetView<UsersController> {
               ),
               const SizedBox(height: 12),
               CustomTextField(
-                label: AppStringsAr.phone,
-                hint: '05xxxxxxxx',
+                label: '${AppStringsAr.phone} (رقم يمني +967)',
+                hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
                 controller: controller.phoneController,
                 keyboardType: TextInputType.phone,
+                prefixText: '+967 ',
+                textDirection: TextDirection.ltr,
+                maxLength: 9,
+                validator: (v) => YemeniPhoneValidator.validate(v, isRequired: false),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(9),
+                ],
                 prefixIcon: const Icon(Icons.phone),
               ),
               const SizedBox(height: 12),

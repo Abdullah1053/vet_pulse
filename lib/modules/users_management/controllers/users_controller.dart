@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../data/models/user_model.dart';
 import '../../../data/repositories/auth_repository.dart';
 
@@ -40,11 +41,23 @@ class UsersController extends GetxController {
     final uName = usernameController.text.trim();
     final pass = passwordController.text;
     final fName = fullNameController.text.trim();
+    final pRaw = phoneController.text.trim();
 
     if (uName.isEmpty || pass.isEmpty || fName.isEmpty) {
       Get.snackbar('تنبيه', 'اسم المستخدم وكلمة المرور والاسم الكامل مطلوبان',
           backgroundColor: Colors.amber.shade100);
       return;
+    }
+
+    String? formattedPhone;
+    if (pRaw.isNotEmpty) {
+      final phoneError = YemeniPhoneValidator.validate(pRaw, isRequired: false);
+      if (phoneError != null) {
+        Get.snackbar('رقم الهاتف غير صالح', phoneError,
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+      formattedPhone = YemeniPhoneValidator.formatWithCountryCode(pRaw);
     }
 
     isLoading.value = true;
@@ -54,7 +67,7 @@ class UsersController extends GetxController {
         passwordHash: pass,
         fullName: fName,
         role: selectedRole.value,
-        phone: phoneController.text.trim(),
+        phone: formattedPhone,
         pinCode: pinController.text.trim(),
       );
 

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/config/demo_config.dart';
 import '../../../core/services/data_sync_service.dart';
 import '../../../core/services/device_contact_service.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../data/models/owner_model.dart';
 import '../../../data/models/pet_model.dart';
 import '../../../data/models/pet_weight_model.dart';
@@ -150,20 +151,10 @@ class AddPatientController extends GetxController {
   }
 
   String? validateAndFormatYemeniPhone(String rawPhone) {
-    String clean = rawPhone.replaceAll(RegExp(r'\D'), '');
-    if (clean.startsWith('967')) {
-      clean = clean.substring(3);
-    }
-    if (clean.startsWith('0')) {
-      clean = clean.substring(1);
-    }
-
-    final allowedPrefixes = ['77', '78', '73', '70', '71'];
-    bool isValid = clean.length == 9 && allowedPrefixes.any((prefix) => clean.startsWith(prefix));
-    if (!isValid) {
+    if (!YemeniPhoneValidator.isValid(rawPhone)) {
       return null;
     }
-    return '+967$clean';
+    return YemeniPhoneValidator.formatWithCountryCode(rawPhone);
   }
 
   Future<void> savePatient() async {

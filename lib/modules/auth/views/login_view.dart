@@ -71,14 +71,23 @@ class LoginView extends GetView<AuthController> {
                         prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
                       ),
                       const SizedBox(height: 16),
-                      CustomTextField(
-                        label: AppStringsAr.password,
-                        hint: 'كلمة المرور (افتراضي: admin123)',
-                        controller: controller.passwordController,
-                        obscureText: true,
-                        prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
-                        onSubmitted: (_) => controller.login(),
-                      ),
+                      Obx(() => CustomTextField(
+                            label: AppStringsAr.password,
+                            hint: 'كلمة المرور (افتراضي: admin123)',
+                            controller: controller.passwordController,
+                            obscureText: controller.isPasswordHidden.value,
+                            prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                controller.isPasswordHidden.value
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: controller.togglePasswordVisibility,
+                            ),
+                            onSubmitted: (_) => controller.login(),
+                          )),
                       const SizedBox(height: 24),
 
                       // Submit Button
