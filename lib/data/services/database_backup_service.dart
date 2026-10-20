@@ -233,63 +233,61 @@ class DatabaseBackupService {
         throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
       }
 
+      final bytes = await sourceFile.readAsBytes();
+      final fileSize = bytes.length;
+
       String? targetPath;
 
-      // 1. If explicit destination directory passed or configured
-      String? destDir = destinationDirectory;
-      if (destDir == null || destDir.isEmpty) {
-        final config = await getBackupConfig();
-        if (config.externalDestinationPath != null &&
-            await Directory(config.externalDestinationPath!).exists()) {
-          destDir = config.externalDestinationPath;
-        }
-      }
-
-      if (destDir != null && await Directory(destDir).exists()) {
-        targetPath = p.join(destDir, defaultFileName);
+      if (destinationDirectory != null &&
+          destinationDirectory.isNotEmpty &&
+          !destinationDirectory.startsWith('/document/') &&
+          !destinationDirectory.startsWith('content://') &&
+          await Directory(destinationDirectory).exists()) {
+        targetPath = p.join(destinationDirectory, defaultFileName);
         await sourceFile.copy(targetPath);
       } else {
-        // Fallback: prompt user to pick folder or save file
-        final bytes = await sourceFile.readAsBytes();
-
-        try {
-          final uri = await FilePickerPlatform.instance.saveFile(
-            dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية (فلاش ميموري أو مجلد خارجي)',
-            fileName: defaultFileName,
-            bytes: bytes,
-            mimeType: 'application/x-sqlite3',
-          );
-          if (uri != null) {
-            try {
-              targetPath = uri.toFilePath(windows: Platform.isWindows);
-            } catch (_) {
-              targetPath = uri.path;
-            }
+        final savedUri = await FilePicker.saveFile(
+          dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية',
+          fileName: defaultFileName,
+          bytes: bytes,
+          type: FileType.any,
+        );
+        if (savedUri != null) {
+          try {
+            targetPath = savedUri.toFilePath(windows: Platform.isWindows);
+          } catch (_) {
+            targetPath = savedUri.path;
           }
-        } catch (_) {}
-
-        if (targetPath == null) {
-          final selectedFolder = await FilePickerPlatform.instance.getDirectoryPath(
-            dialogTitle: 'اختر مجلد الفلاش ميموري أو القرص الخارجي',
-          );
-          if (selectedFolder != null && selectedFolder.isNotEmpty) {
-            targetPath = p.join(selectedFolder, defaultFileName);
-            await sourceFile.copy(targetPath);
-          }
-        }
-
-        if (targetPath == null) {
-          throw Exception('تم إلغاء عملية اختيار الوجهة الخارجية للنسخ الاحتياطي');
         }
       }
 
-      final savedFile = File(targetPath);
-      final size = await savedFile.length();
+      if (targetPath == null) {
+        throw Exception('تم إلغاء عملية اختيار الوجهة الخارجية للنسخ الاحتياطي');
+      }
+
+      if (!targetPath.startsWith('/document/') && !targetPath.startsWith('content://')) {
+        try {
+          final file = File(targetPath);
+          if (!await file.exists() || (await file.length()) == 0) {
+            await file.writeAsBytes(bytes, flush: true);
+          }
+        } catch (e) {
+          debugPrint('Notice: writing to targetPath directly failed or not needed: $e');
+        }
+      }
+
+      try {
+        if (!targetPath.startsWith('/document/') && !targetPath.startsWith('content://')) {
+          await File(targetPath).length();
+        }
+      } catch (_) {
+        // Fallback safely to fileSize
+      }
 
       final log = BackupLogModel(
         backupName: defaultFileName,
         filePath: targetPath,
-        sizeBytes: size,
+        sizeBytes: fileSize,
         backupType: 'external',
         destination: targetPath,
         status: 'success',

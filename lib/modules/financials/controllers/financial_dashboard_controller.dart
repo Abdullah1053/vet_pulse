@@ -13,7 +13,9 @@ class FinancialDashboardController extends GetxController with GetSingleTickerPr
   final FinancialRepository _repo;
   final PetRepository _petRepo;
 
-  FinancialDashboardController(this._repo, this._petRepo);
+  FinancialDashboardController([FinancialRepository? repo, PetRepository? petRepo])
+      : _repo = repo ?? (Get.isRegistered<FinancialRepository>() ? Get.find<FinancialRepository>() : Get.put(FinancialRepository())),
+        _petRepo = petRepo ?? (Get.isRegistered<PetRepository>() ? Get.find<PetRepository>() : Get.put(PetRepository()));
 
   late TabController tabController;
   final RxInt selectedTabIndex = 0.obs;

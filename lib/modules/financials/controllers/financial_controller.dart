@@ -6,7 +6,7 @@ export 'owner_statement_controller.dart';
 
 /// Backward-compatible class for FinancialController
 class FinancialController extends FinancialDashboardController {
-  FinancialController(super.repo, super.petRepo);
+  FinancialController([super.repo, super.petRepo]);
 }
 
 typedef OwnerAccountStatementController = OwnerStatementController;

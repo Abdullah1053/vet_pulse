@@ -42,23 +42,54 @@ class UsersController extends GetxController {
     final pass = passwordController.text;
     final fName = fullNameController.text.trim();
     final pRaw = phoneController.text.trim();
+    final pin = pinController.text.trim();
 
-    if (uName.isEmpty || pass.isEmpty || fName.isEmpty) {
-      Get.snackbar('تنبيه', 'اسم المستخدم وكلمة المرور والاسم الكامل مطلوبان',
-          backgroundColor: Colors.amber.shade100);
+    if (fName.isEmpty || uName.isEmpty || pass.isEmpty || pin.isEmpty) {
+      Get.snackbar(
+        'تنبيه',
+        'الاسم الكامل، اسم المستخدم، كلمة المرور، ورمز PIN كلها حقول مطلوبة',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+      );
       return;
     }
 
-    String? formattedPhone;
+    if (pin.length != 4 || int.tryParse(pin) == null) {
+      Get.snackbar(
+        'تنبيه',
+        'رمز PIN يجب أن يتكون من 4 أرقام',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+      );
+      return;
+    }
+
     if (pRaw.isNotEmpty) {
       final phoneError = YemeniPhoneValidator.validate(pRaw, isRequired: false);
       if (phoneError != null) {
-        Get.snackbar('رقم الهاتف غير صالح', phoneError,
-            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        Get.snackbar(
+          'تنبيه',
+          phoneError,
+          backgroundColor: Colors.amber.shade100,
+          colorText: Colors.black87,
+        );
         return;
       }
-      formattedPhone = YemeniPhoneValidator.formatWithCountryCode(pRaw);
     }
+
+    if (users.any((u) => u.username.trim().toLowerCase() == uName.toLowerCase())) {
+      Get.snackbar(
+        'خطأ',
+        'اسم المستخدم مسجل مسبقاً',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+      return;
+    }
+
+    final formattedPhone = pRaw.isNotEmpty
+        ? YemeniPhoneValidator.formatWithCountryCode(pRaw)
+        : null;
 
     isLoading.value = true;
     try {
@@ -68,14 +99,30 @@ class UsersController extends GetxController {
         fullName: fName,
         role: selectedRole.value,
         phone: formattedPhone,
-        pinCode: pinController.text.trim(),
+        pinCode: pin,
       );
 
       await _authRepo.addUser(user);
       clearForm();
       await loadUsers();
-      Get.back();
-      Get.snackbar('تم', 'تمت إضافة المستخدم بنجاح', backgroundColor: Colors.green.shade100);
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      } else if (Get.overlayContext != null) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+      Get.snackbar(
+        'تم',
+        'تمت إضافة الموظف بنجاح',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade900,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        'حدث خطأ أثناء إضافة الموظف: $e',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
     } finally {
       isLoading.value = false;
     }

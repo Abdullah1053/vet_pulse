@@ -12,7 +12,8 @@ import 'financial_dashboard_controller.dart';
 class OwnerStatementController extends GetxController {
   final FinancialRepository _repo;
 
-  OwnerStatementController(this._repo);
+  OwnerStatementController([FinancialRepository? repo])
+      : _repo = repo ?? (Get.isRegistered<FinancialRepository>() ? Get.find<FinancialRepository>() : Get.put(FinancialRepository()));
 
   late int ownerId;
   final Rx<OwnerAccountSummary?> summary = Rx<OwnerAccountSummary?>(null);

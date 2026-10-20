@@ -12,9 +12,8 @@ class UsersListView extends GetView<UsersController> {
   const UsersListView({super.key});
 
   void _showAddUserDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+    Get.dialog(
+      AlertDialog(
         title: const Text(AppStringsAr.addUser),
         content: SingleChildScrollView(
           child: Column(
@@ -47,6 +46,11 @@ class UsersListView extends GetView<UsersController> {
                 hint: '4 أرقام للقفل السريع',
                 controller: controller.pinController,
                 keyboardType: TextInputType.number,
+                maxLength: 4,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                ],
                 prefixIcon: const Icon(Icons.pin),
               ),
               const SizedBox(height: 12),
@@ -66,26 +70,29 @@ class UsersListView extends GetView<UsersController> {
                 prefixIcon: const Icon(Icons.phone),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: controller.selectedRole.value,
-                decoration: const InputDecoration(labelText: AppStringsAr.role),
-                items: const [
-                  DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)', overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (v) {
-                  if (v != null) controller.selectedRole.value = v;
-                },
+              Obx(
+                () => DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  // ignore: deprecated_member_use
+                  value: controller.selectedRole.value,
+                  decoration: const InputDecoration(labelText: AppStringsAr.role),
+                  items: const [
+                    DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) controller.selectedRole.value = v;
+                  },
+                ),
               ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () => Get.back(),
             child: const Text(AppStringsAr.cancel),
           ),
           ElevatedButton(
