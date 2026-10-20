@@ -22,12 +22,12 @@ class DashboardView extends GetView<DashboardController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.pets, color: Colors.white, size: 24),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.pets, color: Colors.white, size: 24),
+            SizedBox(width: 8),
+            Text(
               AppStringsAr.appName,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -35,25 +35,6 @@ class DashboardView extends GetView<DashboardController> {
                 color: Colors.white,
               ),
             ),
-            if (DemoConfig.isDemoMode) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber.shade400),
-                ),
-                child: Text(
-                  'نسخة تجريبية Demo',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber.shade900,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
         actions: [
@@ -112,10 +93,6 @@ class DashboardView extends GetView<DashboardController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Demo Edition Status Banner
-              _buildDemoBanner(context),
-              const SizedBox(height: 12),
-
               // Clinic & Doctor Welcome Card
               _buildDoctorHeader(context, authController),
               const SizedBox(height: 16),
@@ -1008,55 +985,4 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildDemoBanner(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.teal.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.teal.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade700,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text('DEMO', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'نسخة العرض التجريبية • VetPulse Demo Edition',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.teal),
-                ),
-                Text(
-                  'كافة المزايا مفعلة بالكامل للتقييم السريري والإداري',
-                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.refresh, size: 14, color: Colors.teal),
-            label: const Text('تهيئة البيانات', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal)),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            onPressed: () async {
-              await DemoDataSeeder.resetDemoData();
-              controller.loadDashboardData();
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }

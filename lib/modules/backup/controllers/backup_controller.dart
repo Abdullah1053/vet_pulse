@@ -1,4 +1,3 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
@@ -25,7 +24,6 @@ class BackupController extends GetxController
   final activeDbInfo = Rxn<DatabaseBackupInfo>();
   final internalBackups = <DatabaseBackupInfo>[].obs;
   final backupLogs = <BackupLogModel>[].obs;
-  final config = BackupConfig().obs;
 
   final isLoading = false.obs;
   final statusMessage = ''.obs;
@@ -72,12 +70,10 @@ class BackupController extends GetxController
     final active = await backupService.getDatabaseInfo();
     final internal = await backupService.listInternalBackups();
     final logs = await backupRepository.getBackupLogs();
-    final currentConfig = await backupService.getBackupConfig();
 
     activeDbInfo.value = active;
     internalBackups.assignAll(internal);
     backupLogs.assignAll(logs);
-    config.value = currentConfig;
   }
 
   Future<void> createInternalBackup() async {
@@ -151,55 +147,6 @@ class BackupController extends GetxController
       isLoading.value = false;
       statusMessage.value = '';
     }
-  }
-
-  Future<void> pickExternalFolder() async {
-    try {
-      final selectedDirectory = await FilePickerPlatform.instance
-          .getDirectoryPath(
-            dialogTitle: 'اختر مجلد الفلاش ميموري أو القرص الخارجي لحفظ النسخ',
-          );
-      if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
-        final newConfig = BackupConfig(
-          externalDestinationPath: selectedDirectory,
-          autoBackupEnabled: config.value.autoBackupEnabled,
-          autoBackupFrequency: config.value.autoBackupFrequency,
-          lastAutoBackupDate: config.value.lastAutoBackupDate,
-        );
-        await backupService.saveBackupConfig(newConfig);
-        config.value = newConfig;
-        Get.snackbar(
-          'تم تحديث الوجهة الخارجية ✅',
-          'تم تعيين المسار: $selectedDirectory',
-          backgroundColor: AppColors.success.withValues(alpha: 0.15),
-          colorText: AppColors.success,
-        );
-      }
-    } catch (e) {
-      Get.snackbar('خطأ', 'تعذر تحديد المجلد: $e');
-    }
-  }
-
-  Future<void> updateAutoBackupEnabled(bool enabled) async {
-    final newConfig = BackupConfig(
-      externalDestinationPath: config.value.externalDestinationPath,
-      autoBackupEnabled: enabled,
-      autoBackupFrequency: config.value.autoBackupFrequency,
-      lastAutoBackupDate: config.value.lastAutoBackupDate,
-    );
-    await backupService.saveBackupConfig(newConfig);
-    config.value = newConfig;
-  }
-
-  Future<void> updateAutoBackupFrequency(String frequency) async {
-    final newConfig = BackupConfig(
-      externalDestinationPath: config.value.externalDestinationPath,
-      autoBackupEnabled: config.value.autoBackupEnabled,
-      autoBackupFrequency: frequency,
-      lastAutoBackupDate: config.value.lastAutoBackupDate,
-    );
-    await backupService.saveBackupConfig(newConfig);
-    config.value = newConfig;
   }
 
   Future<void> confirmAndRestore(String? filePath) async {
