@@ -17,7 +17,15 @@ class OwnerDetailController extends GetxController {
   final PetRepository _petRepo;
   final FinancialRepository _financialRepo;
 
-  OwnerDetailController(this._petRepo, this._financialRepo);
+  OwnerDetailController([PetRepository? petRepo, FinancialRepository? financialRepo])
+      : _petRepo = petRepo ??
+            (Get.isRegistered<PetRepository>()
+                ? Get.find<PetRepository>()
+                : Get.put(PetRepository(), permanent: true)),
+        _financialRepo = financialRepo ??
+            (Get.isRegistered<FinancialRepository>()
+                ? Get.find<FinancialRepository>()
+                : Get.put(FinancialRepository(), permanent: true));
 
   final Rx<OwnerModel?> owner = Rx<OwnerModel?>(null);
   final RxList<PetModel> pets = <PetModel>[].obs;

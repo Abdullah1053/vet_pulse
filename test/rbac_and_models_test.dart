@@ -20,6 +20,9 @@ void main() {
       expect(leadDoctor.canPerformConsultation, isTrue);
       expect(leadDoctor.canPerformSurgeries, isTrue);
       expect(leadDoctor.canModifyInventory, isTrue);
+      expect(leadDoctor.canManagePatientsAndAppointments, isTrue);
+      expect(leadDoctor.canAccessFinancials, isTrue);
+      expect(leadDoctor.canManageBackups, isTrue);
       expect(leadDoctor.canDeleteRecords, isTrue);
       expect(leadDoctor.roleDisplayArabic, 'طبيب رئيسي');
     });
@@ -37,6 +40,10 @@ void main() {
       expect(assistant.canManageUsers, isFalse);
       expect(assistant.canPerformConsultation, isTrue);
       expect(assistant.canPerformSurgeries, isTrue);
+      expect(assistant.canModifyInventory, isFalse);
+      expect(assistant.canManagePatientsAndAppointments, isTrue);
+      expect(assistant.canAccessFinancials, isFalse);
+      expect(assistant.canManageBackups, isFalse);
       expect(assistant.canDeleteRecords, isFalse);
       expect(assistant.roleDisplayArabic, 'طبيب مساعد');
     });
@@ -54,6 +61,10 @@ void main() {
       expect(receptionist.canPerformConsultation, isFalse);
       expect(receptionist.canPerformSurgeries, isFalse);
       expect(receptionist.canModifyInventory, isFalse);
+      expect(receptionist.canManagePatientsAndAppointments, isTrue);
+      expect(receptionist.canAccessFinancials, isTrue);
+      expect(receptionist.canManageBackups, isFalse);
+      expect(receptionist.canDeleteRecords, isFalse);
       expect(receptionist.roleDisplayArabic, 'موظف استقبال');
     });
 
@@ -68,7 +79,12 @@ void main() {
 
       expect(pharmacist.canManageUsers, isFalse);
       expect(pharmacist.canPerformConsultation, isFalse);
+      expect(pharmacist.canPerformSurgeries, isFalse);
       expect(pharmacist.canModifyInventory, isTrue);
+      expect(pharmacist.canManagePatientsAndAppointments, isFalse);
+      expect(pharmacist.canAccessFinancials, isFalse);
+      expect(pharmacist.canManageBackups, isFalse);
+      expect(pharmacist.canDeleteRecords, isFalse);
       expect(pharmacist.roleDisplayArabic, 'أمين المستودع والصيدلية');
     });
 

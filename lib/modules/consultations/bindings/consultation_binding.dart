@@ -16,10 +16,10 @@ class ConsultationBinding extends Bindings {
   @override
   void dependencies() {
     // Repositories
+    Get.lazyPut<PetRepository>(() => PetRepository(), fenix: true);
     Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
     Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
     Get.lazyPut<InventoryRepository>(() => InventoryRepository());
-    Get.lazyPut<PetRepository>(() => PetRepository());
     Get.lazyPut<AuthRepository>(() => AuthRepository());
     Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
     Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());

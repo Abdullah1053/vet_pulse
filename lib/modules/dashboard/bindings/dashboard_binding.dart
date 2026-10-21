@@ -3,6 +3,7 @@ import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/consultation_repository.dart';
 import '../../../data/repositories/financial_repository.dart';
 import '../../../data/repositories/inventory_repository.dart';
+import '../../../data/repositories/pet_repository.dart';
 import '../../../data/repositories/reports_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 import '../controllers/alerts_controller.dart';
@@ -14,6 +15,7 @@ class DashboardBinding extends Bindings {
   @override
   void dependencies() {
     // Repositories
+    Get.lazyPut<PetRepository>(() => PetRepository(), fenix: true);
     Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
     Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
     Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());

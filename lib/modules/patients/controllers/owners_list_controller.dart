@@ -8,7 +8,11 @@ import '../../../data/repositories/pet_repository.dart';
 class OwnersListController extends GetxController {
   final PetRepository _petRepo;
 
-  OwnersListController(this._petRepo);
+  OwnersListController([PetRepository? petRepo])
+      : _petRepo = petRepo ??
+            (Get.isRegistered<PetRepository>()
+                ? Get.find<PetRepository>()
+                : Get.put(PetRepository(), permanent: true));
 
   final RxList<Map<String, dynamic>> owners = <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> filteredOwners = <Map<String, dynamic>>[].obs;

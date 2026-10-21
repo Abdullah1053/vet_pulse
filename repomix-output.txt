@@ -1952,340 +1952,6 @@ class BackupBinding extends Bindings {
 }
 </file>
 
-<file path="lib/modules/backup/controllers/backup_controller.dart">
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../data/models/backup_log_model.dart';
-import '../../../data/repositories/backup_repository.dart';
-import '../../../data/services/database_backup_service.dart';
-import '../../auth/controllers/auth_controller.dart';
-import '../../dashboard/controllers/dashboard_controller.dart';
-import '../../financials/controllers/financial_controller.dart';
-
-class BackupController extends GetxController
-    with GetSingleTickerProviderStateMixin {
-  final BackupRepository backupRepository;
-  final DatabaseBackupService backupService;
-
-  BackupController({
-    BackupRepository? backupRepository,
-    DatabaseBackupService? backupService,
-  })  : backupRepository = backupRepository ?? Get.find<BackupRepository>(),
-        backupService = backupService ?? DatabaseBackupService.instance;
-
-  late TabController tabController;
-
-  final activeDbInfo = Rxn<DatabaseBackupInfo>();
-  final internalBackups = <DatabaseBackupInfo>[].obs;
-  final backupLogs = <BackupLogModel>[].obs;
-  final config = BackupConfig().obs;
-
-  final isLoading = false.obs;
-  final statusMessage = ''.obs;
-  final selectedTabIndex = 0.obs;
-
-  String get currentUserRole {
-    if (Get.isRegistered<AuthController>()) {
-      return Get.find<AuthController>().currentUser.value?.role ??
-          'lead_doctor';
-    }
-    return 'lead_doctor';
-  }
-
-  bool get canRestore =>
-      currentUserRole == 'lead_doctor' || currentUserRole == 'admin';
-
-  @override
-  void onInit() {
-    super.onInit();
-    tabController = TabController(length: 3, vsync: this);
-    tabController.addListener(_onTabChanged);
-    loadAllData();
-  }
-
-  void _onTabChanged() {
-    if (!tabController.indexIsChanging) {
-      selectedTabIndex.value = tabController.index;
-    }
-  }
-
-  void setTabIndex(int index) {
-    tabController.animateTo(index);
-    selectedTabIndex.value = index;
-  }
-
-  @override
-  void onClose() {
-    tabController.removeListener(_onTabChanged);
-    tabController.dispose();
-    super.onClose();
-  }
-
-  Future<void> loadAllData() async {
-    final active = await backupService.getDatabaseInfo();
-    final internal = await backupService.listInternalBackups();
-    final logs = await backupRepository.getBackupLogs();
-    final currentConfig = await backupService.getBackupConfig();
-
-    activeDbInfo.value = active;
-    internalBackups.assignAll(internal);
-    backupLogs.assignAll(logs);
-    config.value = currentConfig;
-  }
-
-  Future<void> createInternalBackup() async {
-    isLoading.value = true;
-    statusMessage.value = 'جاري إنشاء وحفظ النسخة الاحتياطية الداخلية...';
-
-    try {
-      final log = await backupService.createInternalBackup();
-      Get.snackbar(
-        'تم إنشاء النسخة الاحتياطية بنجاح ✅',
-        'تم حفظ النسخة: ${log.backupName} (${log.formattedSize})',
-        backgroundColor: AppColors.success.withValues(alpha: 0.15),
-        colorText: AppColors.success,
-        duration: const Duration(seconds: 4),
-      );
-    } catch (e) {
-      Get.snackbar(
-        'خطأ أثناء النسخ الداخلي',
-        e.toString().replaceAll('Exception: ', ''),
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-      );
-    } finally {
-      isLoading.value = false;
-      statusMessage.value = '';
-      await loadAllData();
-    }
-  }
-
-  Future<void> exportExternalBackup() async {
-    isLoading.value = true;
-    statusMessage.value = 'جاري تصدير النسخة الاحتياطية إلى الوجهة الخارجية...';
-
-    try {
-      final log = await backupService.exportExternalBackup();
-      Get.snackbar(
-        'تم التصدير بنجاح ✅',
-        'تم حفظ النسخة الخارجية في:\n${log.filePath}',
-        backgroundColor: AppColors.success.withValues(alpha: 0.15),
-        colorText: AppColors.success,
-        duration: const Duration(seconds: 5),
-      );
-    } catch (e) {
-      Get.snackbar(
-        'خطأ أثناء التصدير الخارجي',
-        e.toString().replaceAll('Exception: ', ''),
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-      );
-    } finally {
-      isLoading.value = false;
-      statusMessage.value = '';
-      await loadAllData();
-    }
-  }
-
-  Future<void> shareBackup() async {
-    isLoading.value = true;
-    statusMessage.value = 'جاري تجهيز النسخة الاحتياطية للمشاركة...';
-
-    try {
-      await backupService.shareBackupViaSystem();
-    } catch (e) {
-      Get.snackbar(
-        'خطأ أثناء المشاركة',
-        e.toString().replaceAll('Exception: ', ''),
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-      );
-    } finally {
-      isLoading.value = false;
-      statusMessage.value = '';
-    }
-  }
-
-  Future<void> pickExternalFolder() async {
-    try {
-      final selectedDirectory = await FilePickerPlatform.instance
-          .getDirectoryPath(
-            dialogTitle: 'اختر مجلد الفلاش ميموري أو القرص الخارجي لحفظ النسخ',
-          );
-      if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
-        final newConfig = BackupConfig(
-          externalDestinationPath: selectedDirectory,
-          autoBackupEnabled: config.value.autoBackupEnabled,
-          autoBackupFrequency: config.value.autoBackupFrequency,
-          lastAutoBackupDate: config.value.lastAutoBackupDate,
-        );
-        await backupService.saveBackupConfig(newConfig);
-        config.value = newConfig;
-        Get.snackbar(
-          'تم تحديث الوجهة الخارجية ✅',
-          'تم تعيين المسار: $selectedDirectory',
-          backgroundColor: AppColors.success.withValues(alpha: 0.15),
-          colorText: AppColors.success,
-        );
-      }
-    } catch (e) {
-      Get.snackbar('خطأ', 'تعذر تحديد المجلد: $e');
-    }
-  }
-
-  Future<void> updateAutoBackupEnabled(bool enabled) async {
-    final newConfig = BackupConfig(
-      externalDestinationPath: config.value.externalDestinationPath,
-      autoBackupEnabled: enabled,
-      autoBackupFrequency: config.value.autoBackupFrequency,
-      lastAutoBackupDate: config.value.lastAutoBackupDate,
-    );
-    await backupService.saveBackupConfig(newConfig);
-    config.value = newConfig;
-  }
-
-  Future<void> updateAutoBackupFrequency(String frequency) async {
-    final newConfig = BackupConfig(
-      externalDestinationPath: config.value.externalDestinationPath,
-      autoBackupEnabled: config.value.autoBackupEnabled,
-      autoBackupFrequency: frequency,
-      lastAutoBackupDate: config.value.lastAutoBackupDate,
-    );
-    await backupService.saveBackupConfig(newConfig);
-    config.value = newConfig;
-  }
-
-  Future<void> confirmAndRestore(String? filePath) async {
-    if (!canRestore) {
-      Get.snackbar(
-        'صلاحية غير كافية ⛔',
-        'استعادة النسخ الاحتياطية تتطلب صلاحيات الطبيب المسؤول (Lead Doctor) لحماية البيانات.',
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-        duration: const Duration(seconds: 4),
-      );
-      return;
-    }
-
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 8),
-            Text(
-              'تأكيد استعادة النسخة الاحتياطية',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Text(
-          'تنبيه أمني هام:\nسيتم استبدال البيانات الحالية بالكامل بالبيانات المستعادة من ملف النسخة الاحتياطية.\n\nهل أنت متأكد من رغبتك بالاستعادة؟',
-          style: TextStyle(fontSize: 13, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade800,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Get.back(result: true),
-            child: const Text('نعم، استعادة البيانات الآن'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    isLoading.value = true;
-    statusMessage.value = 'جاري فحص الملف واستعادة قاعدة البيانات...';
-
-    try {
-      String msg;
-      if (filePath != null) {
-        msg = await backupService.restoreFromFile(
-          filePath,
-          userRole: currentUserRole,
-        );
-      } else {
-        msg = await backupService.restoreFromBackupPicker(
-          userRole: currentUserRole,
-        );
-      }
-
-      if (Get.isRegistered<DashboardController>()) {
-        Get.find<DashboardController>().loadDashboardData();
-      }
-      if (Get.isRegistered<FinancialController>()) {
-        Get.find<FinancialController>().loadFinancialData();
-      }
-
-      Get.snackbar(
-        'تمت الاستعادة بنجاح ✅',
-        msg,
-        backgroundColor: AppColors.success.withValues(alpha: 0.15),
-        colorText: AppColors.success,
-        duration: const Duration(seconds: 4),
-      );
-    } catch (e) {
-      Get.snackbar(
-        'فشلت الاستعادة',
-        e.toString().replaceAll('Exception: ', ''),
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-        duration: const Duration(seconds: 4),
-      );
-    } finally {
-      isLoading.value = false;
-      statusMessage.value = '';
-      await loadAllData();
-    }
-  }
-
-  Future<void> confirmAndDelete(String filePath) async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'تأكيد حذف النسخة',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          'هل تريد بالتأكيد حذف ملف النسخة الاحتياطية المحدد من الذاكرة الداخلية؟',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.critical,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Get.back(result: true),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await backupService.deleteInternalBackup(filePath);
-      await loadAllData();
-    }
-  }
-}
-</file>
-
 <file path="lib/modules/consultations/widgets/clinic_treatments_section.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -3873,364 +3539,6 @@ class AlertsController extends GetxController {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     }
-  }
-}
-</file>
-
-<file path="lib/modules/financials/controllers/financial_dashboard_controller.dart">
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/services/data_sync_service.dart';
-import '../../../data/models/account_statement_model.dart';
-import '../../../data/models/expense_model.dart';
-import '../../../data/models/financial_transaction_model.dart';
-import '../../../data/models/owner_model.dart';
-import '../../../data/repositories/financial_repository.dart';
-import '../../../data/repositories/pet_repository.dart';
-
-class FinancialDashboardController extends GetxController with GetSingleTickerProviderStateMixin {
-  final FinancialRepository _repo;
-  final PetRepository _petRepo;
-
-  FinancialDashboardController(this._repo, this._petRepo);
-
-  late TabController tabController;
-  final RxInt selectedTabIndex = 0.obs;
-
-  final RxBool isLoading = true.obs;
-
-  // Summary KPIs
-  final RxDouble totalIncome = 0.0.obs;
-  final RxDouble totalExpenses = 0.0.obs;
-  final RxDouble netProfit = 0.0.obs;
-  final RxDouble totalDebts = 0.0.obs;
-  final RxInt consultCount = 0.obs;
-  final RxDouble consultTotal = 0.0.obs;
-  final RxInt surgCount = 0.obs;
-  final RxDouble surgTotal = 0.0.obs;
-
-  // All unfiltered records cached in memory for seamless 0ms instant filtering
-  final RxList<FinancialTransactionModel> allTransactions = <FinancialTransactionModel>[].obs;
-  final RxList<ExpenseModel> allExpenses = <ExpenseModel>[].obs;
-  final RxList<OwnerAccountSummary> ownersAccounts = <OwnerAccountSummary>[].obs;
-  final RxList<OwnerModel> allOwners = <OwnerModel>[].obs;
-
-  // Filters
-  final RxString selectedExpenseCategory = 'all'.obs;
-  final RxString selectedTxType = 'all'.obs;
-  final RxString clientSearchQuery = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    tabController = TabController(length: 3, vsync: this);
-    tabController.addListener(() {
-      selectedTabIndex.value = tabController.index;
-    });
-    loadFinancialData();
-  }
-
-  Future<void> loadFinancialData({bool isSilent = false}) async {
-    if (!isSilent && allTransactions.isEmpty && allExpenses.isEmpty) {
-      isLoading.value = true;
-    }
-    try {
-      // 1. Load summary KPIs
-      final summary = await _repo.getFinancialSummary();
-      totalIncome.value = summary['totalIncome'] ?? 0.0;
-      totalExpenses.value = summary['totalExpenses'] ?? 0.0;
-      netProfit.value = summary['netProfit'] ?? 0.0;
-      totalDebts.value = summary['totalDebts'] ?? 0.0;
-      consultCount.value = summary['consultCount'] ?? 0;
-      consultTotal.value = summary['consultTotal'] ?? 0.0;
-      surgCount.value = summary['surgCount'] ?? 0;
-      surgTotal.value = summary['surgTotal'] ?? 0.0;
-
-      // 2. Load all transactions for in-memory instant filtering
-      final txList = await _repo.getAllTransactions(limit: 500);
-      allTransactions.assignAll(txList);
-
-      // 3. Load all expenses for in-memory instant filtering
-      final expList = await _repo.getAllExpenses();
-      allExpenses.assignAll(expList);
-
-      // 4. Load owners & account balances
-      final ownersList = await _petRepo.getAllOwners();
-      allOwners.assignAll(ownersList);
-
-      final accountsList = await _repo.getAllOwnersBalances();
-      ownersAccounts.assignAll(accountsList);
-
-      // Update totalDebts from owners balances if higher
-      final sumOwnerDebts = accountsList.fold<double>(
-        0.0,
-        (acc, item) => acc + (item.balanceDue > 0 ? item.balanceDue : 0),
-      );
-      if (sumOwnerDebts > totalDebts.value) {
-        totalDebts.value = sumOwnerDebts;
-      }
-    } catch (e) {
-      debugPrint('[FinancialDashboardController] Error loading financial data: $e');
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // Instant in-memory filters without any loading indicators or screen reloading
-  List<FinancialTransactionModel> get filteredTransactions {
-    final type = selectedTxType.value;
-    if (type == 'all') return allTransactions;
-    return allTransactions.where((t) => t.transactionType == type).toList();
-  }
-
-  List<ExpenseModel> get filteredExpenses {
-    final cat = selectedExpenseCategory.value;
-    if (cat == 'all') return allExpenses;
-    return allExpenses.where((e) => e.category == cat).toList();
-  }
-
-  void filterExpenses(String category) {
-    selectedExpenseCategory.value = category;
-  }
-
-  void filterTransactions(String type) {
-    selectedTxType.value = type;
-  }
-
-  List<OwnerAccountSummary> get filteredOwnersAccounts {
-    final q = clientSearchQuery.value.trim().toLowerCase();
-    if (q.isEmpty) {
-      return ownersAccounts;
-    }
-    return ownersAccounts.where((acc) {
-      return acc.ownerName.toLowerCase().contains(q) ||
-          acc.phonePrimary.contains(q);
-    }).toList();
-  }
-
-  // --- ACTIONS ---
-
-  Future<bool> addExpense({
-    required String title,
-    required String category,
-    required double amount,
-    required String expenseDate,
-    String? notes,
-  }) async {
-    try {
-      final expense = ExpenseModel(
-        title: title,
-        category: category,
-        amount: amount,
-        expenseDate: expenseDate,
-        notes: notes,
-      );
-      await _repo.insertExpense(expense);
-      await loadFinancialData(isSilent: true);
-      DataSyncService.notifyAllChanged();
-
-      Get.snackbar(
-        'تم تسجيل المصروف بنجاح',
-        'تم تسجيل سند الصرف بقيمة ${amount.toStringAsFixed(0)} ر.ي وإضافته للمصروفات',
-        backgroundColor: AppColors.success.withValues(alpha: 0.2),
-        colorText: AppColors.success,
-        duration: const Duration(seconds: 3),
-      );
-      return true;
-    } catch (e) {
-      Get.snackbar(
-        'خطأ',
-        'تعذر حفظ المصروف: $e',
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-      );
-      return false;
-    }
-  }
-
-  Future<void> deleteExpense(int id) async {
-    try {
-      await _repo.deleteExpense(id);
-      await loadFinancialData(isSilent: true);
-      DataSyncService.notifyAllChanged();
-      Get.snackbar(
-        'تم الحذف',
-        'تم حذف سند الصرف بنجاح وتحديث الرصيد',
-        backgroundColor: Colors.grey.shade200,
-      );
-    } catch (e) {
-      Get.snackbar('خطأ', 'تعذر حذف المصروف: $e');
-    }
-  }
-
-  Future<bool> recordClientPayment({
-    required int ownerId,
-    required double amount,
-    int? petId,
-    String paymentMethod = 'cash',
-    String? notes,
-  }) async {
-    try {
-      await _repo.recordClientPayment(
-        ownerId: ownerId,
-        amount: amount,
-        petId: petId,
-        paymentMethod: paymentMethod,
-        notes: notes,
-      );
-      await loadFinancialData(isSilent: true);
-      DataSyncService.notifyAllChanged();
-
-      Get.snackbar(
-        'تم تسجيل سند القبض بنجاح',
-        'تم قيد دفعة نقدية بقيمة ${amount.toStringAsFixed(0)} ر.ي في حساب العميل',
-        backgroundColor: AppColors.success.withValues(alpha: 0.2),
-        colorText: AppColors.success,
-        duration: const Duration(seconds: 3),
-      );
-      return true;
-    } catch (e) {
-      Get.snackbar(
-        'خطأ',
-        'تعذر قيد الدفعة: $e',
-        backgroundColor: AppColors.criticalBackground,
-        colorText: AppColors.critical,
-      );
-      return false;
-    }
-  }
-
-  @override
-  void onClose() {
-    tabController.dispose();
-    super.onClose();
-  }
-}
-</file>
-
-<file path="lib/modules/financials/controllers/owner_statement_controller.dart">
-import 'package:get/get.dart';
-import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../data/models/account_statement_model.dart';
-import '../../../data/models/clinic_model.dart';
-import '../../../data/repositories/financial_repository.dart';
-import '../../auth/controllers/auth_controller.dart';
-import '../utils/financial_statement_pdf_helper.dart';
-import 'financial_dashboard_controller.dart';
-
-class OwnerStatementController extends GetxController {
-  final FinancialRepository _repo;
-
-  OwnerStatementController(this._repo);
-
-  late int ownerId;
-  final Rx<OwnerAccountSummary?> summary = Rx<OwnerAccountSummary?>(null);
-  final RxBool isLoading = true.obs;
-
-  // Date range filters
-  final Rx<DateTime?> startDate = Rx<DateTime?>(null);
-  final Rx<DateTime?> endDate = Rx<DateTime?>(null);
-
-  ClinicModel? get clinic =>
-      Get.isRegistered<AuthController>() ? Get.find<AuthController>().clinicInfo.value : null;
-
-  @override
-  void onInit() {
-    super.onInit();
-    final args = Get.arguments;
-    if (args is int) {
-      ownerId = args;
-      loadStatement();
-    } else {
-      Get.back();
-    }
-  }
-
-  Future<void> loadStatement() async {
-    isLoading.value = true;
-    try {
-      final s = await _repo.getOwnerAccountSummary(
-        ownerId,
-        startDate: startDate.value,
-        endDate: endDate.value,
-      );
-      summary.value = s;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void setDateRange(DateTime start, DateTime end) {
-    startDate.value = start;
-    endDate.value = end;
-    loadStatement();
-  }
-
-  void clearDateRange() {
-    startDate.value = null;
-    endDate.value = null;
-    loadStatement();
-  }
-
-  Future<void> recordPayment(double amount, String paymentMethod, String? notes) async {
-    await _repo.recordClientPayment(
-      ownerId: ownerId,
-      amount: amount,
-      paymentMethod: paymentMethod,
-      notes: notes,
-    );
-    await loadStatement();
-    if (Get.isRegistered<FinancialDashboardController>()) {
-      Get.find<FinancialDashboardController>().loadFinancialData();
-    }
-    Get.snackbar(
-      'تم تسجيل سند القبض بنجاح ✅',
-      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب العميل',
-      backgroundColor: AppColors.success.withValues(alpha: 0.15),
-      colorText: AppColors.success,
-      duration: const Duration(seconds: 4),
-    );
-  }
-
-  Future<void> shareStatementWhatsApp() async {
-    final s = summary.value;
-    if (s == null) return;
-    final phone = s.phonePrimary.replaceAll(RegExp(r'\D'), '');
-
-    final msg = '''
-*كشف حساب مالي - عيادة نبض البيطرية*
-العميل: ${s.ownerName}
-------------------------------
-إجمالي الخدمات: ${s.totalBilled.toStringAsFixed(0)} ر.ي
-إجمالي المسدد: ${s.totalPaid.toStringAsFixed(0)} ر.ي
-المتبقي والآجل: ${s.remainingDue.toStringAsFixed(0)} ر.ي
-حالة الحساب: ${s.statusDisplayArabic}
-------------------------------
-تم إصدار هذا الكشف آلياً عبر نظام VetPulse.
-''';
-
-    final uri = Uri.parse(
-      'whatsapp://send?phone=$phone&text=${Uri.encodeComponent(msg)}',
-    );
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
-
-  Future<void> printPdfStatement() async {
-    final s = summary.value;
-    if (s == null) return;
-    final pdfBytes = await FinancialStatementPdfHelper.generateStatementPdf(
-      summary: s,
-      clinic: clinic,
-    );
-    await Printing.layoutPdf(
-      onLayout: (_) async => pdfBytes,
-      name: 'كشف_حساب_${s.ownerName}',
-    );
   }
 }
 </file>
@@ -7455,6 +6763,287 @@ class PinLockView extends GetView<AuthController> {
 }
 </file>
 
+<file path="lib/modules/backup/controllers/backup_controller.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../data/models/backup_log_model.dart';
+import '../../../data/repositories/backup_repository.dart';
+import '../../../data/services/database_backup_service.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../../dashboard/controllers/dashboard_controller.dart';
+import '../../financials/controllers/financial_controller.dart';
+
+class BackupController extends GetxController
+    with GetSingleTickerProviderStateMixin {
+  final BackupRepository backupRepository;
+  final DatabaseBackupService backupService;
+
+  BackupController({
+    BackupRepository? backupRepository,
+    DatabaseBackupService? backupService,
+  })  : backupRepository = backupRepository ?? Get.find<BackupRepository>(),
+        backupService = backupService ?? DatabaseBackupService.instance;
+
+  late TabController tabController;
+
+  final activeDbInfo = Rxn<DatabaseBackupInfo>();
+  final internalBackups = <DatabaseBackupInfo>[].obs;
+  final backupLogs = <BackupLogModel>[].obs;
+
+  final isLoading = false.obs;
+  final statusMessage = ''.obs;
+  final selectedTabIndex = 0.obs;
+
+  String get currentUserRole {
+    if (Get.isRegistered<AuthController>()) {
+      return Get.find<AuthController>().currentUser.value?.role ??
+          'lead_doctor';
+    }
+    return 'lead_doctor';
+  }
+
+  bool get canRestore =>
+      currentUserRole == 'lead_doctor' || currentUserRole == 'admin';
+
+  @override
+  void onInit() {
+    super.onInit();
+    tabController = TabController(length: 3, vsync: this);
+    tabController.addListener(_onTabChanged);
+    loadAllData();
+  }
+
+  void _onTabChanged() {
+    if (!tabController.indexIsChanging) {
+      selectedTabIndex.value = tabController.index;
+    }
+  }
+
+  void setTabIndex(int index) {
+    tabController.animateTo(index);
+    selectedTabIndex.value = index;
+  }
+
+  @override
+  void onClose() {
+    tabController.removeListener(_onTabChanged);
+    tabController.dispose();
+    super.onClose();
+  }
+
+  Future<void> loadAllData() async {
+    final active = await backupService.getDatabaseInfo();
+    final internal = await backupService.listInternalBackups();
+    final logs = await backupRepository.getBackupLogs();
+
+    activeDbInfo.value = active;
+    internalBackups.assignAll(internal);
+    backupLogs.assignAll(logs);
+  }
+
+  Future<void> createInternalBackup() async {
+    isLoading.value = true;
+    statusMessage.value = 'جاري إنشاء وحفظ النسخة الاحتياطية الداخلية...';
+
+    try {
+      final log = await backupService.createInternalBackup();
+      Get.snackbar(
+        'تم إنشاء النسخة الاحتياطية بنجاح ✅',
+        'تم حفظ النسخة: ${log.backupName} (${log.formattedSize})',
+        backgroundColor: AppColors.success.withValues(alpha: 0.15),
+        colorText: AppColors.success,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'خطأ أثناء النسخ الداخلي',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+      );
+    } finally {
+      isLoading.value = false;
+      statusMessage.value = '';
+      await loadAllData();
+    }
+  }
+
+  Future<void> exportExternalBackup() async {
+    isLoading.value = true;
+    statusMessage.value = 'جاري تصدير النسخة الاحتياطية إلى الوجهة الخارجية...';
+
+    try {
+      final log = await backupService.exportExternalBackup();
+      Get.snackbar(
+        'تم التصدير بنجاح ✅',
+        'تم حفظ النسخة الخارجية في:\n${log.filePath}',
+        backgroundColor: AppColors.success.withValues(alpha: 0.15),
+        colorText: AppColors.success,
+        duration: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'خطأ أثناء التصدير الخارجي',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+      );
+    } finally {
+      isLoading.value = false;
+      statusMessage.value = '';
+      await loadAllData();
+    }
+  }
+
+  Future<void> shareBackup() async {
+    isLoading.value = true;
+    statusMessage.value = 'جاري تجهيز النسخة الاحتياطية للمشاركة...';
+
+    try {
+      await backupService.shareBackupViaSystem();
+    } catch (e) {
+      Get.snackbar(
+        'خطأ أثناء المشاركة',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+      );
+    } finally {
+      isLoading.value = false;
+      statusMessage.value = '';
+    }
+  }
+
+  Future<void> confirmAndRestore(String? filePath) async {
+    if (!canRestore) {
+      Get.snackbar(
+        'صلاحية غير كافية ⛔',
+        'استعادة النسخ الاحتياطية تتطلب صلاحيات الطبيب المسؤول (Lead Doctor) لحماية البيانات.',
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+        duration: const Duration(seconds: 4),
+      );
+      return;
+    }
+
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'تأكيد استعادة النسخة الاحتياطية',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'تنبيه أمني هام:\nسيتم استبدال البيانات الحالية بالكامل بالبيانات المستعادة من ملف النسخة الاحتياطية.\n\nهل أنت متأكد من رغبتك بالاستعادة؟',
+          style: TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade800,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Get.back(result: true),
+            child: const Text('نعم، استعادة البيانات الآن'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    isLoading.value = true;
+    statusMessage.value = 'جاري فحص الملف واستعادة قاعدة البيانات...';
+
+    try {
+      String msg;
+      if (filePath != null) {
+        msg = await backupService.restoreFromFile(
+          filePath,
+          userRole: currentUserRole,
+        );
+      } else {
+        msg = await backupService.restoreFromBackupPicker(
+          userRole: currentUserRole,
+        );
+      }
+
+      if (Get.isRegistered<DashboardController>()) {
+        Get.find<DashboardController>().loadDashboardData();
+      }
+      if (Get.isRegistered<FinancialController>()) {
+        Get.find<FinancialController>().loadFinancialData();
+      }
+
+      Get.snackbar(
+        'تمت الاستعادة بنجاح ✅',
+        msg,
+        backgroundColor: AppColors.success.withValues(alpha: 0.15),
+        colorText: AppColors.success,
+        duration: const Duration(seconds: 4),
+      );
+    } catch (e) {
+      Get.snackbar(
+        'فشلت الاستعادة',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+        duration: const Duration(seconds: 4),
+      );
+    } finally {
+      isLoading.value = false;
+      statusMessage.value = '';
+      await loadAllData();
+    }
+  }
+
+  Future<void> confirmAndDelete(String filePath) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'تأكيد حذف النسخة',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'هل تريد بالتأكيد حذف ملف النسخة الاحتياطية المحدد من الذاكرة الداخلية؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.critical,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Get.back(result: true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await backupService.deleteInternalBackup(filePath);
+      await loadAllData();
+    }
+  }
+}
+</file>
+
 <file path="lib/modules/consultations/controllers/consultation_detail_controller.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8197,58 +7786,6 @@ class PrescriptionItemController extends GetxController {
 }
 </file>
 
-<file path="lib/modules/dashboard/bindings/dashboard_binding.dart">
-import 'package:get/get.dart';
-import '../../../data/repositories/appointment_repository.dart';
-import '../../../data/repositories/consultation_repository.dart';
-import '../../../data/repositories/inventory_repository.dart';
-import '../../../data/repositories/reports_repository.dart';
-import '../../../data/repositories/surgery_repository.dart';
-import '../controllers/alerts_controller.dart';
-import '../controllers/dashboard_controller.dart';
-import '../controllers/weekly_reports_controller.dart';
-import '../../auth/controllers/auth_controller.dart';
-
-class DashboardBinding extends Bindings {
-  @override
-  void dependencies() {
-    // Repositories
-    Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
-    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
-    Get.lazyPut<InventoryRepository>(() => InventoryRepository());
-    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
-    Get.lazyPut<ReportsRepository>(() => ReportsRepository());
-
-    // Controllers
-    Get.lazyPut<DashboardController>(
-      () => DashboardController(
-        consultationRepo: Get.find<ConsultationRepository>(),
-        appointmentRepo: Get.find<AppointmentRepository>(),
-        inventoryRepo: Get.find<InventoryRepository>(),
-        surgeryRepo: Get.find<SurgeryRepository>(),
-      ),
-    );
-
-    Get.lazyPut<AlertsController>(
-      () => AlertsController(
-        appointmentRepo: Get.find<AppointmentRepository>(),
-        surgeryRepo: Get.find<SurgeryRepository>(),
-      ),
-    );
-
-    Get.lazyPut<WeeklyReportsController>(
-      () => WeeklyReportsController(
-        Get.find<ReportsRepository>(),
-      ),
-    );
-
-    if (!Get.isRegistered<AuthController>()) {
-      Get.put<AuthController>(AuthController(), permanent: true);
-    }
-  }
-}
-</file>
-
 <file path="lib/modules/dashboard/controllers/dashboard_controller.dart">
 import 'package:get/get.dart';
 import '../../../data/models/consultation_model.dart';
@@ -8435,6 +7972,367 @@ class FinancialBinding extends Bindings {
         Get.find<FinancialRepository>(),
         Get.find<PetRepository>(),
       ),
+    );
+  }
+}
+</file>
+
+<file path="lib/modules/financials/controllers/financial_dashboard_controller.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/services/data_sync_service.dart';
+import '../../../data/models/account_statement_model.dart';
+import '../../../data/models/expense_model.dart';
+import '../../../data/models/financial_transaction_model.dart';
+import '../../../data/models/owner_model.dart';
+import '../../../data/repositories/financial_repository.dart';
+import '../../../data/repositories/pet_repository.dart';
+
+class FinancialDashboardController extends GetxController with GetSingleTickerProviderStateMixin {
+  final FinancialRepository _repo;
+  final PetRepository _petRepo;
+
+  FinancialDashboardController([FinancialRepository? repo, PetRepository? petRepo])
+      : _repo = repo ?? (Get.isRegistered<FinancialRepository>() ? Get.find<FinancialRepository>() : Get.put(FinancialRepository())),
+        _petRepo = petRepo ?? (Get.isRegistered<PetRepository>() ? Get.find<PetRepository>() : Get.put(PetRepository()));
+
+  late TabController tabController;
+  final RxInt selectedTabIndex = 0.obs;
+
+  final RxBool isLoading = true.obs;
+
+  // Summary KPIs
+  final RxDouble totalIncome = 0.0.obs;
+  final RxDouble totalExpenses = 0.0.obs;
+  final RxDouble netProfit = 0.0.obs;
+  final RxDouble totalDebts = 0.0.obs;
+  final RxInt consultCount = 0.obs;
+  final RxDouble consultTotal = 0.0.obs;
+  final RxInt surgCount = 0.obs;
+  final RxDouble surgTotal = 0.0.obs;
+
+  // All unfiltered records cached in memory for seamless 0ms instant filtering
+  final RxList<FinancialTransactionModel> allTransactions = <FinancialTransactionModel>[].obs;
+  final RxList<ExpenseModel> allExpenses = <ExpenseModel>[].obs;
+  final RxList<OwnerAccountSummary> ownersAccounts = <OwnerAccountSummary>[].obs;
+  final RxList<OwnerModel> allOwners = <OwnerModel>[].obs;
+
+  // Filters
+  final RxString selectedExpenseCategory = 'all'.obs;
+  final RxString selectedTxType = 'all'.obs;
+  final RxString clientSearchQuery = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    tabController = TabController(length: 3, vsync: this);
+    tabController.addListener(() {
+      selectedTabIndex.value = tabController.index;
+    });
+    loadFinancialData();
+  }
+
+  Future<void> loadFinancialData({bool isSilent = false}) async {
+    if (!isSilent && allTransactions.isEmpty && allExpenses.isEmpty) {
+      isLoading.value = true;
+    }
+    try {
+      // 1. Load summary KPIs
+      final summary = await _repo.getFinancialSummary();
+      totalIncome.value = summary['totalIncome'] ?? 0.0;
+      totalExpenses.value = summary['totalExpenses'] ?? 0.0;
+      netProfit.value = summary['netProfit'] ?? 0.0;
+      totalDebts.value = summary['totalDebts'] ?? 0.0;
+      consultCount.value = summary['consultCount'] ?? 0;
+      consultTotal.value = summary['consultTotal'] ?? 0.0;
+      surgCount.value = summary['surgCount'] ?? 0;
+      surgTotal.value = summary['surgTotal'] ?? 0.0;
+
+      // 2. Load all transactions for in-memory instant filtering
+      final txList = await _repo.getAllTransactions(limit: 500);
+      allTransactions.assignAll(txList);
+
+      // 3. Load all expenses for in-memory instant filtering
+      final expList = await _repo.getAllExpenses();
+      allExpenses.assignAll(expList);
+
+      // 4. Load owners & account balances
+      final ownersList = await _petRepo.getAllOwners();
+      allOwners.assignAll(ownersList);
+
+      final accountsList = await _repo.getAllOwnersBalances();
+      ownersAccounts.assignAll(accountsList);
+
+      // Update totalDebts from owners balances if higher
+      final sumOwnerDebts = accountsList.fold<double>(
+        0.0,
+        (acc, item) => acc + (item.balanceDue > 0 ? item.balanceDue : 0),
+      );
+      if (sumOwnerDebts > totalDebts.value) {
+        totalDebts.value = sumOwnerDebts;
+      }
+    } catch (e) {
+      debugPrint('[FinancialDashboardController] Error loading financial data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Instant in-memory filters without any loading indicators or screen reloading
+  List<FinancialTransactionModel> get filteredTransactions {
+    final type = selectedTxType.value;
+    if (type == 'all') return allTransactions;
+    return allTransactions.where((t) => t.transactionType == type).toList();
+  }
+
+  List<ExpenseModel> get filteredExpenses {
+    final cat = selectedExpenseCategory.value;
+    if (cat == 'all') return allExpenses;
+    return allExpenses.where((e) => e.category == cat).toList();
+  }
+
+  void filterExpenses(String category) {
+    selectedExpenseCategory.value = category;
+  }
+
+  void filterTransactions(String type) {
+    selectedTxType.value = type;
+  }
+
+  List<OwnerAccountSummary> get filteredOwnersAccounts {
+    final q = clientSearchQuery.value.trim().toLowerCase();
+    if (q.isEmpty) {
+      return ownersAccounts;
+    }
+    return ownersAccounts.where((acc) {
+      return acc.ownerName.toLowerCase().contains(q) ||
+          acc.phonePrimary.contains(q);
+    }).toList();
+  }
+
+  // --- ACTIONS ---
+
+  Future<bool> addExpense({
+    required String title,
+    required String category,
+    required double amount,
+    required String expenseDate,
+    String? notes,
+  }) async {
+    try {
+      final expense = ExpenseModel(
+        title: title,
+        category: category,
+        amount: amount,
+        expenseDate: expenseDate,
+        notes: notes,
+      );
+      await _repo.insertExpense(expense);
+      await loadFinancialData(isSilent: true);
+      DataSyncService.notifyAllChanged();
+
+      Get.snackbar(
+        'تم تسجيل المصروف بنجاح',
+        'تم تسجيل سند الصرف بقيمة ${amount.toStringAsFixed(0)} ر.ي وإضافته للمصروفات',
+        backgroundColor: AppColors.success.withValues(alpha: 0.2),
+        colorText: AppColors.success,
+        duration: const Duration(seconds: 3),
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        'تعذر حفظ المصروف: $e',
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+      );
+      return false;
+    }
+  }
+
+  Future<void> deleteExpense(int id) async {
+    try {
+      await _repo.deleteExpense(id);
+      await loadFinancialData(isSilent: true);
+      DataSyncService.notifyAllChanged();
+      Get.snackbar(
+        'تم الحذف',
+        'تم حذف سند الصرف بنجاح وتحديث الرصيد',
+        backgroundColor: Colors.grey.shade200,
+      );
+    } catch (e) {
+      Get.snackbar('خطأ', 'تعذر حذف المصروف: $e');
+    }
+  }
+
+  Future<bool> recordClientPayment({
+    required int ownerId,
+    required double amount,
+    int? petId,
+    String paymentMethod = 'cash',
+    String? notes,
+  }) async {
+    try {
+      await _repo.recordClientPayment(
+        ownerId: ownerId,
+        amount: amount,
+        petId: petId,
+        paymentMethod: paymentMethod,
+        notes: notes,
+      );
+      await loadFinancialData(isSilent: true);
+      DataSyncService.notifyAllChanged();
+
+      Get.snackbar(
+        'تم تسجيل سند القبض بنجاح',
+        'تم قيد دفعة نقدية بقيمة ${amount.toStringAsFixed(0)} ر.ي في حساب العميل',
+        backgroundColor: AppColors.success.withValues(alpha: 0.2),
+        colorText: AppColors.success,
+        duration: const Duration(seconds: 3),
+      );
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        'تعذر قيد الدفعة: $e',
+        backgroundColor: AppColors.criticalBackground,
+        colorText: AppColors.critical,
+      );
+      return false;
+    }
+  }
+
+  @override
+  void onClose() {
+    tabController.dispose();
+    super.onClose();
+  }
+}
+</file>
+
+<file path="lib/modules/financials/controllers/owner_statement_controller.dart">
+import 'package:get/get.dart';
+import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../data/models/account_statement_model.dart';
+import '../../../data/models/clinic_model.dart';
+import '../../../data/repositories/financial_repository.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../utils/financial_statement_pdf_helper.dart';
+import 'financial_dashboard_controller.dart';
+
+class OwnerStatementController extends GetxController {
+  final FinancialRepository _repo;
+
+  OwnerStatementController([FinancialRepository? repo])
+      : _repo = repo ?? (Get.isRegistered<FinancialRepository>() ? Get.find<FinancialRepository>() : Get.put(FinancialRepository()));
+
+  late int ownerId;
+  final Rx<OwnerAccountSummary?> summary = Rx<OwnerAccountSummary?>(null);
+  final RxBool isLoading = true.obs;
+
+  // Date range filters
+  final Rx<DateTime?> startDate = Rx<DateTime?>(null);
+  final Rx<DateTime?> endDate = Rx<DateTime?>(null);
+
+  ClinicModel? get clinic =>
+      Get.isRegistered<AuthController>() ? Get.find<AuthController>().clinicInfo.value : null;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments;
+    if (args is int) {
+      ownerId = args;
+      loadStatement();
+    } else {
+      Get.back();
+    }
+  }
+
+  Future<void> loadStatement() async {
+    isLoading.value = true;
+    try {
+      final s = await _repo.getOwnerAccountSummary(
+        ownerId,
+        startDate: startDate.value,
+        endDate: endDate.value,
+      );
+      summary.value = s;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void setDateRange(DateTime start, DateTime end) {
+    startDate.value = start;
+    endDate.value = end;
+    loadStatement();
+  }
+
+  void clearDateRange() {
+    startDate.value = null;
+    endDate.value = null;
+    loadStatement();
+  }
+
+  Future<void> recordPayment(double amount, String paymentMethod, String? notes) async {
+    await _repo.recordClientPayment(
+      ownerId: ownerId,
+      amount: amount,
+      paymentMethod: paymentMethod,
+      notes: notes,
+    );
+    await loadStatement();
+    if (Get.isRegistered<FinancialDashboardController>()) {
+      Get.find<FinancialDashboardController>().loadFinancialData();
+    }
+    Get.snackbar(
+      'تم تسجيل سند القبض بنجاح ✅',
+      'تم قيد دفعة بقيمة ${amount.toStringAsFixed(0)} ر.ي عبر ($paymentMethod) لحساب العميل',
+      backgroundColor: AppColors.success.withValues(alpha: 0.15),
+      colorText: AppColors.success,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  Future<void> shareStatementWhatsApp() async {
+    final s = summary.value;
+    if (s == null) return;
+    final phone = s.phonePrimary.replaceAll(RegExp(r'\D'), '');
+
+    final msg = '''
+*كشف حساب مالي - عيادة نبض البيطرية*
+العميل: ${s.ownerName}
+------------------------------
+إجمالي الخدمات: ${s.totalBilled.toStringAsFixed(0)} ر.ي
+إجمالي المسدد: ${s.totalPaid.toStringAsFixed(0)} ر.ي
+المتبقي والآجل: ${s.remainingDue.toStringAsFixed(0)} ر.ي
+حالة الحساب: ${s.statusDisplayArabic}
+------------------------------
+تم إصدار هذا الكشف آلياً عبر نظام VetPulse.
+''';
+
+    final uri = Uri.parse(
+      'whatsapp://send?phone=$phone&text=${Uri.encodeComponent(msg)}',
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> printPdfStatement() async {
+    final s = summary.value;
+    if (s == null) return;
+    final pdfBytes = await FinancialStatementPdfHelper.generateStatementPdf(
+      summary: s,
+      clinic: clinic,
+    );
+    await Printing.layoutPdf(
+      onLayout: (_) async => pdfBytes,
+      name: 'كشف_حساب_${s.ownerName}',
     );
   }
 }
@@ -8822,45 +8720,6 @@ class PharmacyBinding extends Bindings {
     Get.lazyPut<AddMedicineController>(() => AddMedicineController(Get.find<InventoryRepository>()));
     Get.lazyPut<StockTransferController>(() => StockTransferController(Get.find<InventoryRepository>()));
     Get.lazyPut<PharmacyController>(() => PharmacyController(Get.find<InventoryRepository>()));
-  }
-}
-</file>
-
-<file path="lib/modules/surgeries/bindings/surgery_binding.dart">
-import 'package:get/get.dart';
-import '../../../data/repositories/appointment_repository.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../../../data/repositories/pet_repository.dart';
-import '../../../data/repositories/surgery_repository.dart';
-import '../controllers/complete_surgery_controller.dart';
-import '../controllers/surgery_follow_up_controller.dart';
-import '../controllers/surgery_form_controller.dart';
-import '../controllers/surgery_list_controller.dart';
-
-class SurgeryBinding extends Bindings {
-  @override
-  void dependencies() {
-    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
-    Get.lazyPut<PetRepository>(() => PetRepository());
-    Get.lazyPut<AuthRepository>(() => AuthRepository());
-    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
-
-    Get.lazyPut<SurgeryListController>(
-      () => SurgeryListController(Get.find<SurgeryRepository>()),
-    );
-    Get.lazyPut<SurgeryFormController>(
-      () => SurgeryFormController(
-        Get.find<SurgeryRepository>(),
-        Get.find<PetRepository>(),
-        Get.find<AuthRepository>(),
-      ),
-    );
-    Get.lazyPut<CompleteSurgeryController>(
-      () => CompleteSurgeryController(Get.find<SurgeryRepository>()),
-    );
-    Get.lazyPut<SurgeryFollowUpController>(
-      () => SurgeryFollowUpController(),
-    );
   }
 }
 </file>
@@ -9992,1081 +9851,6 @@ class AuthController extends GetxController {
 }
 </file>
 
-<file path="lib/modules/backup/views/database_backup_view.dart">
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../data/services/database_backup_service.dart';
-import '../controllers/backup_controller.dart';
-
-class DatabaseBackupView extends GetView<BackupController> {
-  const DatabaseBackupView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final tabItems = const [
-      (icon: Icons.storage_rounded, title: 'نسخ داخلي'),
-      (icon: Icons.usb_rounded, title: 'نسخ خارجي'),
-      (icon: Icons.history_rounded, title: 'سجل العمليات'),
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'النسخ والاستعادة',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(62),
-          child: Container(
-            height: 62,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: AppColors.primary,
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Obx(
-                () => Row(
-                  children: List.generate(tabItems.length, (index) {
-                    final isSelected =
-                        controller.selectedTabIndex.value == index;
-                    final item = tabItems[index];
-
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => controller.setTabIndex(index),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                isSelected ? Colors.white : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.15),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                item.icon,
-                                size: 16,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.white.withValues(alpha: 0.9),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    item.title,
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : Colors.white.withValues(alpha: 0.95),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 850),
-          child: Column(
-            children: [
-              // Loading Progress Bar
-              Obx(() {
-                if (!controller.isLoading.value) {
-                  return const SizedBox.shrink();
-                }
-                return Container(
-                  margin: const EdgeInsets.all(12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondaryLight,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          controller.statusMessage.value,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-
-              // Active DB Status Banner
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-                child: _buildActiveDbCard(),
-              ),
-
-              // Tab Views
-              Expanded(
-                child: TabBarView(
-                  controller: controller.tabController,
-                  children: [
-                    _buildInternalTab(),
-                    _buildExternalTab(),
-                    _buildLogsTab(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // --- ACTIVE DB CARD ---
-  Widget _buildActiveDbCard() {
-    return Obx(() {
-      final active = controller.activeDbInfo.value;
-      final internalCount = controller.internalBackups.length;
-      final canRestore = controller.canRestore;
-
-      return Card(
-        elevation: 1.5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.dns_rounded,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        text: 'قاعدة البيانات النشطة: ',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: active?.fileName ?? 'vet_pulse.db',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'الحجم الحالي: ${active?.formattedSize ?? "جاري الحساب..."} | عدد النسخ المحلية: $internalCount',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: canRestore
-                      ? AppColors.success.withValues(alpha: 0.15)
-                      : Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: canRestore
-                        ? AppColors.success
-                        : Colors.orange.shade400,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      canRestore
-                          ? Icons.admin_panel_settings
-                          : Icons.lock_clock,
-                      size: 14,
-                      color: canRestore
-                          ? AppColors.success
-                          : Colors.orange.shade800,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      canRestore ? 'صلاحيات استعادة كاملة' : 'عرض فقط',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: canRestore
-                            ? AppColors.success
-                            : Colors.orange.shade900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    });
-  }
-
-  // --- TAB 1: INTERNAL BACKUP ---
-  Widget _buildInternalTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Create Backup CTA Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            color: Colors.blue.shade50.withValues(alpha: 0.4),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.add_to_photos_rounded,
-                          color: AppColors.primary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'إنشاء نسخة احتياطية جديدة',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              'يتم حفظ النسخة داخل مجلد التطبيق المحلي المشفر والمخصص مع ختم زمني دقيق',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Obx(
-                      () => ElevatedButton.icon(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : controller.createInternalBackup,
-                        icon: const Icon(Icons.save_rounded, size: 18),
-                        label: const Text(
-                          'إنشاء نسخة احتياطية محلية الآن',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Internal Backups List Header
-          Obx(() {
-            final backups = controller.internalBackups;
-            return Row(
-              children: [
-                Text(
-                  'النسخ المتوفرة (${backups.length})',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (backups.isNotEmpty)
-                  Expanded(
-                    child: Text(
-                      'المسار: ${backups.first.shortDirectoryPath}',
-                      textAlign: TextAlign.end,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          }),
-          const SizedBox(height: 10),
-
-          Obx(() {
-            final backups = controller.internalBackups;
-            if (backups.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'لا توجد نسخ احتياطية داخلية محفوظة بعد',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkNeutral,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'اضغط على زر "إنشاء نسخة احتياطية محلية الآن" بالأعلى لبدء أول نسخة',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: backups.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final b = backups[index];
-                return _buildBackupItemCard(b);
-              },
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackupItemCard(DatabaseBackupInfo b) {
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.folder_zip_rounded,
-                color: Colors.blue.shade700,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    b.fileName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${b.formattedDate} | الحجم: ${b.formattedSize}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Obx(() {
-              final canRestore = controller.canRestore;
-              final loading = controller.isLoading.value;
-
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: canRestore
-                        ? 'استعادة هذه النسخة'
-                        : 'تتطلب صلاحية Lead Doctor',
-                    icon: Icon(
-                      Icons.restore_page_rounded,
-                      color: canRestore ? Colors.orange.shade800 : Colors.grey,
-                      size: 20,
-                    ),
-                    onPressed: canRestore && !loading
-                        ? () => controller.confirmAndRestore(b.path)
-                        : null,
-                  ),
-                  IconButton(
-                    tooltip: 'حذف من الجهاز',
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.critical,
-                      size: 20,
-                    ),
-                    onPressed: !loading
-                        ? () => controller.confirmAndDelete(b.path)
-                        : null,
-                  ),
-                ],
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- TAB 2: EXTERNAL BACKUP ---
-  Widget _buildExternalTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Export CTA Card
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            color: Colors.teal.shade50.withValues(alpha: 0.35),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.teal.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.usb_rounded,
-                          color: Colors.teal.shade800,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'تصدير لقناة خارجية / فلاش ميموري',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              'تصدير نسخة كاملة لقاعدة البيانات وحفظها على قرص خارجي، فلاش USB، أو مجلد سحابي',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Obx(
-                          () => ElevatedButton.icon(
-                            onPressed: controller.isLoading.value
-                                ? null
-                                : controller.exportExternalBackup,
-                            icon: const Icon(Icons.upload_file_rounded, size: 18),
-                            label: const Text(
-                              'تصدير نسخة احتياطية خارجية',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade700,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Obx(
-                        () => OutlinedButton.icon(
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : controller.shareBackup,
-                          icon: const Icon(Icons.share, size: 16),
-                          label: const Text('مشاركة'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 12,
-                              horizontal: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Restore from File CTA
-          Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.file_open_rounded,
-                      color: Colors.orange.shade800,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'استعادة من ملف خارجي (.db)',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          'اختر ملف نسخة احتياطية من فلاش ميموري أو مجلد خارجي لاستعادته',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Obx(
-                    () => ElevatedButton(
-                      onPressed: controller.canRestore &&
-                              !controller.isLoading.value
-                          ? () => controller.confirmAndRestore(null)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade800,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('اختيار ملف'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // External Config & Auto Schedule Card
-          Card(
-            elevation: 1.5,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(
-                        Icons.settings_outlined,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'إعدادات الوجهة الخارجية والجدولة التلقائية',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Destination Folder
-                  const Text(
-                    'مجلد الوجهة الافتراضية (الفلاش ميموري أو القرص الخارجي):',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Obx(() {
-                            final dest =
-                                controller.config.value.externalDestinationPath;
-                            return Text(
-                              dest ??
-                                  'لم يتم تعيين وجهة افتراضية بعد (سيتم طلبها عند التصدير)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: dest != null
-                                    ? AppColors.darkNeutral
-                                    : AppColors.textSecondary,
-                              ),
-                            );
-                          }),
-                        ),
-                        TextButton(
-                          onPressed: controller.pickExternalFolder,
-                          child: const Text('تغيير المجلد'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Auto Backup Toggle
-                  Obx(
-                    () => SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'تفعيل النسخ الاحتياطي التلقائي المجدول',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: const Text(
-                        'إنشاء نسخة احتياطية دورية بالخلفية وحفظها في الوجهة المحددة',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      value: controller.config.value.autoBackupEnabled,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (val) =>
-                          controller.updateAutoBackupEnabled(val),
-                    ),
-                  ),
-
-                  Obx(() {
-                    if (!controller.config.value.autoBackupEnabled) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Text(
-                              'تكرار الجدولة:',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            DropdownButton<String>(
-                              value: controller.config.value.autoBackupFrequency,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'daily',
-                                  child: Text('يومياً (عند إغلاق الوردية)'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'weekly',
-                                  child: Text('أسبوعياً'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'monthly',
-                                  child: Text('شهرياً'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  controller.updateAutoBackupFrequency(val);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- TAB 3: AUDIT LOGS ---
-  Widget _buildLogsTab() {
-    return Obx(() {
-      final logs = controller.backupLogs;
-      if (logs.isEmpty) {
-        return const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.history_outlined, size: 48, color: Colors.grey),
-              SizedBox(height: 8),
-              Text(
-                'لا توجد سجلات نسخ أو استعادة سابقة',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkNeutral,
-                ),
-              ),
-              Text(
-                'جميع عمليات النسخ الداخلي والخارجي والاستعادة ستوثق هنا تلقائياً',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        );
-      }
-
-      return ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: logs.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 8),
-        itemBuilder: (context, index) {
-          final log = logs[index];
-          final isSuccess = log.status == 'success';
-          final color = isSuccess ? AppColors.success : AppColors.critical;
-
-          return Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isSuccess
-                          ? Icons.check_circle_outline
-                          : Icons.error_outline,
-                      color: color,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                log.backupName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                log.typeDisplayArabic,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: color,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${log.createdAt} | الحجم: ${log.formattedSize}${log.destination != null ? ' | الوجهة: ${log.destination}' : ''}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        if (log.errorMessage != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            'خطأ: ${log.errorMessage}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.critical,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    });
-  }
-}
-</file>
-
-<file path="lib/modules/consultations/bindings/consultation_binding.dart">
-import 'package:get/get.dart';
-import '../../../data/repositories/appointment_repository.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../../../data/repositories/consultation_repository.dart';
-import '../../../data/repositories/inventory_repository.dart';
-import '../../../data/repositories/pet_repository.dart';
-import '../../../data/repositories/surgery_repository.dart';
-import '../controllers/consultation_controller.dart';
-import '../controllers/consultation_detail_controller.dart';
-import '../controllers/consultations_list_controller.dart';
-import '../controllers/new_consultation_controller.dart';
-import '../controllers/prescription_item_controller.dart';
-
-class ConsultationBinding extends Bindings {
-  @override
-  void dependencies() {
-    // Repositories
-    Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
-    Get.lazyPut<InventoryRepository>(() => InventoryRepository());
-    Get.lazyPut<PetRepository>(() => PetRepository());
-    Get.lazyPut<AuthRepository>(() => AuthRepository());
-    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
-    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
-
-    // Controllers
-    Get.lazyPut<PrescriptionItemController>(
-      () => PrescriptionItemController(
-        inventoryRepo: Get.find<InventoryRepository>(),
-      ),
-    );
-
-    Get.lazyPut<NewConsultationController>(
-      () => NewConsultationController(
-        consultationRepo: Get.find<ConsultationRepository>(),
-        petRepo: Get.find<PetRepository>(),
-        authRepo: Get.find<AuthRepository>(),
-        surgeryRepo: Get.find<SurgeryRepository>(),
-        appointmentRepo: Get.find<AppointmentRepository>(),
-        prescriptionController: Get.find<PrescriptionItemController>(),
-      ),
-    );
-
-    Get.lazyPut<ConsultationController>(
-      () => Get.find<NewConsultationController>(),
-    );
-
-    Get.lazyPut<ConsultationDetailController>(
-      () => ConsultationDetailController(
-        consultationRepo: Get.find<ConsultationRepository>(),
-        petRepo: Get.find<PetRepository>(),
-      ),
-    );
-
-    Get.lazyPut<ConsultationsListController>(
-      () => ConsultationsListController(
-        Get.find<ConsultationRepository>(),
-      ),
-    );
-  }
-}
-</file>
-
 <file path="lib/modules/consultations/widgets/consultation_details_dialog.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11488,6 +10272,60 @@ class ConsultationDetailsDialog extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+</file>
+
+<file path="lib/modules/dashboard/bindings/dashboard_binding.dart">
+import 'package:get/get.dart';
+import '../../../data/repositories/appointment_repository.dart';
+import '../../../data/repositories/consultation_repository.dart';
+import '../../../data/repositories/financial_repository.dart';
+import '../../../data/repositories/inventory_repository.dart';
+import '../../../data/repositories/reports_repository.dart';
+import '../../../data/repositories/surgery_repository.dart';
+import '../controllers/alerts_controller.dart';
+import '../controllers/dashboard_controller.dart';
+import '../controllers/weekly_reports_controller.dart';
+import '../../auth/controllers/auth_controller.dart';
+
+class DashboardBinding extends Bindings {
+  @override
+  void dependencies() {
+    // Repositories
+    Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
+    Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
+    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
+    Get.lazyPut<InventoryRepository>(() => InventoryRepository());
+    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
+    Get.lazyPut<ReportsRepository>(() => ReportsRepository());
+
+    // Controllers
+    Get.lazyPut<DashboardController>(
+      () => DashboardController(
+        consultationRepo: Get.find<ConsultationRepository>(),
+        appointmentRepo: Get.find<AppointmentRepository>(),
+        inventoryRepo: Get.find<InventoryRepository>(),
+        surgeryRepo: Get.find<SurgeryRepository>(),
+      ),
+    );
+
+    Get.lazyPut<AlertsController>(
+      () => AlertsController(
+        appointmentRepo: Get.find<AppointmentRepository>(),
+        surgeryRepo: Get.find<SurgeryRepository>(),
+      ),
+    );
+
+    Get.lazyPut<WeeklyReportsController>(
+      () => WeeklyReportsController(
+        Get.find<ReportsRepository>(),
+      ),
+    );
+
+    if (!Get.isRegistered<AuthController>()) {
+      Get.put<AuthController>(AuthController(), permanent: true);
+    }
   }
 }
 </file>
@@ -12222,121 +11060,43 @@ class StockTransferView extends GetView<StockTransferController> {
 }
 </file>
 
-<file path="lib/modules/users_management/controllers/users_controller.dart">
-import 'package:flutter/material.dart';
+<file path="lib/modules/surgeries/bindings/surgery_binding.dart">
 import 'package:get/get.dart';
-import '../../../core/utils/yemeni_phone_validator.dart';
-import '../../../data/models/user_model.dart';
+import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../data/repositories/financial_repository.dart';
+import '../../../data/repositories/pet_repository.dart';
+import '../../../data/repositories/surgery_repository.dart';
+import '../controllers/complete_surgery_controller.dart';
+import '../controllers/surgery_follow_up_controller.dart';
+import '../controllers/surgery_form_controller.dart';
+import '../controllers/surgery_list_controller.dart';
 
-class UsersController extends GetxController {
-  final AuthRepository _authRepo;
-
-  UsersController([AuthRepository? authRepo])
-      : _authRepo = authRepo ?? AuthRepository();
-
-  final RxList<UserModel> users = <UserModel>[].obs;
-  final RxBool isLoading = false.obs;
-
-  // New User Form Controllers
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
-  final fullNameController = TextEditingController();
-  final phoneController = TextEditingController();
-  final pinController = TextEditingController(text: '1234');
-  final RxString selectedRole = 'assistant_vet'.obs;
-
+class SurgeryBinding extends Bindings {
   @override
-  void onInit() {
-    super.onInit();
-    loadUsers();
-  }
+  void dependencies() {
+    Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
+    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
+    Get.lazyPut<PetRepository>(() => PetRepository());
+    Get.lazyPut<AuthRepository>(() => AuthRepository());
+    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
 
-  Future<void> loadUsers() async {
-    isLoading.value = true;
-    try {
-      final list = await _authRepo.getAllUsers();
-      users.assignAll(list);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> addUser() async {
-    final uName = usernameController.text.trim();
-    final pass = passwordController.text;
-    final fName = fullNameController.text.trim();
-    final pRaw = phoneController.text.trim();
-
-    if (uName.isEmpty || pass.isEmpty || fName.isEmpty) {
-      Get.snackbar('تنبيه', 'اسم المستخدم وكلمة المرور والاسم الكامل مطلوبان',
-          backgroundColor: Colors.amber.shade100);
-      return;
-    }
-
-    String? formattedPhone;
-    if (pRaw.isNotEmpty) {
-      final phoneError = YemeniPhoneValidator.validate(pRaw, isRequired: false);
-      if (phoneError != null) {
-        Get.snackbar('رقم الهاتف غير صالح', phoneError,
-            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-        return;
-      }
-      formattedPhone = YemeniPhoneValidator.formatWithCountryCode(pRaw);
-    }
-
-    isLoading.value = true;
-    try {
-      final user = UserModel(
-        username: uName,
-        passwordHash: pass,
-        fullName: fName,
-        role: selectedRole.value,
-        phone: formattedPhone,
-        pinCode: pinController.text.trim(),
-      );
-
-      await _authRepo.addUser(user);
-      clearForm();
-      await loadUsers();
-      Get.back();
-      Get.snackbar('تم', 'تمت إضافة المستخدم بنجاح', backgroundColor: Colors.green.shade100);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> toggleActive(UserModel user) async {
-    final updated = UserModel(
-      id: user.id,
-      username: user.username,
-      passwordHash: user.passwordHash,
-      fullName: user.fullName,
-      role: user.role,
-      phone: user.phone,
-      pinCode: user.pinCode,
-      isActive: !user.isActive,
+    Get.lazyPut<SurgeryListController>(
+      () => SurgeryListController(Get.find<SurgeryRepository>()),
     );
-    await _authRepo.updateUser(updated);
-    await loadUsers();
-  }
-
-  void clearForm() {
-    usernameController.clear();
-    passwordController.clear();
-    fullNameController.clear();
-    phoneController.clear();
-    pinController.text = '1234';
-  }
-
-  @override
-  void onClose() {
-    usernameController.dispose();
-    passwordController.dispose();
-    fullNameController.dispose();
-    phoneController.dispose();
-    pinController.dispose();
-    super.onClose();
+    Get.lazyPut<SurgeryFormController>(
+      () => SurgeryFormController(
+        Get.find<SurgeryRepository>(),
+        Get.find<PetRepository>(),
+        Get.find<AuthRepository>(),
+      ),
+    );
+    Get.lazyPut<CompleteSurgeryController>(
+      () => CompleteSurgeryController(Get.find<SurgeryRepository>()),
+    );
+    Get.lazyPut<SurgeryFollowUpController>(
+      () => SurgeryFollowUpController(),
+    );
   }
 }
 </file>
@@ -12598,521 +11358,929 @@ class ConsultationModel {
 }
 </file>
 
-<file path="lib/data/services/database_backup_service.dart">
-import 'dart:convert';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
-import '../database/database_helper.dart';
-import '../models/backup_log_model.dart';
-import '../repositories/backup_repository.dart';
+<file path="lib/modules/backup/views/database_backup_view.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../data/services/database_backup_service.dart';
+import '../controllers/backup_controller.dart';
 
-class DatabaseBackupInfo {
-  final String path;
-  final String fileName;
-  final int sizeBytes;
-  final DateTime lastModified;
-  final String backupType;
+class DatabaseBackupView extends GetView<BackupController> {
+  const DatabaseBackupView({super.key});
 
-  DatabaseBackupInfo({
-    required this.path,
-    String? fileName,
-    required this.sizeBytes,
-    required this.lastModified,
-    this.backupType = 'internal',
-  }) : fileName = fileName ?? p.basename(path);
+  @override
+  Widget build(BuildContext context) {
+    final tabItems = const [
+      (icon: Icons.storage_rounded, title: 'نسخ داخلي'),
+      (icon: Icons.usb_rounded, title: 'نسخ خارجي'),
+      (icon: Icons.history_rounded, title: 'سجل العمليات'),
+    ];
 
-  /// Path to the directory containing this backup file
-  String get directoryPath => p.dirname(path);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'النسخ والاستعادة',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(62),
+          child: Container(
+            height: 62,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            color: AppColors.primary,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Obx(
+                () => Row(
+                  children: List.generate(tabItems.length, (index) {
+                    final isSelected =
+                        controller.selectedTabIndex.value == index;
+                    final item = tabItems[index];
 
-  /// Short display path (last 2 segments, e.g. 'app_flutter/vet_pulse_backups')
-  String get shortDirectoryPath {
-    final parts = p.split(directoryPath);
-    if (parts.length <= 2) return parts.join('/');
-    return parts.sublist(parts.length - 2).join('/');
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => controller.setTabIndex(index),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                item.icon,
+                                size: 16,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.white.withValues(alpha: 0.9),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.white.withValues(alpha: 0.95),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 850),
+          child: Column(
+            children: [
+              // Loading Progress Bar
+              Obx(() {
+                if (!controller.isLoading.value) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  margin: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          controller.statusMessage.value,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+              // Active DB Status Banner
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                child: _buildActiveDbCard(),
+              ),
+
+              // Tab Views
+              Expanded(
+                child: TabBarView(
+                  controller: controller.tabController,
+                  children: [
+                    _buildInternalTab(),
+                    _buildExternalTab(),
+                    _buildLogsTab(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  String get formattedSize {
-    if (sizeBytes < 1024) return '$sizeBytes B';
-    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
-    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+  // --- ACTIVE DB CARD ---
+  Widget _buildActiveDbCard() {
+    return Obx(() {
+      final active = controller.activeDbInfo.value;
+      final internalCount = controller.internalBackups.length;
+      final canRestore = controller.canRestore;
+
+      return Card(
+        elevation: 1.5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.dns_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        text: 'قاعدة البيانات النشطة: ',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: active?.fileName ?? 'vet_pulse.db',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'الحجم الحالي: ${active?.formattedSize ?? "جاري الحساب..."} | عدد النسخ المحلية: $internalCount',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: canRestore
+                      ? AppColors.success.withValues(alpha: 0.15)
+                      : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: canRestore
+                        ? AppColors.success
+                        : Colors.orange.shade400,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      canRestore
+                          ? Icons.admin_panel_settings
+                          : Icons.lock_clock,
+                      size: 14,
+                      color: canRestore
+                          ? AppColors.success
+                          : Colors.orange.shade800,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      canRestore ? 'صلاحيات استعادة كاملة' : 'عرض فقط',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: canRestore
+                            ? AppColors.success
+                            : Colors.orange.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
-  String get formattedDate {
-    return DateFormat('yyyy-MM-dd HH:mm').format(lastModified);
+  // --- TAB 1: INTERNAL BACKUP ---
+  Widget _buildInternalTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Create Backup CTA Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            color: Colors.blue.shade50.withValues(alpha: 0.4),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add_to_photos_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'إنشاء نسخة احتياطية جديدة',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'يتم حفظ النسخة داخل مجلد التطبيق المحلي المشفر والمخصص مع ختم زمني دقيق',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Obx(
+                      () => ElevatedButton.icon(
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : controller.createInternalBackup,
+                        icon: const Icon(Icons.save_rounded, size: 18),
+                        label: const Text(
+                          'إنشاء نسخة احتياطية محلية الآن',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Internal Backups List Header
+          Obx(() {
+            final backups = controller.internalBackups;
+            return Row(
+              children: [
+                Text(
+                  'النسخ المتوفرة (${backups.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (backups.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      'المسار: ${backups.first.shortDirectoryPath}',
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }),
+          const SizedBox(height: 10),
+
+          Obx(() {
+            final backups = controller.internalBackups;
+            if (backups.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(
+                      Icons.inventory_2_outlined,
+                      size: 40,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'لا توجد نسخ احتياطية داخلية محفوظة بعد',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.darkNeutral,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'اضغط على زر "إنشاء نسخة احتياطية محلية الآن" بالأعلى لبدء أول نسخة',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: backups.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final b = backups[index];
+                return _buildBackupItemCard(b);
+              },
+            );
+          }),
+        ],
+      ),
+    );
   }
-}
 
-class BackupConfig {
-  final String? externalDestinationPath;
-  final bool autoBackupEnabled;
-  final String autoBackupFrequency; // 'daily', 'weekly'
-  final String? lastAutoBackupDate;
+  Widget _buildBackupItemCard(DatabaseBackupInfo b) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.folder_zip_rounded,
+                color: Colors.blue.shade700,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    b.fileName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${b.formattedDate} | الحجم: ${b.formattedSize}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Obx(() {
+              final canRestore = controller.canRestore;
+              final loading = controller.isLoading.value;
 
-  BackupConfig({
-    this.externalDestinationPath,
-    this.autoBackupEnabled = false,
-    this.autoBackupFrequency = 'daily',
-    this.lastAutoBackupDate,
-  });
-
-  Map<String, dynamic> toMap() => {
-    'externalDestinationPath': externalDestinationPath,
-    'autoBackupEnabled': autoBackupEnabled,
-    'autoBackupFrequency': autoBackupFrequency,
-    'lastAutoBackupDate': lastAutoBackupDate,
-  };
-
-  factory BackupConfig.fromMap(Map<String, dynamic> map) => BackupConfig(
-    externalDestinationPath: map['externalDestinationPath'] as String?,
-    autoBackupEnabled: map['autoBackupEnabled'] as bool? ?? false,
-    autoBackupFrequency: map['autoBackupFrequency'] as String? ?? 'daily',
-    lastAutoBackupDate: map['lastAutoBackupDate'] as String?,
-  );
-}
-
-class DatabaseBackupService {
-  DatabaseBackupService._internal();
-  static final DatabaseBackupService instance = DatabaseBackupService._internal();
-  final BackupRepository _backupRepo = BackupRepository();
-
-  /// Gets dedicated directory for internal backups
-  Future<Directory> getInternalBackupsDirectory() async {
-    Directory docsDir;
-    try {
-      docsDir = await getApplicationDocumentsDirectory();
-    } catch (_) {
-      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-      docsDir = Directory(p.dirname(dbPath));
-    }
-
-    final backupDir = Directory(p.join(docsDir.path, 'vet_pulse_backups'));
-    if (!await backupDir.exists()) {
-      await backupDir.create(recursive: true);
-    }
-    return backupDir;
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: canRestore
+                        ? 'استعادة هذه النسخة'
+                        : 'تتطلب صلاحية Lead Doctor',
+                    icon: Icon(
+                      Icons.restore_page_rounded,
+                      color: canRestore ? Colors.orange.shade800 : Colors.grey,
+                      size: 20,
+                    ),
+                    onPressed: canRestore && !loading
+                        ? () => controller.confirmAndRestore(b.path)
+                        : null,
+                  ),
+                  IconButton(
+                    tooltip: 'حذف من الجهاز',
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.critical,
+                      size: 20,
+                    ),
+                    onPressed: !loading
+                        ? () => controller.confirmAndDelete(b.path)
+                        : null,
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
-  /// Returns current active database info (size, path, last modified)
-  Future<DatabaseBackupInfo?> getDatabaseInfo() async {
-    try {
-      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-      final file = File(dbPath);
-      if (await file.exists()) {
-        final stat = await file.stat();
-        return DatabaseBackupInfo(
-          path: dbPath,
-          sizeBytes: stat.size,
-          lastModified: stat.modified,
-          backupType: 'active',
+  // --- TAB 2: EXTERNAL BACKUP ---
+  Widget _buildExternalTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Export CTA Card
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            color: Colors.teal.shade50.withValues(alpha: 0.35),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.usb_rounded,
+                          color: Colors.teal.shade800,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'تصدير لقناة خارجية / فلاش ميموري',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'تصدير نسخة كاملة لقاعدة البيانات وحفظها على قرص خارجي، فلاش USB، أو مجلد سحابي',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => ElevatedButton.icon(
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.exportExternalBackup,
+                            icon: const Icon(Icons.upload_file_rounded, size: 18),
+                            label: const Text(
+                              'تصدير نسخة احتياطية خارجية',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Obx(
+                        () => OutlinedButton.icon(
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.shareBackup,
+                          icon: const Icon(Icons.share, size: 16),
+                          label: const Text('مشاركة'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Restore from File CTA
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.file_open_rounded,
+                      color: Colors.orange.shade800,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'استعادة من ملف خارجي (.db)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          'اختر ملف نسخة احتياطية من فلاش ميموري أو مجلد خارجي لاستعادته',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.canRestore &&
+                              !controller.isLoading.value
+                          ? () => controller.confirmAndRestore(null)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade800,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('اختيار ملف'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- TAB 3: AUDIT LOGS ---
+  Widget _buildLogsTab() {
+    return Obx(() {
+      final logs = controller.backupLogs;
+      if (logs.isEmpty) {
+        return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.history_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 8),
+              Text(
+                'لا توجد سجلات نسخ أو استعادة سابقة',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkNeutral,
+                ),
+              ),
+              Text(
+                'جميع عمليات النسخ الداخلي والخارجي والاستعادة ستوثق هنا تلقائياً',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         );
       }
-    } catch (e) {
-      debugPrint('Error getting database info: $e');
-    }
-    return null;
-  }
 
-  // --- INTERNAL BACKUP (النسخ الاحتياطي الداخلي) ---
+      return ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: logs.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final log = logs[index];
+          final isSuccess = log.status == 'success';
+          final color = isSuccess ? AppColors.success : AppColors.critical;
 
-  /// Creates a manual or automated internal backup saved locally
-  Future<BackupLogModel> createInternalBackup({bool isScheduled = false}) async {
-    final now = DateTime.now();
-    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
-    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
-    final backupFileName = 'vet_pulse_internal_$dateSuffix.db';
-
-    try {
-      await DatabaseHelper.instance.flushWal();
-      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-      final sourceFile = File(dbPath);
-
-      if (!await sourceFile.exists()) {
-        throw Exception('ملف قاعدة البيانات النشطة غير موجود على الجهاز');
-      }
-
-      final backupDir = await getInternalBackupsDirectory();
-      final targetPath = p.join(backupDir.path, backupFileName);
-
-      final copiedFile = await sourceFile.copy(targetPath);
-      final fileSize = await copiedFile.length();
-
-      final log = BackupLogModel(
-        backupName: backupFileName,
-        filePath: targetPath,
-        sizeBytes: fileSize,
-        backupType: isScheduled ? 'scheduled' : 'internal',
-        destination: 'التخزين الداخلي: مجلد vet_pulse_backups',
-        status: 'success',
-        createdAt: nowStr,
-      );
-
-      await logBackupEvent(log);
-      return log;
-    } catch (e) {
-      final failLog = BackupLogModel(
-        backupName: backupFileName,
-        filePath: '',
-        sizeBytes: 0,
-        backupType: isScheduled ? 'scheduled' : 'internal',
-        destination: 'التخزين الداخلي للتطبيق',
-        status: 'failed',
-        errorMessage: e.toString(),
-        createdAt: nowStr,
-      );
-      await logBackupEvent(failLog);
-      rethrow;
-    }
-  }
-
-  /// Lists all internal backups available in the local backup directory
-  Future<List<DatabaseBackupInfo>> listInternalBackups() async {
-    try {
-      final backupDir = await getInternalBackupsDirectory();
-      if (!await backupDir.exists()) return [];
-
-      final files = await backupDir
-          .list()
-          .where((entity) => entity is File && entity.path.endsWith('.db'))
-          .cast<File>()
-          .toList();
-
-      final List<DatabaseBackupInfo> list = [];
-      for (final file in files) {
-        final stat = await file.stat();
-        list.add(DatabaseBackupInfo(
-          path: file.path,
-          fileName: p.basename(file.path),
-          sizeBytes: stat.size,
-          lastModified: stat.modified,
-          backupType: 'internal',
-        ));
-      }
-
-      // Sort newest first
-      list.sort((a, b) => b.lastModified.compareTo(a.lastModified));
-      return list;
-    } catch (e) {
-      debugPrint('Error listing internal backups: $e');
-      return [];
-    }
-  }
-
-  /// Deletes an internal backup file safely
-  Future<bool> deleteInternalBackup(String filePath) async {
-    try {
-      final file = File(filePath);
-      if (await file.exists()) {
-        await file.delete();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error deleting backup: $e');
-    }
-    return false;
-  }
-
-  // --- EXTERNAL BACKUP (النسخ الاحتياطي الخارجي) ---
-
-  /// Exports backup to an external destination (USB Flash drive, external folder, or file picker)
-  Future<BackupLogModel> exportExternalBackup({String? destinationDirectory}) async {
-    final now = DateTime.now();
-    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
-    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
-    final defaultFileName = 'vet_pulse_external_$dateSuffix.db';
-
-    try {
-      await DatabaseHelper.instance.flushWal();
-      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-      final sourceFile = File(dbPath);
-
-      if (!await sourceFile.exists()) {
-        throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
-      }
-
-      String? targetPath;
-
-      // 1. If explicit destination directory passed or configured
-      String? destDir = destinationDirectory;
-      if (destDir == null || destDir.isEmpty) {
-        final config = await getBackupConfig();
-        if (config.externalDestinationPath != null &&
-            await Directory(config.externalDestinationPath!).exists()) {
-          destDir = config.externalDestinationPath;
-        }
-      }
-
-      if (destDir != null && await Directory(destDir).exists()) {
-        targetPath = p.join(destDir, defaultFileName);
-        await sourceFile.copy(targetPath);
-      } else {
-        // Fallback: prompt user to pick folder or save file
-        final bytes = await sourceFile.readAsBytes();
-
-        try {
-          final uri = await FilePickerPlatform.instance.saveFile(
-            dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية (فلاش ميموري أو مجلد خارجي)',
-            fileName: defaultFileName,
-            bytes: bytes,
-            mimeType: 'application/x-sqlite3',
+          return Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isSuccess
+                          ? Icons.check_circle_outline
+                          : Icons.error_outline,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                log.backupName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                log.typeDisplayArabic,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${log.createdAt} | الحجم: ${log.formattedSize}${log.destination != null ? ' | الوجهة: ${log.destination}' : ''}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        if (log.errorMessage != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'خطأ: ${log.errorMessage}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.critical,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
-          if (uri != null) {
-            try {
-              targetPath = uri.toFilePath(windows: Platform.isWindows);
-            } catch (_) {
-              targetPath = uri.path;
-            }
-          }
-        } catch (_) {}
-
-        if (targetPath == null) {
-          final selectedFolder = await FilePickerPlatform.instance.getDirectoryPath(
-            dialogTitle: 'اختر مجلد الفلاش ميموري أو القرص الخارجي',
-          );
-          if (selectedFolder != null && selectedFolder.isNotEmpty) {
-            targetPath = p.join(selectedFolder, defaultFileName);
-            await sourceFile.copy(targetPath);
-          }
-        }
-
-        if (targetPath == null) {
-          throw Exception('تم إلغاء عملية اختيار الوجهة الخارجية للنسخ الاحتياطي');
-        }
-      }
-
-      final savedFile = File(targetPath);
-      final size = await savedFile.length();
-
-      final log = BackupLogModel(
-        backupName: defaultFileName,
-        filePath: targetPath,
-        sizeBytes: size,
-        backupType: 'external',
-        destination: targetPath,
-        status: 'success',
-        createdAt: nowStr,
+        },
       );
-
-      await logBackupEvent(log);
-      return log;
-    } catch (e) {
-      final failLog = BackupLogModel(
-        backupName: defaultFileName,
-        filePath: '',
-        sizeBytes: 0,
-        backupType: 'external',
-        destination: destinationDirectory ?? 'وجهة خارجية',
-        status: 'failed',
-        errorMessage: e.toString(),
-        createdAt: nowStr,
-      );
-      await logBackupEvent(failLog);
-      rethrow;
-    }
+    });
   }
+}
+</file>
 
-  /// Exports backup via file picker (compatibility method)
-  Future<String?> exportBackupToFilePicker() async {
-    final log = await exportExternalBackup();
-    return log.filePath;
-  }
+<file path="lib/modules/consultations/bindings/consultation_binding.dart">
+import 'package:get/get.dart';
+import '../../../data/repositories/appointment_repository.dart';
+import '../../../data/repositories/auth_repository.dart';
+import '../../../data/repositories/consultation_repository.dart';
+import '../../../data/repositories/financial_repository.dart';
+import '../../../data/repositories/inventory_repository.dart';
+import '../../../data/repositories/pet_repository.dart';
+import '../../../data/repositories/surgery_repository.dart';
+import '../controllers/consultation_controller.dart';
+import '../controllers/consultation_detail_controller.dart';
+import '../controllers/consultations_list_controller.dart';
+import '../controllers/new_consultation_controller.dart';
+import '../controllers/prescription_item_controller.dart';
 
-  /// Shares backup file using system share sheet (Google Drive, WhatsApp, Bluetooth, etc.)
-  Future<bool> shareBackupViaSystem() async {
-    await DatabaseHelper.instance.flushWal();
-    final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-    final sourceFile = File(dbPath);
+class ConsultationBinding extends Bindings {
+  @override
+  void dependencies() {
+    // Repositories
+    Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
+    Get.lazyPut<ConsultationRepository>(() => ConsultationRepository());
+    Get.lazyPut<InventoryRepository>(() => InventoryRepository());
+    Get.lazyPut<PetRepository>(() => PetRepository());
+    Get.lazyPut<AuthRepository>(() => AuthRepository());
+    Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
+    Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
 
-    if (!await sourceFile.exists()) {
-      throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
-    }
-
-    final bytes = await sourceFile.readAsBytes();
-    final dateSuffix = DateFormat('yyyy_MM_dd_HHmm').format(DateTime.now());
-    final defaultFileName = 'vet_pulse_backup_$dateSuffix.db';
-
-    await Printing.sharePdf(
-      bytes: bytes,
-      filename: defaultFileName,
-    );
-    return true;
-  }
-
-  // --- RESTORE BACKUP (استعادة النسخة الاحتياطية مع التحقق من الصلاحيات) ---
-
-  /// Restores database with mandatory role and safety checks
-  Future<String> restoreFromFile(
-    String backupFilePath, {
-    String userRole = 'lead_doctor',
-  }) async {
-    // 1. Role Permission Guard: Only lead doctor or authorized admin can restore
-    if (userRole != 'lead_doctor' && userRole != 'admin') {
-      throw Exception('عذراً، عملية استعادة النسخة الاحتياطية تتطلب صلاحيات الطبيب المسؤول (Lead Doctor) حصرياً لحماية بيانات العيادة.');
-    }
-
-    final backupFile = File(backupFilePath);
-    if (!await backupFile.exists()) {
-      throw Exception('ملف النسخة الاحتياطية غير موجود: $backupFilePath');
-    }
-
-    final fileSize = await backupFile.length();
-    if (fileSize < 100) {
-      throw Exception('الملف فارغ أو تالف وغير صالح كقاعدة بيانات');
-    }
-
-    // 2. Validate SQLite Header ("SQLite format 3\0")
-    final headerBytes = await backupFile.openRead(0, 16).first;
-    const expectedHeader = [
-      0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00
-    ];
-    bool isValidSqlite = headerBytes.length >= 16;
-    if (isValidSqlite) {
-      for (int i = 0; i < 16; i++) {
-        if (headerBytes[i] != expectedHeader[i]) {
-          isValidSqlite = false;
-          break;
-        }
-      }
-    }
-
-    if (!isValidSqlite) {
-      throw Exception('الملف المحدد ليس ملف قاعدة بيانات SQLite صالح لتطبيق نبض البيطري');
-    }
-
-    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-
-    try {
-      // Step 1: Close active database cleanly
-      await DatabaseHelper.instance.close();
-
-      // Step 2: Target path
-      final activeDbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-
-      // Remove any leftover WAL/SHM journal files
-      final walFile = File('$activeDbPath-wal');
-      if (await walFile.exists()) await walFile.delete();
-      final shmFile = File('$activeDbPath-shm');
-      if (await shmFile.exists()) await shmFile.delete();
-
-      // Step 3: Overwrite with backup
-      await backupFile.copy(activeDbPath);
-
-      // Step 4: Reopen database and verify integrity
-      final newDb = await DatabaseHelper.instance.database;
-      final integrityRes = await newDb.rawQuery('PRAGMA integrity_check;');
-      final status = integrityRes.isNotEmpty ? integrityRes.first.values.first.toString() : '';
-
-      if (status != 'ok') {
-        throw Exception('فشل فحص سلامة البيانات المستعادة: $status');
-      }
-
-      // Log success in audit table
-      await logBackupEvent(BackupLogModel(
-        backupName: p.basename(backupFilePath),
-        filePath: backupFilePath,
-        sizeBytes: fileSize,
-        backupType: 'restore',
-        destination: 'قاعدة البيانات النشطة (تمت الاستعادة بنجاح)',
-        status: 'success',
-        createdAt: nowStr,
-      ));
-
-      return 'تمت استعادة قاعدة البيانات بنجاح (${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB)';
-    } catch (e) {
-      await logBackupEvent(BackupLogModel(
-        backupName: p.basename(backupFilePath),
-        filePath: backupFilePath,
-        sizeBytes: fileSize,
-        backupType: 'restore',
-        destination: 'قاعدة البيانات النشطة',
-        status: 'failed',
-        errorMessage: e.toString(),
-        createdAt: nowStr,
-      ));
-      rethrow;
-    }
-  }
-
-  /// Restores database from a user-selected backup file (.db)
-  Future<String> restoreFromBackupPicker({String userRole = 'lead_doctor'}) async {
-    final pickedFiles = await FilePickerPlatform.instance.pickFiles(
-      dialogTitle: 'اختر ملف النسخة الاحتياطية (.db)',
-      type: FileType.any,
+    // Controllers
+    Get.lazyPut<PrescriptionItemController>(
+      () => PrescriptionItemController(
+        inventoryRepo: Get.find<InventoryRepository>(),
+      ),
     );
 
-    if (pickedFiles.isEmpty) {
-      throw Exception('تم إلغاء عملية الاستعادة');
-    }
+    Get.lazyPut<NewConsultationController>(
+      () => NewConsultationController(
+        consultationRepo: Get.find<ConsultationRepository>(),
+        petRepo: Get.find<PetRepository>(),
+        authRepo: Get.find<AuthRepository>(),
+        surgeryRepo: Get.find<SurgeryRepository>(),
+        appointmentRepo: Get.find<AppointmentRepository>(),
+        prescriptionController: Get.find<PrescriptionItemController>(),
+      ),
+    );
 
-    final pickedPath = pickedFiles.first.path;
-    if (pickedPath == null || pickedPath.isEmpty) {
-      throw Exception('تعذر قراءة مسار الملف المحدد');
-    }
+    Get.lazyPut<ConsultationController>(
+      () => Get.find<NewConsultationController>(),
+    );
 
-    return await restoreFromFile(pickedPath, userRole: userRole);
-  }
+    Get.lazyPut<ConsultationDetailController>(
+      () => ConsultationDetailController(
+        consultationRepo: Get.find<ConsultationRepository>(),
+        petRepo: Get.find<PetRepository>(),
+      ),
+    );
 
-  // --- LOGGING & AUDIT TRAIL (سجل عمليات النسخ والتدقيق) ---
-
-  /// Records backup or restore event in tableBackupLogs
-  Future<void> logBackupEvent(BackupLogModel log) async {
-    try {
-      await _backupRepo.insertBackupLog(log);
-    } catch (e) {
-      debugPrint('Error inserting backup log: $e');
-    }
-  }
-
-  /// Retrieves all backup and restore logs
-  Future<List<BackupLogModel>> getBackupLogs() async {
-    try {
-      return await _backupRepo.getBackupLogs();
-    } catch (e) {
-      debugPrint('Error getting backup logs: $e');
-      return [];
-    }
-  }
-
-  // --- CONFIGURATION PERSISTENCE ---
-
-  Future<File> _getConfigFile() async {
-    Directory dir;
-    try {
-      dir = await getApplicationDocumentsDirectory();
-    } catch (_) {
-      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
-      dir = Directory(p.dirname(dbPath));
-    }
-    return File(p.join(dir.path, 'vet_pulse_backup_config.json'));
-  }
-
-  /// Loads current backup configuration
-  Future<BackupConfig> getBackupConfig() async {
-    try {
-      final file = await _getConfigFile();
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final map = jsonDecode(content) as Map<String, dynamic>;
-        return BackupConfig.fromMap(map);
-      }
-    } catch (e) {
-      debugPrint('Error reading backup config: $e');
-    }
-    return BackupConfig();
-  }
-
-  /// Saves backup configuration
-  Future<void> saveBackupConfig(BackupConfig config) async {
-    try {
-      final file = await _getConfigFile();
-      await file.writeAsString(jsonEncode(config.toMap()));
-    } catch (e) {
-      debugPrint('Error saving backup config: $e');
-    }
+    Get.lazyPut<ConsultationsListController>(
+      () => ConsultationsListController(
+        Get.find<ConsultationRepository>(),
+      ),
+    );
   }
 }
 </file>
@@ -13762,21 +12930,6 @@ class WeeklyReportsView extends GetView<WeeklyReportsController> {
     );
   }
 }
-</file>
-
-<file path="lib/modules/financials/controllers/financial_controller.dart">
-import 'financial_dashboard_controller.dart';
-import 'owner_statement_controller.dart';
-
-export 'financial_dashboard_controller.dart';
-export 'owner_statement_controller.dart';
-
-/// Backward-compatible class for FinancialController
-class FinancialController extends FinancialDashboardController {
-  FinancialController(super.repo, super.petRepo);
-}
-
-typedef OwnerAccountStatementController = OwnerStatementController;
 </file>
 
 <file path="lib/modules/follow_ups/controllers/follow_up_controller.dart">
@@ -14801,177 +13954,168 @@ class InventoryListView extends GetView<InventoryListController> {
 }
 </file>
 
-<file path="lib/modules/users_management/views/users_list_view.dart">
+<file path="lib/modules/users_management/controllers/users_controller.dart">
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/utils/yemeni_phone_validator.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/status_chip.dart';
-import '../controllers/users_controller.dart';
+import '../../../data/models/user_model.dart';
+import '../../../data/repositories/auth_repository.dart';
 
-class UsersListView extends GetView<UsersController> {
-  const UsersListView({super.key});
+class UsersController extends GetxController {
+  final AuthRepository _authRepo;
 
-  void _showAddUserDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(AppStringsAr.addUser),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                label: AppStringsAr.fullName,
-                hint: 'مثال: د. سارة الأحمد',
-                controller: controller.fullNameController,
-                prefixIcon: const Icon(Icons.person),
-              ),
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: AppStringsAr.username,
-                hint: 'اسم المستخدم للدخول',
-                controller: controller.usernameController,
-                prefixIcon: const Icon(Icons.account_circle),
-              ),
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: AppStringsAr.password,
-                hint: 'كلمة المرور',
-                controller: controller.passwordController,
-                obscureText: true,
-                prefixIcon: const Icon(Icons.lock),
-              ),
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: AppStringsAr.pinCode,
-                hint: '4 أرقام للقفل السريع',
-                controller: controller.pinController,
-                keyboardType: TextInputType.number,
-                prefixIcon: const Icon(Icons.pin),
-              ),
-              const SizedBox(height: 12),
-              CustomTextField(
-                label: '${AppStringsAr.phone} (رقم يمني +967)',
-                hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
-                controller: controller.phoneController,
-                keyboardType: TextInputType.phone,
-                prefixText: '+967 ',
-                textDirection: TextDirection.ltr,
-                maxLength: 9,
-                validator: (v) => YemeniPhoneValidator.validate(v, isRequired: false),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(9),
-                ],
-                prefixIcon: const Icon(Icons.phone),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: controller.selectedRole.value,
-                decoration: const InputDecoration(labelText: AppStringsAr.role),
-                items: const [
-                  DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)', overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (v) {
-                  if (v != null) controller.selectedRole.value = v;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(AppStringsAr.cancel),
-          ),
-          ElevatedButton(
-            onPressed: controller.addUser,
-            child: const Text(AppStringsAr.save),
-          ),
-        ],
-      ),
+  UsersController([AuthRepository? authRepo])
+      : _authRepo = authRepo ?? AuthRepository();
+
+  final RxList<UserModel> users = <UserModel>[].obs;
+  final RxBool isLoading = false.obs;
+
+  // New User Form Controllers
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final fullNameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final pinController = TextEditingController(text: '1234');
+  final RxString selectedRole = 'assistant_vet'.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadUsers();
+  }
+
+  Future<void> loadUsers() async {
+    isLoading.value = true;
+    try {
+      final list = await _authRepo.getAllUsers();
+      users.assignAll(list);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> addUser() async {
+    final uName = usernameController.text.trim();
+    final pass = passwordController.text;
+    final fName = fullNameController.text.trim();
+    final pRaw = phoneController.text.trim();
+    final pin = pinController.text.trim();
+
+    if (fName.isEmpty || uName.isEmpty || pass.isEmpty || pin.isEmpty) {
+      Get.snackbar(
+        'تنبيه',
+        'الاسم الكامل، اسم المستخدم، كلمة المرور، ورمز PIN كلها حقول مطلوبة',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+      );
+      return;
+    }
+
+    if (pin.length != 4 || int.tryParse(pin) == null) {
+      Get.snackbar(
+        'تنبيه',
+        'رمز PIN يجب أن يتكون من 4 أرقام',
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+      );
+      return;
+    }
+
+    if (pRaw.isNotEmpty) {
+      final phoneError = YemeniPhoneValidator.validate(pRaw, isRequired: false);
+      if (phoneError != null) {
+        Get.snackbar(
+          'تنبيه',
+          phoneError,
+          backgroundColor: Colors.amber.shade100,
+          colorText: Colors.black87,
+        );
+        return;
+      }
+    }
+
+    if (users.any((u) => u.username.trim().toLowerCase() == uName.toLowerCase())) {
+      Get.snackbar(
+        'خطأ',
+        'اسم المستخدم مسجل مسبقاً',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+      return;
+    }
+
+    final formattedPhone = pRaw.isNotEmpty
+        ? YemeniPhoneValidator.formatWithCountryCode(pRaw)
+        : null;
+
+    isLoading.value = true;
+    try {
+      final user = UserModel(
+        username: uName,
+        passwordHash: pass,
+        fullName: fName,
+        role: selectedRole.value,
+        phone: formattedPhone,
+        pinCode: pin,
+      );
+
+      await _authRepo.addUser(user);
+      clearForm();
+      await loadUsers();
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      } else if (Get.overlayContext != null) {
+        Navigator.of(Get.overlayContext!).pop();
+      }
+      Get.snackbar(
+        'تم',
+        'تمت إضافة الموظف بنجاح',
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade900,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        'حدث خطأ أثناء إضافة الموظف: $e',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> toggleActive(UserModel user) async {
+    final updated = UserModel(
+      id: user.id,
+      username: user.username,
+      passwordHash: user.passwordHash,
+      fullName: user.fullName,
+      role: user.role,
+      phone: user.phone,
+      pinCode: user.pinCode,
+      isActive: !user.isActive,
     );
+    await _authRepo.updateUser(updated);
+    await loadUsers();
+  }
+
+  void clearForm() {
+    usernameController.clear();
+    passwordController.clear();
+    fullNameController.clear();
+    phoneController.clear();
+    pinController.text = '1234';
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStringsAr.usersManagement),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add),
-        label: const Text(AppStringsAr.addUser, style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          controller.clearForm();
-          _showAddUserDialog(context);
-        },
-      ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.users.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final user = controller.users[index];
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: user.isActive ? AppColors.secondaryLight : Colors.grey.shade200,
-                  child: Icon(
-                    user.isLeadDoctor
-                        ? Icons.medical_services
-                        : (user.isAssistantVet
-                            ? Icons.healing
-                            : (user.isPharmacist ? Icons.medication : Icons.support_agent)),
-                    color: user.isActive ? AppColors.primary : Colors.grey,
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      user.fullName,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: user.isActive ? AppColors.darkNeutral : AppColors.textMuted,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    StatusChip(
-                      label: user.roleDisplayArabic,
-                      type: user.isLeadDoctor ? ChipStatusType.info : ChipStatusType.neutral,
-                    ),
-                  ],
-                ),
-                subtitle: Text(
-                  'اسم المستخدم: ${user.username} • PIN: ${user.pinCode ?? "-"}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                trailing: Switch(
-                  value: user.isActive,
-                  activeThumbColor: AppColors.primary,
-                  onChanged: user.isLeadDoctor ? null : (_) => controller.toggleActive(user),
-                ),
-              ),
-            );
-          },
-        );
-      }),
-    );
+  void onClose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    fullNameController.dispose();
+    phoneController.dispose();
+    pinController.dispose();
+    super.onClose();
   }
 }
 </file>
@@ -16018,6 +15162,538 @@ class SurgeryRepository {
 }
 </file>
 
+<file path="lib/data/services/database_backup_service.dart">
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
+import '../database/database_helper.dart';
+import '../models/backup_log_model.dart';
+import '../repositories/backup_repository.dart';
+
+class DatabaseBackupInfo {
+  final String path;
+  final String fileName;
+  final int sizeBytes;
+  final DateTime lastModified;
+  final String backupType;
+
+  DatabaseBackupInfo({
+    required this.path,
+    String? fileName,
+    required this.sizeBytes,
+    required this.lastModified,
+    this.backupType = 'internal',
+  }) : fileName = fileName ?? p.basename(path);
+
+  /// Path to the directory containing this backup file
+  String get directoryPath => p.dirname(path);
+
+  /// Short display path (last 2 segments, e.g. 'app_flutter/vet_pulse_backups')
+  String get shortDirectoryPath {
+    final parts = p.split(directoryPath);
+    if (parts.length <= 2) return parts.join('/');
+    return parts.sublist(parts.length - 2).join('/');
+  }
+
+  String get formattedSize {
+    if (sizeBytes < 1024) return '$sizeBytes B';
+    if (sizeBytes < 1024 * 1024) return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+  }
+
+  String get formattedDate {
+    return DateFormat('yyyy-MM-dd HH:mm').format(lastModified);
+  }
+}
+
+class BackupConfig {
+  final String? externalDestinationPath;
+  final bool autoBackupEnabled;
+  final String autoBackupFrequency; // 'daily', 'weekly'
+  final String? lastAutoBackupDate;
+
+  BackupConfig({
+    this.externalDestinationPath,
+    this.autoBackupEnabled = false,
+    this.autoBackupFrequency = 'daily',
+    this.lastAutoBackupDate,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'externalDestinationPath': externalDestinationPath,
+    'autoBackupEnabled': autoBackupEnabled,
+    'autoBackupFrequency': autoBackupFrequency,
+    'lastAutoBackupDate': lastAutoBackupDate,
+  };
+
+  factory BackupConfig.fromMap(Map<String, dynamic> map) => BackupConfig(
+    externalDestinationPath: map['externalDestinationPath'] as String?,
+    autoBackupEnabled: map['autoBackupEnabled'] as bool? ?? false,
+    autoBackupFrequency: map['autoBackupFrequency'] as String? ?? 'daily',
+    lastAutoBackupDate: map['lastAutoBackupDate'] as String?,
+  );
+}
+
+class DatabaseBackupService {
+  DatabaseBackupService._internal();
+  static final DatabaseBackupService instance = DatabaseBackupService._internal();
+  final BackupRepository _backupRepo = BackupRepository();
+
+  /// Gets dedicated directory for internal backups
+  Future<Directory> getInternalBackupsDirectory() async {
+    Directory docsDir;
+    try {
+      docsDir = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      docsDir = Directory(p.dirname(dbPath));
+    }
+
+    final backupDir = Directory(p.join(docsDir.path, 'vet_pulse_backups'));
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+    }
+    return backupDir;
+  }
+
+  /// Returns current active database info (size, path, last modified)
+  Future<DatabaseBackupInfo?> getDatabaseInfo() async {
+    try {
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      final file = File(dbPath);
+      if (await file.exists()) {
+        final stat = await file.stat();
+        return DatabaseBackupInfo(
+          path: dbPath,
+          sizeBytes: stat.size,
+          lastModified: stat.modified,
+          backupType: 'active',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error getting database info: $e');
+    }
+    return null;
+  }
+
+  // --- INTERNAL BACKUP (النسخ الاحتياطي الداخلي) ---
+
+  /// Creates a manual or automated internal backup saved locally
+  Future<BackupLogModel> createInternalBackup({bool isScheduled = false}) async {
+    final now = DateTime.now();
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
+    final backupFileName = 'vet_pulse_internal_$dateSuffix.db';
+
+    try {
+      await DatabaseHelper.instance.flushWal();
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      final sourceFile = File(dbPath);
+
+      if (!await sourceFile.exists()) {
+        throw Exception('ملف قاعدة البيانات النشطة غير موجود على الجهاز');
+      }
+
+      final backupDir = await getInternalBackupsDirectory();
+      final targetPath = p.join(backupDir.path, backupFileName);
+
+      final copiedFile = await sourceFile.copy(targetPath);
+      final fileSize = await copiedFile.length();
+
+      final log = BackupLogModel(
+        backupName: backupFileName,
+        filePath: targetPath,
+        sizeBytes: fileSize,
+        backupType: isScheduled ? 'scheduled' : 'internal',
+        destination: 'التخزين الداخلي: مجلد vet_pulse_backups',
+        status: 'success',
+        createdAt: nowStr,
+      );
+
+      await logBackupEvent(log);
+      return log;
+    } catch (e) {
+      final failLog = BackupLogModel(
+        backupName: backupFileName,
+        filePath: '',
+        sizeBytes: 0,
+        backupType: isScheduled ? 'scheduled' : 'internal',
+        destination: 'التخزين الداخلي للتطبيق',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
+      );
+      await logBackupEvent(failLog);
+      rethrow;
+    }
+  }
+
+  /// Lists all internal backups available in the local backup directory
+  Future<List<DatabaseBackupInfo>> listInternalBackups() async {
+    try {
+      final backupDir = await getInternalBackupsDirectory();
+      if (!await backupDir.exists()) return [];
+
+      final files = await backupDir
+          .list()
+          .where((entity) => entity is File && entity.path.endsWith('.db'))
+          .cast<File>()
+          .toList();
+
+      final List<DatabaseBackupInfo> list = [];
+      for (final file in files) {
+        final stat = await file.stat();
+        list.add(DatabaseBackupInfo(
+          path: file.path,
+          fileName: p.basename(file.path),
+          sizeBytes: stat.size,
+          lastModified: stat.modified,
+          backupType: 'internal',
+        ));
+      }
+
+      // Sort newest first
+      list.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+      return list;
+    } catch (e) {
+      debugPrint('Error listing internal backups: $e');
+      return [];
+    }
+  }
+
+  /// Deletes an internal backup file safely
+  Future<bool> deleteInternalBackup(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error deleting backup: $e');
+    }
+    return false;
+  }
+
+  // --- EXTERNAL BACKUP (النسخ الاحتياطي الخارجي) ---
+
+  /// Exports backup to an external destination (USB Flash drive, external folder, or file picker)
+  Future<BackupLogModel> exportExternalBackup({String? destinationDirectory}) async {
+    final now = DateTime.now();
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+    final dateSuffix = DateFormat('yyyy_MM_dd_HHmmss').format(now);
+    final defaultFileName = 'vet_pulse_external_$dateSuffix.db';
+
+    try {
+      await DatabaseHelper.instance.flushWal();
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      final sourceFile = File(dbPath);
+
+      if (!await sourceFile.exists()) {
+        throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
+      }
+
+      final bytes = await sourceFile.readAsBytes();
+      final fileSize = bytes.length;
+
+      String? targetPath;
+
+      if (destinationDirectory != null &&
+          destinationDirectory.isNotEmpty &&
+          !destinationDirectory.startsWith('/document/') &&
+          !destinationDirectory.startsWith('content://') &&
+          await Directory(destinationDirectory).exists()) {
+        targetPath = p.join(destinationDirectory, defaultFileName);
+        await sourceFile.copy(targetPath);
+      } else {
+        final savedUri = await FilePicker.saveFile(
+          dialogTitle: 'اختر موقع حفظ النسخة الاحتياطية',
+          fileName: defaultFileName,
+          bytes: bytes,
+          type: FileType.any,
+        );
+        if (savedUri != null) {
+          try {
+            targetPath = savedUri.toFilePath(windows: Platform.isWindows);
+          } catch (_) {
+            targetPath = savedUri.path;
+          }
+        }
+      }
+
+      if (targetPath == null) {
+        throw Exception('تم إلغاء عملية اختيار الوجهة الخارجية للنسخ الاحتياطي');
+      }
+
+      if (!targetPath.startsWith('/document/') && !targetPath.startsWith('content://')) {
+        try {
+          final file = File(targetPath);
+          if (!await file.exists() || (await file.length()) == 0) {
+            await file.writeAsBytes(bytes, flush: true);
+          }
+        } catch (e) {
+          debugPrint('Notice: writing to targetPath directly failed or not needed: $e');
+        }
+      }
+
+      try {
+        if (!targetPath.startsWith('/document/') && !targetPath.startsWith('content://')) {
+          await File(targetPath).length();
+        }
+      } catch (_) {
+        // Fallback safely to fileSize
+      }
+
+      final log = BackupLogModel(
+        backupName: defaultFileName,
+        filePath: targetPath,
+        sizeBytes: fileSize,
+        backupType: 'external',
+        destination: targetPath,
+        status: 'success',
+        createdAt: nowStr,
+      );
+
+      await logBackupEvent(log);
+      return log;
+    } catch (e) {
+      final failLog = BackupLogModel(
+        backupName: defaultFileName,
+        filePath: '',
+        sizeBytes: 0,
+        backupType: 'external',
+        destination: destinationDirectory ?? 'وجهة خارجية',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
+      );
+      await logBackupEvent(failLog);
+      rethrow;
+    }
+  }
+
+  /// Exports backup via file picker (compatibility method)
+  Future<String?> exportBackupToFilePicker() async {
+    final log = await exportExternalBackup();
+    return log.filePath;
+  }
+
+  /// Shares backup file using system share sheet (Google Drive, WhatsApp, Bluetooth, etc.)
+  Future<bool> shareBackupViaSystem() async {
+    await DatabaseHelper.instance.flushWal();
+    final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+    final sourceFile = File(dbPath);
+
+    if (!await sourceFile.exists()) {
+      throw Exception('ملف قاعدة البيانات غير موجود على الجهاز');
+    }
+
+    final bytes = await sourceFile.readAsBytes();
+    final dateSuffix = DateFormat('yyyy_MM_dd_HHmm').format(DateTime.now());
+    final defaultFileName = 'vet_pulse_backup_$dateSuffix.db';
+
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: defaultFileName,
+    );
+    return true;
+  }
+
+  // --- RESTORE BACKUP (استعادة النسخة الاحتياطية مع التحقق من الصلاحيات) ---
+
+  /// Restores database with mandatory role and safety checks
+  Future<String> restoreFromFile(
+    String backupFilePath, {
+    String userRole = 'lead_doctor',
+  }) async {
+    // 1. Role Permission Guard: Only lead doctor or authorized admin can restore
+    if (userRole != 'lead_doctor' && userRole != 'admin') {
+      throw Exception('عذراً، عملية استعادة النسخة الاحتياطية تتطلب صلاحيات الطبيب المسؤول (Lead Doctor) حصرياً لحماية بيانات العيادة.');
+    }
+
+    final backupFile = File(backupFilePath);
+    if (!await backupFile.exists()) {
+      throw Exception('ملف النسخة الاحتياطية غير موجود: $backupFilePath');
+    }
+
+    final fileSize = await backupFile.length();
+    if (fileSize < 100) {
+      throw Exception('الملف فارغ أو تالف وغير صالح كقاعدة بيانات');
+    }
+
+    // 2. Validate SQLite Header ("SQLite format 3\0")
+    final headerBytes = await backupFile.openRead(0, 16).first;
+    const expectedHeader = [
+      0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00
+    ];
+    bool isValidSqlite = headerBytes.length >= 16;
+    if (isValidSqlite) {
+      for (int i = 0; i < 16; i++) {
+        if (headerBytes[i] != expectedHeader[i]) {
+          isValidSqlite = false;
+          break;
+        }
+      }
+    }
+
+    if (!isValidSqlite) {
+      throw Exception('الملف المحدد ليس ملف قاعدة بيانات SQLite صالح لتطبيق نبض البيطري');
+    }
+
+    final nowStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+
+    try {
+      // Step 1: Close active database cleanly
+      await DatabaseHelper.instance.close();
+
+      // Step 2: Target path
+      final activeDbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+
+      // Remove any leftover WAL/SHM journal files
+      final walFile = File('$activeDbPath-wal');
+      if (await walFile.exists()) await walFile.delete();
+      final shmFile = File('$activeDbPath-shm');
+      if (await shmFile.exists()) await shmFile.delete();
+
+      // Step 3: Overwrite with backup
+      await backupFile.copy(activeDbPath);
+
+      // Step 4: Reopen database and verify integrity
+      final newDb = await DatabaseHelper.instance.database;
+      final integrityRes = await newDb.rawQuery('PRAGMA integrity_check;');
+      final status = integrityRes.isNotEmpty ? integrityRes.first.values.first.toString() : '';
+
+      if (status != 'ok') {
+        throw Exception('فشل فحص سلامة البيانات المستعادة: $status');
+      }
+
+      // Log success in audit table
+      await logBackupEvent(BackupLogModel(
+        backupName: p.basename(backupFilePath),
+        filePath: backupFilePath,
+        sizeBytes: fileSize,
+        backupType: 'restore',
+        destination: 'قاعدة البيانات النشطة (تمت الاستعادة بنجاح)',
+        status: 'success',
+        createdAt: nowStr,
+      ));
+
+      return 'تمت استعادة قاعدة البيانات بنجاح (${(fileSize / (1024 * 1024)).toStringAsFixed(2)} MB)';
+    } catch (e) {
+      await logBackupEvent(BackupLogModel(
+        backupName: p.basename(backupFilePath),
+        filePath: backupFilePath,
+        sizeBytes: fileSize,
+        backupType: 'restore',
+        destination: 'قاعدة البيانات النشطة',
+        status: 'failed',
+        errorMessage: e.toString(),
+        createdAt: nowStr,
+      ));
+      rethrow;
+    }
+  }
+
+  /// Restores database from a user-selected backup file (.db)
+  Future<String> restoreFromBackupPicker({String userRole = 'lead_doctor'}) async {
+    final pickedFiles = await FilePickerPlatform.instance.pickFiles(
+      dialogTitle: 'اختر ملف النسخة الاحتياطية (.db)',
+      type: FileType.any,
+    );
+
+    if (pickedFiles.isEmpty) {
+      throw Exception('تم إلغاء عملية الاستعادة');
+    }
+
+    final pickedPath = pickedFiles.first.path;
+    if (pickedPath == null || pickedPath.isEmpty) {
+      throw Exception('تعذر قراءة مسار الملف المحدد');
+    }
+
+    return await restoreFromFile(pickedPath, userRole: userRole);
+  }
+
+  // --- LOGGING & AUDIT TRAIL (سجل عمليات النسخ والتدقيق) ---
+
+  /// Records backup or restore event in tableBackupLogs
+  Future<void> logBackupEvent(BackupLogModel log) async {
+    try {
+      await _backupRepo.insertBackupLog(log);
+    } catch (e) {
+      debugPrint('Error inserting backup log: $e');
+    }
+  }
+
+  /// Retrieves all backup and restore logs
+  Future<List<BackupLogModel>> getBackupLogs() async {
+    try {
+      return await _backupRepo.getBackupLogs();
+    } catch (e) {
+      debugPrint('Error getting backup logs: $e');
+      return [];
+    }
+  }
+
+  // --- CONFIGURATION PERSISTENCE ---
+
+  Future<File> _getConfigFile() async {
+    Directory dir;
+    try {
+      dir = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      final dbPath = await DatabaseHelper.instance.getDatabaseFilePath();
+      dir = Directory(p.dirname(dbPath));
+    }
+    return File(p.join(dir.path, 'vet_pulse_backup_config.json'));
+  }
+
+  /// Loads current backup configuration
+  Future<BackupConfig> getBackupConfig() async {
+    try {
+      final file = await _getConfigFile();
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final map = jsonDecode(content) as Map<String, dynamic>;
+        return BackupConfig.fromMap(map);
+      }
+    } catch (e) {
+      debugPrint('Error reading backup config: $e');
+    }
+    return BackupConfig();
+  }
+
+  /// Saves backup configuration
+  Future<void> saveBackupConfig(BackupConfig config) async {
+    try {
+      final file = await _getConfigFile();
+      await file.writeAsString(jsonEncode(config.toMap()));
+    } catch (e) {
+      debugPrint('Error saving backup config: $e');
+    }
+  }
+}
+</file>
+
+<file path="lib/modules/financials/controllers/financial_controller.dart">
+import 'financial_dashboard_controller.dart';
+import 'owner_statement_controller.dart';
+
+export 'financial_dashboard_controller.dart';
+export 'owner_statement_controller.dart';
+
+/// Backward-compatible class for FinancialController
+class FinancialController extends FinancialDashboardController {
+  FinancialController([super.repo, super.petRepo]);
+}
+
+typedef OwnerAccountStatementController = OwnerStatementController;
+</file>
+
 <file path="lib/modules/financials/utils/financial_statement_pdf_helper.dart">
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
@@ -16715,6 +16391,188 @@ class NewSurgeryView extends GetView<SurgeryFormController> {
           ],
         ),
       ),
+    );
+  }
+}
+</file>
+
+<file path="lib/modules/users_management/views/users_list_view.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/status_chip.dart';
+import '../controllers/users_controller.dart';
+
+class UsersListView extends GetView<UsersController> {
+  const UsersListView({super.key});
+
+  void _showAddUserDialog(BuildContext context) {
+    Get.dialog(
+      AlertDialog(
+        title: const Text(AppStringsAr.addUser),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomTextField(
+                label: AppStringsAr.fullName,
+                hint: 'مثال: د. سارة الأحمد',
+                controller: controller.fullNameController,
+                prefixIcon: const Icon(Icons.person),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: AppStringsAr.username,
+                hint: 'اسم المستخدم للدخول',
+                controller: controller.usernameController,
+                prefixIcon: const Icon(Icons.account_circle),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: AppStringsAr.password,
+                hint: 'كلمة المرور',
+                controller: controller.passwordController,
+                obscureText: true,
+                prefixIcon: const Icon(Icons.lock),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: AppStringsAr.pinCode,
+                hint: '4 أرقام للقفل السريع',
+                controller: controller.pinController,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                ],
+                prefixIcon: const Icon(Icons.pin),
+              ),
+              const SizedBox(height: 12),
+              CustomTextField(
+                label: '${AppStringsAr.phone} (رقم يمني +967)',
+                hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
+                controller: controller.phoneController,
+                keyboardType: TextInputType.phone,
+                prefixText: '+967 ',
+                textDirection: TextDirection.ltr,
+                maxLength: 9,
+                validator: (v) => YemeniPhoneValidator.validate(v, isRequired: false),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(9),
+                ],
+                prefixIcon: const Icon(Icons.phone),
+              ),
+              const SizedBox(height: 12),
+              Obx(
+                () => DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  // ignore: deprecated_member_use
+                  value: controller.selectedRole.value,
+                  decoration: const InputDecoration(labelText: AppStringsAr.role),
+                  items: const [
+                    DropdownMenuItem(value: 'lead_doctor', child: Text('طبيب رئيسي (Lead Doctor)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'assistant_vet', child: Text('طبيب مساعد (Assistant Vet)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'receptionist', child: Text('موظف استقبال (Receptionist)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'pharmacist', child: Text('أمين المستودع (Pharmacist)', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) controller.selectedRole.value = v;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(AppStringsAr.cancel),
+          ),
+          ElevatedButton(
+            onPressed: controller.addUser,
+            child: const Text(AppStringsAr.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppStringsAr.usersManagement),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add),
+        label: const Text(AppStringsAr.addUser, style: TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () {
+          controller.clearForm();
+          _showAddUserDialog(context);
+        },
+      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: controller.users.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final user = controller.users[index];
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: user.isActive ? AppColors.secondaryLight : Colors.grey.shade200,
+                  child: Icon(
+                    user.isLeadDoctor
+                        ? Icons.medical_services
+                        : (user.isAssistantVet
+                            ? Icons.healing
+                            : (user.isPharmacist ? Icons.medication : Icons.support_agent)),
+                    color: user.isActive ? AppColors.primary : Colors.grey,
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    Text(
+                      user.fullName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: user.isActive ? AppColors.darkNeutral : AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    StatusChip(
+                      label: user.roleDisplayArabic,
+                      type: user.isLeadDoctor ? ChipStatusType.info : ChipStatusType.neutral,
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  'اسم المستخدم: ${user.username} • PIN: ${user.pinCode ?? "-"}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                trailing: Switch(
+                  value: user.isActive,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: user.isLeadDoctor ? null : (_) => controller.toggleActive(user),
+                ),
+              ),
+            );
+          },
+        );
+      }),
     );
   }
 }
@@ -26612,12 +26470,12 @@ class DashboardView extends GetView<DashboardController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.pets, color: Colors.white, size: 24),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.pets, color: Colors.white, size: 24),
+            SizedBox(width: 8),
+            Text(
               AppStringsAr.appName,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -26625,25 +26483,6 @@ class DashboardView extends GetView<DashboardController> {
                 color: Colors.white,
               ),
             ),
-            if (DemoConfig.isDemoMode) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber.shade400),
-                ),
-                child: Text(
-                  'نسخة تجريبية Demo',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber.shade900,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
         actions: [
@@ -26702,10 +26541,6 @@ class DashboardView extends GetView<DashboardController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Demo Edition Status Banner
-              _buildDemoBanner(context),
-              const SizedBox(height: 12),
-
               // Clinic & Doctor Welcome Card
               _buildDoctorHeader(context, authController),
               const SizedBox(height: 16),
@@ -27598,57 +27433,6 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildDemoBanner(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.teal.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.teal.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade700,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Text('DEMO', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'نسخة العرض التجريبية • VetPulse Demo Edition',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.teal),
-                ),
-                Text(
-                  'كافة المزايا مفعلة بالكامل للتقييم السريري والإداري',
-                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.refresh, size: 14, color: Colors.teal),
-            label: const Text('تهيئة البيانات', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal)),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            onPressed: () async {
-              await DemoDataSeeder.resetDemoData();
-              controller.loadDashboardData();
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }
 </file>
 

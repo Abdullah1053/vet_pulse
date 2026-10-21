@@ -6,6 +6,7 @@ import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../routes/app_routes.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../controllers/consultations_list_controller.dart';
 import '../widgets/consultation_details_dialog.dart';
 
@@ -14,6 +15,7 @@ class ConsultationsListView extends GetView<ConsultationsListController> {
 
   @override
   Widget build(BuildContext context) {
+    final authController = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -24,7 +26,14 @@ class ConsultationsListView extends GetView<ConsultationsListController> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.newVisitAction, style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => Get.toNamed(AppRoutes.newConsultation)?.then((_) => controller.loadConsultations()),
+        onPressed: () {
+          if (authController != null &&
+              !authController.checkPermission((u) => u.canPerformConsultation,
+                  'تسجيل كشف سريري جديد متاح للأطباء فقط')) {
+            return;
+          }
+          Get.toNamed(AppRoutes.newConsultation)?.then((_) => controller.loadConsultations());
+        },
       ),
       body: Column(
         children: [
@@ -74,7 +83,14 @@ class ConsultationsListView extends GetView<ConsultationsListController> {
                   title: 'لا توجد كشوفات مطابقة للبحث',
                   subtitle: 'يمكنك إنشاء كشف وفحص سريري جديد للمريض',
                   actionText: AppStringsAr.newVisitAction,
-                  onAction: () => Get.toNamed(AppRoutes.newConsultation)?.then((_) => controller.loadConsultations()),
+                  onAction: () {
+                    if (authController != null &&
+                        !authController.checkPermission((u) => u.canPerformConsultation,
+                            'تسجيل كشف سريري جديد متاح للأطباء فقط')) {
+                      return;
+                    }
+                    Get.toNamed(AppRoutes.newConsultation)?.then((_) => controller.loadConsultations());
+                  },
                 );
               }
 

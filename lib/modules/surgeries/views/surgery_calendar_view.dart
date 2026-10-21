@@ -6,6 +6,7 @@ import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/models/surgery_model.dart';
 import '../../../routes/app_routes.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../controllers/surgery_form_controller.dart';
 import '../controllers/surgery_list_controller.dart';
 
@@ -13,6 +14,11 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
   const SurgeryCalendarView({super.key});
 
   void _confirmDeleteSurgery(BuildContext context, int id, String surgeryName, {int? petId}) {
+    if (Get.isRegistered<AuthController>() &&
+        !Get.find<AuthController>().checkPermission((u) => u.canDeleteRecords, 'حذف العمليات الجراحية متاح للطبيب الرئيسي فقط')) {
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -255,6 +261,10 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text(AppStringsAr.edit),
             onPressed: () {
+              if (Get.isRegistered<AuthController>() &&
+                  !Get.find<AuthController>().checkPermission((u) => u.canPerformSurgeries, 'تعديل العملية الجراحية متاح للأطباء فقط')) {
+                return;
+              }
               Navigator.of(ctx).pop();
               Get.find<SurgeryFormController>().initEditSurgery(item);
               Get.toNamed(AppRoutes.newSurgery);
@@ -266,6 +276,10 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: Colors.white),
               label: const Text('إتمام العملية'),
               onPressed: () {
+                if (Get.isRegistered<AuthController>() &&
+                    !Get.find<AuthController>().checkPermission((u) => u.canPerformSurgeries, 'إتمام العملية الجراحية متاح للأطباء فقط')) {
+                  return;
+                }
                 Navigator.of(ctx).pop();
                 Get.toNamed(AppRoutes.completeSurgery, arguments: item)?.then((_) => controller.loadSurgeries());
               },
@@ -291,6 +305,10 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.scheduleSurgery, style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () {
+          if (Get.isRegistered<AuthController>() &&
+              !Get.find<AuthController>().checkPermission((u) => u.canPerformSurgeries, 'جدولة عملية جراحية متاح للأطباء فقط')) {
+            return;
+          }
           Get.find<SurgeryFormController>().clearForm();
           Get.toNamed(AppRoutes.newSurgery);
         },
@@ -307,6 +325,10 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
             subtitle: 'يمكنك جدولة عملية جديدة وإعداد قائمة التحقق وتفاصيل التخدير',
             actionText: AppStringsAr.scheduleSurgery,
             onAction: () {
+              if (Get.isRegistered<AuthController>() &&
+                  !Get.find<AuthController>().checkPermission((u) => u.canPerformSurgeries, 'جدولة عملية جراحية متاح للأطباء فقط')) {
+                return;
+              }
               Get.find<SurgeryFormController>().clearForm();
               Get.toNamed(AppRoutes.newSurgery);
             },

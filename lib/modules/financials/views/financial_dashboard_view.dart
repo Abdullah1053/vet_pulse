@@ -6,6 +6,7 @@ import '../../../data/models/account_statement_model.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../data/models/financial_transaction_model.dart';
 import '../../../routes/app_routes.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../controllers/financial_dashboard_controller.dart';
 
 class FinancialDashboardView extends GetView<FinancialDashboardController> {
@@ -44,7 +45,13 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
           IconButton(
             tooltip: 'نسخ احتياطي واستعادة البيانات (فلاش ميموري)',
             icon: const Icon(Icons.storage_rounded, color: Colors.white),
-            onPressed: () => Get.toNamed(AppRoutes.databaseBackup),
+            onPressed: () {
+              if (Get.isRegistered<AuthController>() &&
+                  !Get.find<AuthController>().checkPermission((u) => u.canManageBackups, 'النسخ الاحتياطي متاح للطبيب الرئيسي فقط')) {
+                return;
+              }
+              Get.toNamed(AppRoutes.databaseBackup);
+            },
           ),
         ],
         bottom: PreferredSize(
@@ -303,7 +310,13 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () => _showAddExpenseDialog(context, controller),
+            onPressed: () {
+              if (Get.isRegistered<AuthController>() &&
+                  !Get.find<AuthController>().checkPermission((u) => u.canAccessFinancials, 'تسجيل المصروفات متاح للطبيب الرئيسي وموظف الاستقبال فقط')) {
+                return;
+              }
+              _showAddExpenseDialog(context, controller);
+            },
             icon: const Icon(Icons.add_shopping_cart, size: 18),
             label: const Text('تسجيل سند صرف (مصروف)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
             style: ElevatedButton.styleFrom(
@@ -317,7 +330,13 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
         const SizedBox(width: 10),
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () => _showAddPaymentDialog(context, controller),
+            onPressed: () {
+              if (Get.isRegistered<AuthController>() &&
+                  !Get.find<AuthController>().checkPermission((u) => u.canAccessFinancials, 'تسجيل سندات القبض والدفعات متاح للطبيب وموظف الاستقبال فقط')) {
+                return;
+              }
+              _showAddPaymentDialog(context, controller);
+            },
             icon: const Icon(Icons.add_card, size: 18),
             label: const Text('تسجيل سند قبض (دفعة)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
             style: ElevatedButton.styleFrom(
@@ -630,6 +649,10 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
               IconButton(
                 icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                 onPressed: () {
+                  if (Get.isRegistered<AuthController>() &&
+                      !Get.find<AuthController>().checkPermission((u) => u.canDeleteRecords, 'حذف السجلات المالية متاح للطبيب الرئيسي فقط')) {
+                    return;
+                  }
                   Get.defaultDialog(
                     title: 'تأكيد الحذف',
                     middleText: 'هل تريد بالتأكيد حذف هذا المصروف؟',
@@ -1221,6 +1244,10 @@ class FinancialDashboardView extends GetView<FinancialDashboardController> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
+                        if (Get.isRegistered<AuthController>() &&
+                            !Get.find<AuthController>().checkPermission((u) => u.canDeleteRecords, 'حذف السجلات المالية متاح للطبيب الرئيسي فقط')) {
+                          return;
+                        }
                         Get.back();
                         Get.defaultDialog(
                           title: 'تأكيد الحذف',

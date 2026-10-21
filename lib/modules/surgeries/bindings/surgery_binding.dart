@@ -12,9 +12,9 @@ import '../controllers/surgery_list_controller.dart';
 class SurgeryBinding extends Bindings {
   @override
   void dependencies() {
+    Get.lazyPut<PetRepository>(() => PetRepository(), fenix: true);
     Get.lazyPut<FinancialRepository>(() => FinancialRepository(), fenix: true);
     Get.lazyPut<SurgeryRepository>(() => SurgeryRepository());
-    Get.lazyPut<PetRepository>(() => PetRepository());
     Get.lazyPut<AuthRepository>(() => AuthRepository());
     Get.lazyPut<AppointmentRepository>(() => AppointmentRepository());
 

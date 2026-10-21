@@ -48,6 +48,30 @@ class UserModel {
     };
   }
 
+  UserModel copyWith({
+    int? id,
+    String? username,
+    String? passwordHash,
+    String? fullName,
+    String? role,
+    String? phone,
+    String? pinCode,
+    bool? isActive,
+    String? createdAt,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      passwordHash: passwordHash ?? this.passwordHash,
+      fullName: fullName ?? this.fullName,
+      role: role ?? this.role,
+      phone: phone ?? this.phone,
+      pinCode: pinCode ?? this.pinCode,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   // Permission helpers based on RBAC matrix in specification
   bool get isLeadDoctor => role == 'lead_doctor';
   bool get isAssistantVet => role == 'assistant_vet';
@@ -57,7 +81,10 @@ class UserModel {
   bool get canPerformConsultation => isLeadDoctor || isAssistantVet;
   bool get canPerformSurgeries => isLeadDoctor || isAssistantVet;
   bool get canModifyInventory => isLeadDoctor || isPharmacist;
+  bool get canManagePatientsAndAppointments => isLeadDoctor || isAssistantVet || isReceptionist;
+  bool get canAccessFinancials => isLeadDoctor || isReceptionist;
   bool get canManageUsers => isLeadDoctor;
+  bool get canManageBackups => isLeadDoctor;
   bool get canDeleteRecords => isLeadDoctor;
 
   String get roleDisplayArabic {

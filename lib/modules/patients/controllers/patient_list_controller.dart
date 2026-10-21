@@ -6,7 +6,11 @@ import '../../../data/repositories/pet_repository.dart';
 class PatientListController extends GetxController {
   final PetRepository _petRepo;
 
-  PatientListController(this._petRepo);
+  PatientListController([PetRepository? petRepo])
+      : _petRepo = petRepo ??
+            (Get.isRegistered<PetRepository>()
+                ? Get.find<PetRepository>()
+                : Get.put(PetRepository(), permanent: true));
 
   final RxList<PetModel> patients = <PetModel>[].obs;
   final RxBool isLoading = false.obs;

@@ -14,7 +14,11 @@ class AddPatientController extends GetxController {
   final PetRepository _petRepo;
   final ImagePicker _picker = ImagePicker();
 
-  AddPatientController(this._petRepo);
+  AddPatientController([PetRepository? petRepo])
+      : _petRepo = petRepo ??
+            (Get.isRegistered<PetRepository>()
+                ? Get.find<PetRepository>()
+                : Get.put(PetRepository(), permanent: true));
 
   final RxList<OwnerModel> owners = <OwnerModel>[].obs;
   final RxBool isLoading = false.obs;

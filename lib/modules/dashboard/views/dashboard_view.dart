@@ -98,7 +98,7 @@ class DashboardView extends GetView<DashboardController> {
               const SizedBox(height: 16),
 
               // KPI Metric Cards
-              _buildKpiGrid(context),
+              _buildKpiGrid(context, authController),
               const SizedBox(height: 20),
 
               // Quick Clinical Actions
@@ -110,7 +110,7 @@ class DashboardView extends GetView<DashboardController> {
                     ),
               ),
               const SizedBox(height: 12),
-              _buildQuickActionButtons(context),
+              _buildQuickActionButtons(context, authController),
               const SizedBox(height: 24),
 
               // Recent Consultations & Medical Alerts
@@ -127,12 +127,15 @@ class DashboardView extends GetView<DashboardController> {
                   TextButton.icon(
                     icon: const Icon(Icons.arrow_back, size: 16),
                     label: const Text('عرض جميع الكشوفات'),
-                    onPressed: () => Get.toNamed(AppRoutes.consultations),
+                    onPressed: () {
+                      if (!authController.checkPermission((u) => u.canPerformConsultation, 'سجل الكشوفات السريرية متاح للأطباء فقط')) return;
+                      Get.toNamed(AppRoutes.consultations);
+                    },
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              _buildRecentVisitsList(context),
+              _buildRecentVisitsList(context, authController),
             ],
           ),
         ),
@@ -224,7 +227,7 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildKpiGrid(BuildContext context) {
+  Widget _buildKpiGrid(BuildContext context, AuthController authController) {
     return Obx(() {
       if (controller.isLoading.value) {
         return const Center(
@@ -249,7 +252,10 @@ class DashboardView extends GetView<DashboardController> {
             icon: Icons.medical_services_outlined,
             color: AppColors.primary,
             bgColor: AppColors.secondaryLight,
-            onTap: () => Get.toNamed(AppRoutes.patientList),
+            onTap: () {
+              if (!authController.checkPermission((u) => u.canPerformConsultation, 'سجل الكشوفات السريرية متاح للأطباء فقط')) return;
+              Get.toNamed(AppRoutes.patientList);
+            },
           ),
           _buildKpiCard(
             title: AppStringsAr.todaySurgeries,
@@ -257,7 +263,10 @@ class DashboardView extends GetView<DashboardController> {
             icon: Icons.healing,
             color: const Color(0xFF2A9D8F),
             bgColor: const Color(0xFFEAF8F6),
-            onTap: () => Get.toNamed(AppRoutes.surgeries),
+            onTap: () {
+              if (!authController.checkPermission((u) => u.canPerformSurgeries, 'سجل العمليات الجراحية متاح للأطباء فقط')) return;
+              Get.toNamed(AppRoutes.surgeries);
+            },
           ),
           _buildKpiCard(
             title: AppStringsAr.pendingFollowUps,
@@ -265,7 +274,10 @@ class DashboardView extends GetView<DashboardController> {
             icon: Icons.calendar_today,
             color: const Color(0xFFE76F51),
             bgColor: const Color(0xFFFFEFEA),
-            onTap: () => Get.toNamed(AppRoutes.followUps),
+            onTap: () {
+              if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'المراجعات والمواعيد متاحة للأطباء وموظف الاستقبال فقط')) return;
+              Get.toNamed(AppRoutes.followUps);
+            },
           ),
           _buildKpiCard(
             title: 'تنبيهات الصيدلية',
@@ -275,7 +287,10 @@ class DashboardView extends GetView<DashboardController> {
             bgColor: controller.expiringMedsCount.value > 0
                 ? AppColors.criticalBackground
                 : AppColors.warningBackground,
-            onTap: () => Get.toNamed(AppRoutes.inventoryList),
+            onTap: () {
+              if (!authController.checkPermission((u) => u.canModifyInventory, 'الصيدلية والمخزون متاح للطبيب الرئيسي وأمين المستودع فقط')) return;
+              Get.toNamed(AppRoutes.inventoryList);
+            },
           ),
         ],
       );
@@ -348,7 +363,7 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildQuickActionButtons(BuildContext context) {
+  Widget _buildQuickActionButtons(BuildContext context, AuthController authController) {
     return Column(
       children: [
         Row(
@@ -358,7 +373,10 @@ class DashboardView extends GetView<DashboardController> {
                 label: AppStringsAr.newVisitAction,
                 icon: Icons.add_circle_outline,
                 color: AppColors.primary,
-                onPressed: () => Get.toNamed(AppRoutes.newConsultation),
+                onPressed: () {
+                  if (!authController.checkPermission((u) => u.canPerformConsultation, 'تسجيل كشف سريري جديد متاح للأطباء فقط')) return;
+                  Get.toNamed(AppRoutes.newConsultation);
+                },
               ),
             ),
             const SizedBox(width: 10),
@@ -367,7 +385,10 @@ class DashboardView extends GetView<DashboardController> {
                 label: AppStringsAr.newPetAction,
                 icon: Icons.person_add_alt_1_outlined,
                 color: const Color(0xFF264653),
-                onPressed: () => Get.toNamed(AppRoutes.addPatient),
+                onPressed: () {
+                  if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'إضافة مريض جديد متاح للأطباء وموظف الاستقبال فقط')) return;
+                  Get.toNamed(AppRoutes.addPatient);
+                },
               ),
             ),
           ],
@@ -380,7 +401,10 @@ class DashboardView extends GetView<DashboardController> {
                 label: 'الصيدلية والمخزون',
                 icon: Icons.inventory_2_outlined,
                 color: const Color(0xFF2A9D8F),
-                onPressed: () => Get.toNamed(AppRoutes.inventoryList),
+                onPressed: () {
+                  if (!authController.checkPermission((u) => u.canModifyInventory, 'الصيدلية والمخزون متاح للطبيب الرئيسي وأمين المستودع فقط')) return;
+                  Get.toNamed(AppRoutes.inventoryList);
+                },
               ),
             ),
             const SizedBox(width: 10),
@@ -389,7 +413,10 @@ class DashboardView extends GetView<DashboardController> {
                 label: 'المراجعات والمواعيد',
                 icon: Icons.event_note,
                 color: const Color(0xFFE76F51),
-                onPressed: () => Get.toNamed(AppRoutes.followUps),
+                onPressed: () {
+                  if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'المراجعات والمواعيد متاحة للأطباء وموظف الاستقبال فقط')) return;
+                  Get.toNamed(AppRoutes.followUps);
+                },
               ),
             ),
           ],
@@ -402,7 +429,10 @@ class DashboardView extends GetView<DashboardController> {
                 label: 'الإدارة المالية وكشوفات الحسابات',
                 icon: Icons.account_balance_wallet_outlined,
                 color: const Color(0xFF1D3557),
-                onPressed: () => Get.toNamed(AppRoutes.financialDashboard),
+                onPressed: () {
+                  if (!authController.checkPermission((u) => u.canAccessFinancials, 'الإدارة المالية متاحة للطبيب الرئيسي وموظف الاستقبال فقط')) return;
+                  Get.toNamed(AppRoutes.financialDashboard);
+                },
               ),
             ),
           ],
@@ -437,7 +467,7 @@ class DashboardView extends GetView<DashboardController> {
     );
   }
 
-  Widget _buildRecentVisitsList(BuildContext context) {
+  Widget _buildRecentVisitsList(BuildContext context, AuthController authController) {
     return Obx(() {
       if (controller.isLoading.value) {
         return const SizedBox.shrink();
@@ -474,7 +504,10 @@ class DashboardView extends GetView<DashboardController> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () => Get.toNamed(AppRoutes.consultationDetail, arguments: visit)?.then((_) => controller.loadDashboardData()),
+              onTap: () {
+                if (!authController.checkPermission((u) => u.canPerformConsultation, 'تفاصيل الكشف السريري متاحة للأطباء فقط')) return;
+                Get.toNamed(AppRoutes.consultationDetail, arguments: visit)?.then((_) => controller.loadDashboardData());
+              },
               child: ListTile(
                 leading: Container(
                   width: 44,
@@ -544,6 +577,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.storefront_rounded,
                   title: AppStringsAr.clinicSetupTitle,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.isLeadDoctor, 'إعدادات وهوية العيادة مخصصة للطبيب الرئيسي فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.clinicSetup);
                   },
@@ -554,6 +588,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.assignment_rounded,
                   title: 'سجل الكشوفات السريرية',
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canPerformConsultation, 'سجل الكشوفات السريرية متاح للأطباء فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.consultations);
                   },
@@ -562,6 +597,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.pets_rounded,
                   title: AppStringsAr.patients,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'سجل المرضى متاح للأطباء وموظف الاستقبال فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.patientList);
                   },
@@ -570,6 +606,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.people_alt_rounded,
                   title: 'دليل المربين والعملاء',
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'دليل المربين متاح للأطباء وموظف الاستقبال فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.owners);
                   },
@@ -578,6 +615,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.calendar_month_rounded,
                   title: AppStringsAr.followUps,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canManagePatientsAndAppointments, 'المواعيد والمراجعات متاحة للأطباء وموظف الاستقبال فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.followUps);
                   },
@@ -586,6 +624,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.healing_rounded,
                   title: AppStringsAr.surgeries,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canPerformSurgeries, 'سجل العمليات الجراحية متاح للأطباء فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.surgeries);
                   },
@@ -596,6 +635,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.medication_rounded,
                   title: AppStringsAr.pharmacy,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canModifyInventory, 'الصيدلية والمخزون متاح للطبيب الرئيسي وأمين المستودع فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.inventoryList);
                   },
@@ -604,6 +644,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.account_balance_wallet_rounded,
                   title: 'الإدارة المالية والحسابات',
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canAccessFinancials, 'الإدارة المالية والحسابات متاحة للطبيب الرئيسي وموظف الاستقبال فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.financialDashboard);
                   },
@@ -612,6 +653,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.bar_chart_rounded,
                   title: 'التقارير الأسبوعية الشاملة',
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canAccessFinancials, 'التقارير الشاملة متاحة للطبيب الرئيسي وموظف الاستقبال فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.weeklyReports);
                   },
@@ -630,6 +672,7 @@ class DashboardView extends GetView<DashboardController> {
                   icon: Icons.admin_panel_settings_rounded,
                   title: AppStringsAr.usersManagement,
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canManageUsers, 'إدارة الموظفين والصلاحيات متاحة للطبيب الرئيسي فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.usersManagement);
                   },
@@ -639,6 +682,7 @@ class DashboardView extends GetView<DashboardController> {
                   title: 'النسخ الاحتياطي واستعادة البيانات',
                   subtitle: 'حفظ واسترجاع على فلاش ميموري',
                   onTap: () {
+                    if (!authController.checkPermission((u) => u.canManageBackups, 'النسخ الاحتياطي واستعادة البيانات متاح للطبيب الرئيسي فقط')) return;
                     Get.back();
                     Get.toNamed(AppRoutes.databaseBackup);
                   },
@@ -650,6 +694,7 @@ class DashboardView extends GetView<DashboardController> {
                     subtitle: 'استعادة البيانات السريرية النموذجية',
                     iconColor: Colors.teal,
                     onTap: () async {
+                      if (!authController.checkPermission((u) => u.isLeadDoctor, 'إعادة تهيئة بيانات العرض متاح للطبيب الرئيسي فقط')) return;
                       Get.back();
                       await DemoDataSeeder.resetDemoData();
                       controller.loadDashboardData();

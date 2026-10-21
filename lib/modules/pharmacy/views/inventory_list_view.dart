@@ -6,6 +6,7 @@ import '../../../core/utils/arabic_date_helper.dart';
 import '../../../core/widgets/empty_state_view.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../routes/app_routes.dart';
+import '../../auth/controllers/auth_controller.dart';
 import '../controllers/inventory_list_controller.dart';
 
 class InventoryListView extends GetView<InventoryListController> {
@@ -13,6 +14,8 @@ class InventoryListView extends GetView<InventoryListController> {
 
   @override
   Widget build(BuildContext context) {
+    final authController = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStringsAr.pharmacy),
@@ -20,7 +23,14 @@ class InventoryListView extends GetView<InventoryListController> {
           IconButton(
             tooltip: AppStringsAr.stockTransfer,
             icon: const Icon(Icons.swap_horiz, color: Colors.white),
-            onPressed: () => Get.toNamed(AppRoutes.stockTransfer),
+            onPressed: () {
+              if (authController != null &&
+                  !authController.checkPermission((u) => u.canModifyInventory,
+                      'التحويل بين المخزون والرف متاح للطبيب الرئيسي وأمين المستودع فقط')) {
+                return;
+              }
+              Get.toNamed(AppRoutes.stockTransfer);
+            },
           ),
         ],
       ),
@@ -29,7 +39,14 @@ class InventoryListView extends GetView<InventoryListController> {
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text(AppStringsAr.addMedicine, style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () => Get.toNamed(AppRoutes.addMedicine),
+        onPressed: () {
+          if (authController != null &&
+              !authController.checkPermission((u) => u.canModifyInventory,
+                  'إضافة أصناف دوائية جديدة متاح للطبيب الرئيسي وأمين المستودع فقط')) {
+            return;
+          }
+          Get.toNamed(AppRoutes.addMedicine);
+        },
       ),
       body: Column(
         children: [
@@ -81,7 +98,14 @@ class InventoryListView extends GetView<InventoryListController> {
                   title: 'لا توجد أدوية مطابقة',
                   subtitle: 'قم بإضافة أصناف دوائية إلى مخزون العيادة',
                   actionText: AppStringsAr.addMedicine,
-                  onAction: () => Get.toNamed(AppRoutes.addMedicine),
+                  onAction: () {
+                    if (authController != null &&
+                        !authController.checkPermission((u) => u.canModifyInventory,
+                            'إضافة أصناف دوائية جديدة متاح للطبيب الرئيسي وأمين المستودع فقط')) {
+                      return;
+                    }
+                    Get.toNamed(AppRoutes.addMedicine);
+                  },
                 );
               }
 

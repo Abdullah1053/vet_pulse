@@ -22,6 +22,24 @@ class AuthController extends GetxController {
   final RxBool isPasswordHidden = true.obs;
   void togglePasswordVisibility() => isPasswordHidden.value = !isPasswordHidden.value;
 
+  /// RBAC Permission checking helper
+  bool checkPermission(bool Function(UserModel u) check, String deniedMessage) {
+    final user = currentUser.value;
+    if (user == null || user.isLeadDoctor) return true;
+    if (!check(user)) {
+      Get.snackbar(
+        'صلاحية غير كافية',
+        deniedMessage,
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+        snackPosition: SnackPosition.BOTTOM,
+        icon: const Icon(Icons.lock_outline, color: Colors.orange),
+      );
+      return false;
+    }
+    return true;
+  }
+
   // Clinic Logo observable
   final RxnString clinicLogoPath = RxnString();
 
