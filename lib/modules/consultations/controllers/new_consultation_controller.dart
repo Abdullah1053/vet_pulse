@@ -210,6 +210,9 @@ class NewConsultationController extends GetxController {
       final created = consultation.copyWith(id: id);
       lastCreatedConsultation.value = created;
 
+      SurgeryModel? createdSurgery;
+      final List<FollowUpModel> createdFollowUps = [];
+
       // 1. Create surgery if requested
       if (needSurgery.value && surgeryNameController.text.trim().isNotEmpty) {
         final sDate = surgeryDateController.text.trim();
@@ -227,8 +230,12 @@ class NewConsultationController extends GetxController {
           estimatedCost: double.tryParse(surgeryCostController.text.trim()) ?? 0.0,
           anesthesiaProtocol: 'بروتوكول عام وفق حالة الحيوان',
           postOpNotes: surgeryNotesController.text.trim(),
+          surgeonName: selectedSurgeon.value?.fullName ?? auth.currentUser.value?.fullName,
+          petName: selectedPet.value?.name,
+          petSpecies: selectedPet.value?.species,
         );
-        await surgeryRepo.insertSurgery(surgery);
+        final surgeryId = await surgeryRepo.insertSurgery(surgery);
+        createdSurgery = surgery.copyWith(id: surgeryId);
       }
 
       // 2. Create consecutive treatment plan follow-ups if requested
@@ -245,14 +252,18 @@ class NewConsultationController extends GetxController {
           final followUpDate =
               startDate.add(Duration(days: i)).toIso8601String().substring(0, 10);
           final dayLabel = ' (اليوم ${i + 1} من $days)';
-          await appointmentRepo.insertFollowUp(FollowUpModel(
+          final followUp = FollowUpModel(
             petId: selectedPet.value!.id!,
             consultationId: id,
             scheduledDate: followUpDate,
             scheduledTime: planTimeController.text.trim(),
             reason: '${planReasonController.text.trim()}$dayLabel',
             notes: planNotesController.text.trim(),
-          ));
+            petName: selectedPet.value?.name,
+            petSpecies: selectedPet.value?.species,
+          );
+          final followUpId = await appointmentRepo.insertFollowUp(followUp);
+          createdFollowUps.add(followUp.copyWith(id: followUpId));
         }
       }
 
@@ -269,6 +280,8 @@ class NewConsultationController extends GetxController {
         arguments: {
           'consultation': created,
           'showCost': showCostInPrescription.value,
+          'scheduledSurgery': createdSurgery,
+          'followUpSessions': createdFollowUps,
         },
       );
 

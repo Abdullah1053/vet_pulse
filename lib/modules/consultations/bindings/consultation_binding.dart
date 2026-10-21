@@ -11,6 +11,7 @@ import '../controllers/consultation_detail_controller.dart';
 import '../controllers/consultations_list_controller.dart';
 import '../controllers/new_consultation_controller.dart';
 import '../controllers/prescription_item_controller.dart';
+import '../controllers/prescription_preview_controller.dart';
 
 class ConsultationBinding extends Bindings {
   @override
@@ -48,6 +49,17 @@ class ConsultationBinding extends Bindings {
 
     Get.lazyPut<ConsultationDetailController>(
       () => ConsultationDetailController(
+        consultationRepo: Get.find<ConsultationRepository>(),
+        petRepo: Get.find<PetRepository>(),
+        surgeryRepo: Get.find<SurgeryRepository>(),
+        appointmentRepo: Get.find<AppointmentRepository>(),
+      ),
+    );
+
+    Get.lazyPut<PrescriptionPreviewController>(
+      () => PrescriptionPreviewController(
+        surgeryRepo: Get.find<SurgeryRepository>(),
+        appointmentRepo: Get.find<AppointmentRepository>(),
         consultationRepo: Get.find<ConsultationRepository>(),
         petRepo: Get.find<PetRepository>(),
       ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
-import '../../../data/models/prescription_model.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/consultation_detail_controller.dart';
 
@@ -48,8 +47,14 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
             IconButton(
               icon: const Icon(Icons.print_outlined),
               tooltip: 'معاينة وطباعة الروشتة',
-              onPressed: () =>
-                  Get.toNamed(AppRoutes.prescriptionPreview, arguments: item),
+              onPressed: () => Get.toNamed(
+                AppRoutes.prescriptionPreview,
+                arguments: {
+                  'consultation': item,
+                  'scheduledSurgery': controller.scheduledSurgery.value,
+                  'followUpSessions': controller.followUpSessions.toList(),
+                },
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.critical),
@@ -90,8 +95,14 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  onPressed: () =>
-                      Get.toNamed(AppRoutes.prescriptionPreview, arguments: item),
+                  onPressed: () => Get.toNamed(
+                    AppRoutes.prescriptionPreview,
+                    arguments: {
+                      'consultation': item,
+                      'scheduledSurgery': controller.scheduledSurgery.value,
+                      'followUpSessions': controller.followUpSessions.toList(),
+                    },
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -452,74 +463,10 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
               ),
               const SizedBox(height: 16),
 
-              // 4. In-Clinic Medications Section
-              if (clinicRx.isNotEmpty) ...[
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.vaccines,
-                                  color: AppColors.primary,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'أدوية أعطيت داخل العيادة',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondaryLight,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${clinicRx.length} أصناف',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ...clinicRx.map(
-                          (rx) => _buildPrescriptionTile(rx, isClinic: true),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // 5. Home Prescriptions Section
+              // SECTION 1: In-Clinic Procedures (RTL Table: Medication Rightmost -> Notes Leftmost)
               Card(
                 elevation: 1,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -530,36 +477,114 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
                         children: [
                           const Row(
                             children: [
-                              Icon(
-                                Icons.medication,
-                                color: AppColors.accent,
-                                size: 20,
-                              ),
+                              Icon(Icons.local_hospital_outlined, color: AppColors.primary, size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'الروشتة والعلاجات المنزلية للمالك',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                                '1. الإجراءات والعلاجات داخل العيادة',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryLight,
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: Text(
+                              '${clinicRx.length} أصناف',
+                              style: const TextStyle(fontSize: 12, color: AppColors.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (clinicRx.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'لا توجد علاجات أو حقن تم إعطاؤها داخل العيادة.',
+                            style: TextStyle(color: AppColors.textMuted),
+                          ),
+                        )
+                      else
+                        Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Table(
+                              border: TableBorder.all(color: Colors.grey.shade300),
+                              columnWidths: const {
+                                0: FlexColumnWidth(2.6), // Medication (Rightmost)
+                                1: FlexColumnWidth(1.3), // Dosage
+                                2: FlexColumnWidth(1.4), // Route
+                                3: FlexColumnWidth(1.1), // Quantity
+                                4: FlexColumnWidth(2.2), // Notes (Leftmost)
+                              },
+                              children: [
+                                TableRow(
+                                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1)),
+                                  children: [
+                                    _buildDetailTableHeader('الدواء / الإجراء'),
+                                    _buildDetailTableHeader('الجرعة'),
+                                    _buildDetailTableHeader('طريقة الإعطاء'),
+                                    _buildDetailTableHeader('الكمية'),
+                                    _buildDetailTableHeader('الملاحظات والإرشادات'),
+                                  ],
+                                ),
+                                ...clinicRx.map((rx) => TableRow(
+                                      children: [
+                                        _buildDetailTableCell(
+                                          '${rx.displayName} ${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}',
+                                          isBold: true,
+                                        ),
+                                        _buildDetailTableCell(rx.dosage),
+                                        _buildDetailTableCell(rx.route ?? 'حقن / موضعي'),
+                                        _buildDetailTableCell('${rx.quantityDispensed}'),
+                                        _buildDetailTableCell(rx.instructions ?? '-'),
+                                      ],
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // SECTION 2: Home Treatment Prescription (RTL Table: Medication Rightmost -> Notes Leftmost)
+              Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.medication_outlined, color: AppColors.accent, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                '2. روشتة العلاج المنزلي للمريض',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.orange.shade50,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               '${homeRx.length} أصناف',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade900,
-                              ),
+                              style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
                             ),
                           ),
                         ],
@@ -574,14 +599,213 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
                           ),
                         )
                       else
-                        ...homeRx.map(
-                          (rx) => _buildPrescriptionTile(rx, isClinic: false),
+                        Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Table(
+                              border: TableBorder.all(color: Colors.grey.shade300),
+                              columnWidths: const {
+                                0: FlexColumnWidth(2.6), // Medication (Rightmost)
+                                1: FlexColumnWidth(1.3), // Dosage
+                                2: FlexColumnWidth(1.4), // Frequency
+                                3: FlexColumnWidth(1.1), // Duration
+                                4: FlexColumnWidth(2.2), // Notes (Leftmost)
+                              },
+                              children: [
+                                TableRow(
+                                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1)),
+                                  children: [
+                                    _buildDetailTableHeader('الدواء الموصوف'),
+                                    _buildDetailTableHeader('الجرعة'),
+                                    _buildDetailTableHeader('التكرار'),
+                                    _buildDetailTableHeader('المدة'),
+                                    _buildDetailTableHeader('تعليمات الاستخدام'),
+                                  ],
+                                ),
+                                ...homeRx.map((rx) => TableRow(
+                                      children: [
+                                        _buildDetailTableCell(
+                                          '${rx.displayName} ${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}',
+                                          isBold: true,
+                                        ),
+                                        _buildDetailTableCell(rx.dosage),
+                                        _buildDetailTableCell(rx.frequency),
+                                        _buildDetailTableCell('لمدة ${rx.durationDays} يوم'),
+                                        _buildDetailTableCell(rx.instructions ?? '-'),
+                                      ],
+                                    )),
+                              ],
+                            ),
+                          ),
                         ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
+
+              // SECTION 3: Surgery Appointments (if scheduled)
+              if (controller.scheduledSurgery.value != null) ...[
+                Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.healing, color: Colors.deepOrange, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              '3. مواعيد العمليات الجراحية المجدولة',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'العملية: ${controller.scheduledSurgery.value!.surgeryName} (${controller.scheduledSurgery.value!.surgeryCategory ?? "عام"})',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Colors.brown.shade900),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade200,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      controller.scheduledSurgery.value!.scheduledDate,
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.brown.shade900),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'الجراح المسؤول: ${controller.scheduledSurgery.value!.surgeonName ?? "الطبيب المعالج"}',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  if (controller.scheduledSurgery.value!.estimatedCost != null &&
+                                      controller.scheduledSurgery.value!.estimatedCost! > 0)
+                                    Text(
+                                      'التكلفة: ${controller.scheduledSurgery.value!.estimatedCost!.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primaryDark),
+                                    ),
+                                ],
+                              ),
+                              if (controller.scheduledSurgery.value!.postOpNotes?.isNotEmpty == true) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'تعليمات وتجهيزات ما قبل الجراحة: ${controller.scheduledSurgery.value!.postOpNotes}',
+                                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade800),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // SECTION 4: Follow-Up Sessions (if scheduled)
+              if (controller.followUpSessions.isNotEmpty) ...[
+                Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.event_repeat, color: Colors.indigo, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  '4. جلسات المتابعة والمراجعات القادمة',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${controller.followUpSessions.length} جلسات',
+                                style: TextStyle(fontSize: 12, color: Colors.indigo.shade900),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Table(
+                              border: TableBorder.all(color: Colors.grey.shade300),
+                              columnWidths: const {
+                                0: FlexColumnWidth(2.5), // Reason (Rightmost)
+                                1: FlexColumnWidth(1.5), // Date
+                                2: FlexColumnWidth(1.3), // Time
+                                3: FlexColumnWidth(2.5), // Notes (Leftmost)
+                              },
+                              children: [
+                                TableRow(
+                                  decoration: BoxDecoration(color: Colors.indigo.withValues(alpha: 0.1)),
+                                  children: [
+                                    _buildDetailTableHeader('الجلسة / سبب المراجعة'),
+                                    _buildDetailTableHeader('تاريخ المراجعة'),
+                                    _buildDetailTableHeader('الوقت المجدول'),
+                                    _buildDetailTableHeader('الملاحظات والإرشادات'),
+                                  ],
+                                ),
+                                ...controller.followUpSessions.map((f) => TableRow(
+                                      children: [
+                                        _buildDetailTableCell(f.reason, isBold: true),
+                                        _buildDetailTableCell(f.scheduledDate),
+                                        _buildDetailTableCell(f.scheduledTime?.isNotEmpty == true ? f.scheduledTime! : 'خلال الدوام'),
+                                        _buildDetailTableCell(f.notes?.isNotEmpty == true ? f.notes! : '-'),
+                                      ],
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // 6. Consultation Financial & Owner Account Card
               Card(
@@ -847,114 +1071,32 @@ class ConsultationDetailView extends GetView<ConsultationDetailController> {
     );
   }
 
-  Widget _buildPrescriptionTile(PrescriptionModel rx, {required bool isClinic}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  rx.displayName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isClinic
-                      ? AppColors.primary.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  isClinic ? 'بالعيادة' : 'منزلي',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isClinic
-                        ? AppColors.primary
-                        : Colors.orange.shade900,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _buildRxBadge(Icons.healing, 'الجرعة: ${rx.dosage}'),
-              _buildRxBadge(Icons.repeat, 'التكرار: ${rx.frequency}'),
-              _buildRxBadge(Icons.timelapse, 'المدة: ${rx.durationDays} أيام'),
-              _buildRxBadge(
-                Icons.shopping_bag_outlined,
-                'الكمية المصروفة: ${rx.quantityDispensed}',
-              ),
-            ],
-          ),
-          if (rx.instructions != null && rx.instructions!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.info_outline, size: 14, color: Colors.brown),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'إرشادات للمالك: ${rx.instructions}',
-                      style: const TextStyle(fontSize: 12, color: Colors.brown),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+  Widget _buildDetailTableHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
 
-  Widget _buildRxBadge(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.textSecondary),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 12, color: AppColors.darkNeutral),
-          ),
-        ],
+  Widget _buildDetailTableCell(String text, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          fontSize: 11,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }

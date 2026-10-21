@@ -1,496 +1,549 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:get/get.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
-import '../../../data/models/clinic_model.dart';
 import '../../../data/models/consultation_model.dart';
+import '../../../data/models/follow_up_model.dart';
+import '../../../data/models/prescription_model.dart';
+import '../../../data/models/surgery_model.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../controllers/consultation_controller.dart';
-import '../controllers/new_consultation_controller.dart';
+import '../controllers/prescription_preview_controller.dart';
 
-class PrescriptionPreviewView extends StatefulWidget {
+class PrescriptionPreviewView extends GetView<PrescriptionPreviewController> {
   const PrescriptionPreviewView({super.key});
 
   @override
-  State<PrescriptionPreviewView> createState() => _PrescriptionPreviewViewState();
-}
+  Widget build(BuildContext context) {
+    final authController = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+    final clinic = authController?.clinicInfo.value;
 
-class _PrescriptionPreviewViewState extends State<PrescriptionPreviewView> {
-  late bool _showCost;
-  bool _initialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      bool defaultPref = true;
-      if (Get.isRegistered<NewConsultationController>()) {
-        defaultPref = Get.find<NewConsultationController>().showCostInPrescription.value;
-      } else if (Get.isRegistered<ConsultationController>()) {
-        defaultPref = Get.find<ConsultationController>().showCostInPrescription.value;
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('التقرير والروشتة الطبية')),
+          body: const Center(child: CircularProgressIndicator()),
+        );
       }
-      if (Get.arguments is Map && (Get.arguments as Map).containsKey('showCost')) {
-        defaultPref = (Get.arguments as Map)['showCost'] as bool? ?? defaultPref;
+
+      final consultation = controller.consultation.value;
+      if (consultation == null) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('التقرير والروشتة الطبية')),
+          body: const Center(child: Text('لا توجد بيانات كشف محددة')),
+        );
       }
-      _showCost = defaultPref;
-      _initialized = true;
-    }
-  }
 
-  Future<Uint8List> _generatePdf(
-    ConsultationModel consultation,
-    ClinicModel? clinic, {
-    bool showCost = true,
-  }) async {
-    final pdf = pw.Document();
+      final hasCost = consultation.visitCost > 0;
+      final clinicRx = consultation.prescriptions.where((p) => p.isClinicAdministered).toList();
+      final homeRx = consultation.prescriptions.where((p) => !p.isClinicAdministered).toList();
+      final surgery = controller.scheduledSurgery.value;
+      final followUps = controller.followUpSessions;
 
-    // Load bundled local TrueType Arabic fonts directly from assets (guaranteed offline, 0 network dependency)
-    pw.Font arabicFont;
-    pw.Font arabicBold;
-
-    try {
-      final regularData = await rootBundle.load('assets/fonts/Tajawal-Regular.ttf');
-      final boldData = await rootBundle.load('assets/fonts/Tajawal-Bold.ttf');
-      arabicFont = pw.Font.ttf(regularData);
-      arabicBold = pw.Font.ttf(boldData);
-    } catch (_) {
-      // Secondary fallback to Amiri if needed
-      final regularData = await rootBundle.load('assets/fonts/Amiri-Regular.ttf');
-      final boldData = await rootBundle.load('assets/fonts/Amiri-Bold.ttf');
-      arabicFont = pw.Font.ttf(regularData);
-      arabicBold = pw.Font.ttf(boldData);
-    }
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a5,
-        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicBold),
-        build: (pw.Context context) {
-          return pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                // 1. Clinic Letterhead Header
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(10),
-                  decoration: const pw.BoxDecoration(
-                    border: pw.Border(bottom: pw.BorderSide(color: PdfColors.teal, width: 2)),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            clinic?.clinicName ?? 'عيادة بيطرية متقدمة',
-                            style: pw.TextStyle(font: arabicBold, fontSize: 14, color: PdfColors.teal800),
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            clinic?.doctorName ?? consultation.doctorName ?? 'د. بيطري',
-                            style: pw.TextStyle(font: arabicFont, fontSize: 10),
-                          ),
-                          if (clinic?.licenseNumber != null && clinic!.licenseNumber!.isNotEmpty)
-                            pw.Text(
-                              'ترخيص: ${clinic.licenseNumber}',
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey700),
-                            ),
-                        ],
-                      ),
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            'روشتة طبية بيطرية',
-                            style: pw.TextStyle(font: arabicBold, fontSize: 13, color: PdfColors.teal),
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            'التاريخ: ${consultation.visitDate.length >= 10 ? consultation.visitDate.substring(0, 10) : consultation.visitDate}',
-                            style: pw.TextStyle(font: arabicFont, fontSize: 9),
-                          ),
-                          if (clinic?.phone != null && clinic!.phone!.isNotEmpty)
-                            pw.Text(
-                              'هاتف: ${clinic.phone}',
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 12),
-
-                // 2. Patient & Owner Info Bar
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(6),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text(
-                        'المريض: ${consultation.petName ?? ""} (${consultation.petSpecies ?? ""})',
-                        style: pw.TextStyle(font: arabicBold, fontSize: 9),
-                      ),
-                      pw.Text(
-                        'المالك: ${consultation.ownerName ?? ""}',
-                        style: pw.TextStyle(font: arabicFont, fontSize: 9),
-                      ),
-                      if (consultation.temperature != null)
-                        pw.Text(
-                          'الحرارة: ${consultation.temperature}°C',
-                          style: pw.TextStyle(font: arabicFont, fontSize: 9),
-                        ),
-                    ],
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-
-                // 3. Clinical Assessment
-                pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border(right: const pw.BorderSide(color: PdfColors.teal, width: 3)),
-                  ),
-                  child: pw.Text(
-                    'التشخيص الطبي: ${consultation.diagnosis}',
-                    style: pw.TextStyle(font: arabicBold, fontSize: 10, color: PdfColors.grey900),
-                  ),
-                ),
-                pw.SizedBox(height: 12),
-
-                // 4. Prescribed Medications Table
-                pw.Text(
-                  'الوصفة الدوائية (Rx):',
-                  style: pw.TextStyle(font: arabicBold, fontSize: 11, color: PdfColors.teal900),
-                ),
-                pw.SizedBox(height: 6),
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  children: [
-                    pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.teal50),
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(4),
-                          child: pw.Text('الدواء', style: pw.TextStyle(font: arabicBold, fontSize: 9)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(4),
-                          child: pw.Text('الجرعة', style: pw.TextStyle(font: arabicBold, fontSize: 9)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(4),
-                          child: pw.Text('التكرار والمدة', style: pw.TextStyle(font: arabicBold, fontSize: 9)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(4),
-                          child: pw.Text('تعليمات الاستخدام', style: pw.TextStyle(font: arabicBold, fontSize: 9)),
-                        ),
-                      ],
-                    ),
-                    ...consultation.prescriptions.map((rx) {
-                      final typeLabel = rx.isClinicAdministered ? '[صُرف بالعيادة]' : '[روشتة منزلية]';
-                      return pw.TableRow(
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(4),
-                            child: pw.Text(
-                              '${rx.displayName} $typeLabel\n${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}',
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(4),
-                            child: pw.Text(
-                              rx.dosage,
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(4),
-                            child: pw.Text(
-                              '${rx.frequency}\nلمدة ${rx.durationDays} يوم',
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8),
-                            ),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(4),
-                            child: pw.Text(
-                              rx.instructions ?? '-',
-                              style: pw.TextStyle(font: arabicFont, fontSize: 8),
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-
-                // 5. Cost of Consultation (if applicable & requested by doctor)
-                if (showCost && consultation.visitCost > 0) ...[
-                  pw.SizedBox(height: 8),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.teal50,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(
-                          'أتعاب الكشف والخدمات:',
-                          style: pw.TextStyle(font: arabicBold, fontSize: 9, color: PdfColors.teal900),
-                        ),
-                        pw.Text(
-                          '${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
-                          style: pw.TextStyle(font: arabicBold, fontSize: 9, color: PdfColors.teal900),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-
-                pw.Spacer(),
-
-                // 6. Signature Footer
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Text(
-                      'مع تمنياتنا لحيوانكم الأليف بالشفاء العاجل',
-                      style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey600),
-                    ),
-                    pw.Column(
-                      children: [
-                        pw.Text('توقيع وختم الطبيب', style: pw.TextStyle(font: arabicBold, fontSize: 9)),
-                        pw.SizedBox(height: 20),
-                        pw.Text('................................', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
-                      ],
-                    ),
-                  ],
-                ),
+      return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('التقرير والروشتة الطبية'),
+            bottom: const TabBar(
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              tabs: [
+                Tab(icon: Icon(Icons.description_outlined), text: 'المعاينة التفاعلية'),
+                Tab(icon: Icon(Icons.picture_as_pdf_outlined), text: 'معاينة الطباعة (PDF)'),
               ],
             ),
-          );
-        },
-      ),
-    );
-
-    return pdf.save();
-  }
-
-  Future<void> _shareOnWhatsApp(
-    ConsultationModel consultation,
-    ClinicModel? clinic, {
-    required bool showCost,
-  }) async {
-    final buffer = StringBuffer();
-    buffer.writeln('🐾 *${clinic?.clinicName ?? "عيادة بيطرية"}*');
-    buffer.writeln('📋 *روشتة طبية إلكترونية*');
-    buffer.writeln('---------------------------');
-    buffer.writeln('المريض: ${consultation.petName} (${consultation.petSpecies})');
-    buffer.writeln('التشخيص: ${consultation.diagnosis}');
-    buffer.writeln('التاريخ: ${consultation.visitDate.length >= 10 ? consultation.visitDate.substring(0, 10) : consultation.visitDate}');
-    if (showCost && consultation.visitCost > 0) {
-      buffer.writeln('أتعاب الكشف والخدمات: ${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}');
-    }
-    buffer.writeln('---------------------------');
-    buffer.writeln('💊 *الأدوية الموصوفة:*');
-    for (final rx in consultation.prescriptions) {
-      buffer.writeln('• *${rx.medicineName}*: الجرعة: ${rx.dosage} (${rx.frequency} لمدة ${rx.durationDays} أيام)');
-      if (rx.instructions != null && rx.instructions!.isNotEmpty) {
-        buffer.writeln('  تعليمات: ${rx.instructions}');
-      }
-    }
-    buffer.writeln('---------------------------');
-    buffer.writeln('نتمنى لحيوانكم دوام الصحة والعافية.');
-
-    final encoded = Uri.encodeComponent(buffer.toString());
-    final url = Uri.parse('whatsapp://send?text=$encoded');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      Get.snackbar('تنبيه', 'تطبيق واتساب غير مثبت على الجهاز', backgroundColor: Colors.amber.shade100);
-    }
-  }
-
-  Future<void> _sharePdfFile(
-    ConsultationModel consultation,
-    ClinicModel? clinic, {
-    required bool showCost,
-  }) async {
-    try {
-      final bytes = await _generatePdf(consultation, clinic, showCost: showCost);
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename: 'prescription_${consultation.petName ?? "pet"}_${consultation.id ?? 1}.pdf',
-      );
-    } catch (e) {
-      Get.snackbar('خطأ', 'تعذر مشاركة ملف الروشتة: $e', backgroundColor: Colors.red.shade100);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ConsultationModel? consultation;
-    if (Get.arguments is ConsultationModel) {
-      consultation = Get.arguments as ConsultationModel;
-    } else if (Get.arguments is Map) {
-      consultation = (Get.arguments as Map)['consultation'] as ConsultationModel?;
-    } else if (Get.isRegistered<NewConsultationController>()) {
-      consultation = Get.find<NewConsultationController>().lastCreatedConsultation.value;
-    } else if (Get.isRegistered<ConsultationController>()) {
-      consultation = Get.find<ConsultationController>().lastCreatedConsultation.value;
-    }
-
-    final authController = Get.find<AuthController>();
-    final clinic = authController.clinicInfo.value;
-
-    if (consultation == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('معاينة الروشتة')),
-        body: const Center(child: Text('لا توجد روشتة محددة')),
-      );
-    }
-
-    final ConsultationModel validConsultation = consultation;
-    final hasCost = validConsultation.visitCost > 0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الروشتة الطبية البيطرية'),
-        actions: [
-          IconButton(
-            tooltip: 'مشاركة ملف PDF',
-            icon: const Icon(Icons.share, color: AppColors.primary),
-            onPressed: () => _sharePdfFile(validConsultation, clinic, showCost: _showCost),
+            actions: [
+              IconButton(
+                tooltip: 'مشاركة ملف PDF',
+                icon: const Icon(Icons.share, color: Colors.white),
+                onPressed: () => controller.sharePdf(clinic),
+              ),
+              IconButton(
+                tooltip: AppStringsAr.shareWhatsApp,
+                icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
+                onPressed: () => controller.shareWhatsApp(clinic),
+              ),
+            ],
           ),
-          IconButton(
-            tooltip: AppStringsAr.shareWhatsApp,
-            icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
-            onPressed: () => _shareOnWhatsApp(validConsultation, clinic, showCost: _showCost),
+          body: Column(
+            children: [
+              // Consultation Fee visibility control banner
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: (controller.showCost.value && hasCost) ? AppColors.secondaryLight : Colors.grey.shade100,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: (controller.showCost.value && hasCost)
+                          ? AppColors.primary.withValues(alpha: 0.3)
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      (controller.showCost.value && hasCost) ? Icons.visibility : Icons.visibility_off,
+                      color: (controller.showCost.value && hasCost) ? AppColors.primary : Colors.grey.shade600,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'أتعاب الكشف والخدمات في التقرير والطباعة',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                  color: (controller.showCost.value && hasCost)
+                                      ? AppColors.primaryDark
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: !hasCost
+                                      ? Colors.grey.shade400
+                                      : (controller.showCost.value ? AppColors.primary : Colors.grey.shade500),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  !hasCost ? 'مجاني' : (controller.showCost.value ? 'ظاهر' : 'مخفي'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            hasCost
+                                ? (controller.showCost.value
+                                    ? 'سيظهر مبلغ الأتعاب (${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}) في التقرير والطباعة'
+                                    : 'مخفي: لن يظهر أي مبلغ مالي في التقرير والروشتة')
+                                : 'لا توجد أتعاب مسجلة لهذا الكشف',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: (controller.showCost.value && hasCost)
+                                  ? AppColors.primaryDark.withValues(alpha: 0.8)
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: controller.showCost.value && hasCost,
+                      activeTrackColor: AppColors.primary,
+                      onChanged: hasCost ? (val) => controller.toggleShowCost(val) : null,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Tab Views
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    // Tab 1: On-Screen Interactive 4-Section Report (Strict RTL Table Columns)
+                    _buildOnScreenReport(context, consultation, clinicRx, homeRx, surgery, followUps),
+
+                    // Tab 2: Native PDF Preview (Printing / Sharing)
+                    PdfPreview(
+                      build: (format) => controller.getPdfBytes(clinic),
+                      canChangeOrientation: false,
+                      canChangePageFormat: false,
+                      allowPrinting: true,
+                      allowSharing: true,
+                      pdfFileName: 'medical_report_${consultation.petName ?? "pet"}_${consultation.id ?? 1}.pdf',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
+        ),
+      );
+    });
+  }
+
+  Widget _buildOnScreenReport(
+    BuildContext context,
+    ConsultationModel consultation,
+    List<PrescriptionModel> clinicRx,
+    List<PrescriptionModel> homeRx,
+    SurgeryModel? surgery,
+    List<FollowUpModel> followUps,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Doctor control banner for Consultation Fee visibility
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: (_showCost && hasCost) ? AppColors.secondaryLight : Colors.grey.shade100,
-              border: Border(
-                bottom: BorderSide(
-                  color: (_showCost && hasCost)
-                      ? AppColors.primary.withValues(alpha: 0.3)
-                      : Colors.grey.shade300,
+          // Clinic & Patient Header Card
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'المريض: ${consultation.petName ?? "حيوان أليف"} (${consultation.petSpecies ?? ""})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      Text(
+                        'التاريخ: ${consultation.visitDate.length >= 10 ? consultation.visitDate.substring(0, 10) : consultation.visitDate}',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('المالك: ${consultation.ownerName ?? "غير محدد"}', style: const TextStyle(fontSize: 13)),
+                      if (consultation.temperature != null)
+                        Text('حرارة الجسم: ${consultation.temperature}°C', style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Clinical Assessment Card (SOAP)
+          Card(
+            color: AppColors.secondaryLight.withValues(alpha: 0.4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (consultation.symptoms?.isNotEmpty == true) ...[
+                    Text('الشكوى والأعراض (S): ${consultation.symptoms}', style: const TextStyle(fontSize: 12)),
+                    const SizedBox(height: 4),
+                  ],
+                  Text(
+                    'التشخيص السريري (Assessment): ${consultation.diagnosis}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryDark),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // SECTION 1: In-Clinic Procedures (RTL: Medication Rightmost -> Dosage -> Route -> Quantity -> Notes Leftmost)
+          _buildSectionHeaderCard(
+            sectionNumber: '1',
+            title: 'الإجراءات والعلاجات داخل العيادة (In-Clinic Procedures)',
+            icon: Icons.local_hospital_outlined,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 8),
+          if (clinicRx.isEmpty)
+            _buildEmptySectionBox('لا توجد علاجات أو حقن تم إعطاؤها داخل العيادة في هذه الزيارة.')
+          else
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Table(
+                  border: TableBorder.all(color: Colors.grey.shade300),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2.6), // Medication (Rightmost)
+                    1: FlexColumnWidth(1.3), // Dosage
+                    2: FlexColumnWidth(1.4), // Route
+                    3: FlexColumnWidth(1.1), // Quantity
+                    4: FlexColumnWidth(2.2), // Notes (Leftmost)
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1)),
+                      children: [
+                        _buildTableHeaderCell('الدواء / الإجراء'),
+                        _buildTableHeaderCell('الجرعة'),
+                        _buildTableHeaderCell('طريقة الإعطاء'),
+                        _buildTableHeaderCell('الكمية'),
+                        _buildTableHeaderCell('الملاحظات والإرشادات'),
+                      ],
+                    ),
+                    ...clinicRx.map((rx) => TableRow(
+                          children: [
+                            _buildTableDataCell('${rx.displayName} ${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}', isBold: true),
+                            _buildTableDataCell(rx.dosage),
+                            _buildTableDataCell(rx.route ?? 'حقن / موضعي'),
+                            _buildTableDataCell('${rx.quantityDispensed}'),
+                            _buildTableDataCell(rx.instructions ?? '-'),
+                          ],
+                        )),
+                  ],
                 ),
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  (_showCost && hasCost) ? Icons.visibility : Icons.visibility_off,
-                  color: (_showCost && hasCost) ? AppColors.primary : Colors.grey.shade600,
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'أتعاب الكشف والخدمات في الطباعة',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: (_showCost && hasCost)
-                                  ? AppColors.primaryDark
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: !hasCost
-                                  ? Colors.grey.shade400
-                                  : (_showCost ? AppColors.primary : Colors.grey.shade500),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              !hasCost ? 'مجاني' : (_showCost ? 'ظاهر' : 'مخفي'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        hasCost
-                            ? (_showCost
-                                ? 'سيظهر مبلغ الأتعاب (${validConsultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}) في الروشتة المطبوعة'
-                                : 'مخفي: لن يظهر أي مبلغ مالي في الروشتة المطبوعة (روشتة علاجية فقط)')
-                            : 'لا توجد أتعاب مسجلة لهذا الكشف',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: (_showCost && hasCost)
-                              ? AppColors.primaryDark.withValues(alpha: 0.8)
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Switch.adaptive(
-                  value: _showCost && hasCost,
-                  activeTrackColor: AppColors.primary,
-                  onChanged: hasCost
-                      ? (val) {
-                          setState(() {
-                            _showCost = val;
-                            if (Get.isRegistered<ConsultationController>()) {
-                              Get.find<ConsultationController>().showCostInPrescription.value = val;
-                            }
-                          });
-                        }
-                      : null,
-                ),
-              ],
-            ),
+          const SizedBox(height: 20),
+
+          // SECTION 2: Home Treatment Prescription (RTL: Medication Rightmost -> Dosage -> Frequency -> Duration -> Notes Leftmost)
+          _buildSectionHeaderCard(
+            sectionNumber: '2',
+            title: 'روشتة العلاج المنزلي للمريض (Home Treatment Prescription)',
+            icon: Icons.medication_outlined,
+            color: AppColors.accent,
           ),
+          const SizedBox(height: 8),
+          if (homeRx.isEmpty)
+            _buildEmptySectionBox('لم يتم وصف علاجات منزلية في هذه الزيارة.')
+          else
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Table(
+                  border: TableBorder.all(color: Colors.grey.shade300),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2.6), // Medication (Rightmost)
+                    1: FlexColumnWidth(1.3), // Dosage
+                    2: FlexColumnWidth(1.4), // Frequency
+                    3: FlexColumnWidth(1.1), // Duration
+                    4: FlexColumnWidth(2.2), // Notes (Leftmost)
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1)),
+                      children: [
+                        _buildTableHeaderCell('الدواء الموصوف'),
+                        _buildTableHeaderCell('الجرعة'),
+                        _buildTableHeaderCell('التكرار'),
+                        _buildTableHeaderCell('المدة'),
+                        _buildTableHeaderCell('تعليمات الاستخدام'),
+                      ],
+                    ),
+                    ...homeRx.map((rx) => TableRow(
+                          children: [
+                            _buildTableDataCell('${rx.displayName} ${rx.medicineForm != null ? "(${rx.medicineForm})" : ""}', isBold: true),
+                            _buildTableDataCell(rx.dosage),
+                            _buildTableDataCell(rx.frequency),
+                            _buildTableDataCell('لمدة ${rx.durationDays} يوم'),
+                            _buildTableDataCell(rx.instructions ?? '-'),
+                          ],
+                        )),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+
+          // SECTION 3: Surgery Appointments (if scheduled)
+          if (surgery != null) ...[
+            _buildSectionHeaderCard(
+              sectionNumber: '3',
+              title: 'مواعيد العمليات الجراحية المجدولة (Surgery Appointments)',
+              icon: Icons.healing,
+              color: Colors.deepOrange,
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.orange.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: Colors.orange.shade200),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'العملية: ${surgery.surgeryName} (${surgery.surgeryCategory ?? "عام"})',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.brown.shade900),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade200,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            surgery.scheduledDate,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.brown.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('الجراح المسؤول: ${surgery.surgeonName ?? "الطبيب المعالج"}', style: const TextStyle(fontSize: 12)),
+                        if (surgery.estimatedCost != null && surgery.estimatedCost! > 0)
+                          Text(
+                            'التكلفة التقديرية: ${surgery.estimatedCost!.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primaryDark),
+                          ),
+                      ],
+                    ),
+                    if (surgery.postOpNotes?.isNotEmpty == true) ...[
+                      const SizedBox(height: 6),
+                      Text('تعليمات وتجهيزات ما قبل الجراحة: ${surgery.postOpNotes}', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade800)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // SECTION 4: Follow-Up Sessions (if scheduled)
+          if (followUps.isNotEmpty) ...[
+            _buildSectionHeaderCard(
+              sectionNumber: '4',
+              title: 'جلسات المتابعة والمراجعات القادمة (Follow-Up Sessions)',
+              icon: Icons.event_repeat,
+              color: Colors.indigo,
+            ),
+            const SizedBox(height: 8),
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Table(
+                  border: TableBorder.all(color: Colors.grey.shade300),
+                  columnWidths: const {
+                    0: FlexColumnWidth(2.5), // Reason / Session (Rightmost)
+                    1: FlexColumnWidth(1.5), // Date
+                    2: FlexColumnWidth(1.3), // Time
+                    3: FlexColumnWidth(2.5), // Notes (Leftmost)
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: Colors.indigo.withValues(alpha: 0.1)),
+                      children: [
+                        _buildTableHeaderCell('الجلسة / سبب المراجعة'),
+                        _buildTableHeaderCell('تاريخ المراجعة'),
+                        _buildTableHeaderCell('الوقت المجدول'),
+                        _buildTableHeaderCell('الملاحظات والإرشادات'),
+                      ],
+                    ),
+                    ...followUps.map((f) => TableRow(
+                          children: [
+                            _buildTableDataCell(f.reason, isBold: true),
+                            _buildTableDataCell(f.scheduledDate),
+                            _buildTableDataCell(f.scheduledTime?.isNotEmpty == true ? f.scheduledTime! : 'خلال الدوام'),
+                            _buildTableDataCell(f.notes?.isNotEmpty == true ? f.notes! : '-'),
+                          ],
+                        )),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+
+          // Consultation Fees Card
+          if (controller.showCost.value && consultation.visitCost > 0)
+            Card(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('أتعاب الكشف والخدمات البيطرية:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      '${consultation.visitCost.toStringAsFixed(0)} ${AppStringsAr.currencyShort}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeaderCard({
+    required String sectionNumber,
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border(right: BorderSide(color: color, width: 4)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
           Expanded(
-            child: PdfPreview(
-              build: (format) => _generatePdf(validConsultation, clinic, showCost: _showCost),
-              canChangeOrientation: false,
-              canChangePageFormat: false,
-              allowPrinting: true,
-              allowSharing: true,
-              pdfFileName: 'prescription_${validConsultation.petName ?? "pet"}_${validConsultation.id ?? 1}.pdf',
+            child: Text(
+              title,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: color),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySectionBox(String message) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(message, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+    );
+  }
+
+  Widget _buildTableHeaderCell(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textPrimary),
+      ),
+    );
+  }
+
+  Widget _buildTableDataCell(String text, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          fontSize: 11,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }

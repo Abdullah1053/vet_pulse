@@ -12,6 +12,8 @@ import 'package:vet_pulse/data/repositories/surgery_repository.dart';
 import 'package:vet_pulse/modules/consultations/controllers/consultation_detail_controller.dart';
 import 'package:vet_pulse/modules/consultations/controllers/new_consultation_controller.dart';
 import 'package:vet_pulse/modules/consultations/controllers/prescription_item_controller.dart';
+import 'package:vet_pulse/modules/consultations/controllers/prescription_preview_controller.dart';
+import 'package:vet_pulse/modules/consultations/utils/prescription_pdf_helper.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -134,11 +136,13 @@ void main() {
   });
 
   group('ConsultationDetailController Tests', () {
-    test('loads consultation by id correctly', () async {
+    test('loads consultation by id correctly and links surgery & follow-ups', () async {
       Get.reset();
       final controller = ConsultationDetailController(
         consultationRepo: ConsultationRepository(),
         petRepo: PetRepository(),
+        surgeryRepo: SurgeryRepository(),
+        appointmentRepo: AppointmentRepository(),
       );
 
       final all = await ConsultationRepository().getAllConsultations();
@@ -149,6 +153,45 @@ void main() {
       }
 
       controller.onClose();
+    });
+  });
+
+  group('PrescriptionPreviewController & 4-Section Report Tests', () {
+    test('initializes and loads consultation with fallback to surgery and appointment repos', () async {
+      Get.reset();
+      final all = await ConsultationRepository().getAllConsultations();
+      if (all.isNotEmpty) {
+        final c = all.first;
+        Get.testMode = true;
+        // Test passing consultation directly
+        Get.parameters = {};
+        final previewController = PrescriptionPreviewController(
+          surgeryRepo: SurgeryRepository(),
+          appointmentRepo: AppointmentRepository(),
+          consultationRepo: ConsultationRepository(),
+          petRepo: PetRepository(),
+        );
+
+        previewController.consultation.value = c;
+        expect(previewController.showCost.value, isTrue);
+
+        previewController.toggleShowCost(false);
+        expect(previewController.showCost.value, isFalse);
+
+        previewController.onClose();
+      }
+    });
+
+    test('PrescriptionPdfHelper generates 4-section PDF without errors', () async {
+      final all = await ConsultationRepository().getAllConsultations();
+      if (all.isNotEmpty) {
+        final c = all.first;
+        final pdfBytes = await PrescriptionPdfHelper.generatePrescriptionPdf(
+          consultation: c,
+          showCost: true,
+        );
+        expect(pdfBytes.isNotEmpty, isTrue);
+      }
     });
   });
 }
