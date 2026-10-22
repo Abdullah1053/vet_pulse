@@ -41,7 +41,6 @@ class DashboardController extends GetxController {
   Future<void> loadDashboardData() async {
     isLoading.value = true;
     try {
-      todayVisits.value = await _consultationRepo.getTodayConsultationsCount();
       todaySurgeries.value = await _surgeryRepo.getTodaySurgeriesCount();
       pendingFollowUps.value = await _appointmentRepo.getPendingTodayCount();
 
@@ -53,7 +52,10 @@ class DashboardController extends GetxController {
       alertMedicines.assignAll(expiring.take(5));
 
       final allVisits = await _consultationRepo.getAllConsultations();
-      recentConsultations.assignAll(allVisits.take(5));
+      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+      final todayVisitsList = allVisits.where((c) => c.visitDate.startsWith(todayStr)).toList();
+      recentConsultations.assignAll(todayVisitsList);
+      todayVisits.value = todayVisitsList.length;
     } finally {
       isLoading.value = false;
     }

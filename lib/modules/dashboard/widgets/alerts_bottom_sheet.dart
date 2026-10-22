@@ -131,6 +131,8 @@ class AlertsBottomSheet extends GetView<AlertsController> {
                 children: [
                   _buildFilterTab('all', 'الكل'),
                   const SizedBox(width: 8),
+                  _buildFilterTab('due_followups', 'مراجعات مستحقة'),
+                  const SizedBox(width: 8),
                   _buildFilterTab('1h', 'أقل من ساعة (حرج ⚠️)'),
                   const SizedBox(width: 8),
                   _buildFilterTab('6h', 'خلال 6 ساعات'),
@@ -177,15 +179,22 @@ class AlertsBottomSheet extends GetView<AlertsController> {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final item = list[index];
+                  final isFollowUp = item.type == 'follow_up';
+
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: item.urgencyColor.withValues(alpha: 0.4), width: 1.5),
+                      border: Border.all(
+                        color: isFollowUp
+                            ? const Color(0xFFE76F51).withValues(alpha: 0.6)
+                            : item.urgencyColor.withValues(alpha: 0.4),
+                        width: isFollowUp ? 1.8 : 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: item.urgencyColor.withValues(alpha: 0.05),
+                          color: (isFollowUp ? const Color(0xFFE76F51) : item.urgencyColor).withValues(alpha: 0.06),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -197,20 +206,54 @@ class AlertsBottomSheet extends GetView<AlertsController> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: item.urgencyColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                item.urgencyLabelArabic,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: item.urgencyColor,
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isFollowUp
+                                        ? const Color(0xFFE76F51).withValues(alpha: 0.15)
+                                        : const Color(0xFF2A9D8F).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isFollowUp ? Icons.event_repeat_rounded : Icons.healing_rounded,
+                                        size: 13,
+                                        color: isFollowUp ? const Color(0xFFE76F51) : const Color(0xFF2A9D8F),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isFollowUp ? 'متابعة سريرية' : 'عملية جراحية',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isFollowUp ? const Color(0xFFE76F51) : const Color(0xFF2A9D8F),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: item.urgencyColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    item.urgencyLabelArabic,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: item.urgencyColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             Text(
                               item.remainingTextArabic,
@@ -222,15 +265,47 @@ class AlertsBottomSheet extends GetView<AlertsController> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        const SizedBox(height: 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              isFollowUp ? Icons.event_note_rounded : Icons.medical_services_outlined,
+                              size: 16,
+                              color: isFollowUp ? const Color(0xFFE76F51) : AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                isFollowUp ? 'سبب المراجعة: ${item.title}' : item.title,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.pets_rounded, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'المريض: ${item.petName} (${item.petSpecies}) • المالك: ${item.ownerName}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'المريض: ${item.petName} (${item.petSpecies}) • المالك: ${item.ownerName}',
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        Row(
+                          children: [
+                            const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'الموعد المحدد: ${item.formattedDateTime}',
+                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
 
@@ -275,23 +350,45 @@ class AlertsBottomSheet extends GetView<AlertsController> {
   Widget _buildFilterTab(String key, String label) {
     return Obx(() {
       final isSelected = controller.selectedFilter.value == key;
+      final isDue = key == 'due_followups';
       return InkWell(
         onTap: () => controller.setFilter(key),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.grey.shade100,
+            color: isSelected
+                ? (isDue ? const Color(0xFFE76F51) : AppColors.primary)
+                : (isDue ? const Color(0xFFFFEFEA) : Colors.grey.shade100),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? Colors.white : AppColors.darkNeutral,
+            border: Border.all(
+              color: isSelected
+                  ? (isDue ? const Color(0xFFE76F51) : AppColors.primary)
+                  : (isDue ? const Color(0xFFE76F51).withValues(alpha: 0.5) : Colors.grey.shade300),
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isDue) ...[
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: 14,
+                  color: isSelected ? Colors.white : const Color(0xFFE76F51),
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected || isDue ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDue ? const Color(0xFFE76F51) : AppColors.darkNeutral),
+                ),
+              ),
+            ],
           ),
         ),
       );

@@ -6,10 +6,11 @@ import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 
 enum AlertUrgency {
-  oneHour,   // <= 1 hour remaining
-  sixHours,  // <= 6 hours remaining
+  oneHour,     // <= 1 hour remaining
+  sixHours,    // <= 6 hours remaining
   twelveHours, // <= 12 hours remaining
-  pastDue,   // Time already passed but still pending
+  dueToday,    // Scheduled today
+  pastDue,     // Scheduled time passed
 }
 
 class ClinicAlertItem {
@@ -39,7 +40,14 @@ class ClinicAlertItem {
 
   String get remainingTextArabic {
     if (remaining.isNegative) {
-      return 'متأخر';
+      if (remaining.inHours.abs() >= 24) {
+        final days = remaining.inDays.abs() == 0 ? 1 : remaining.inDays.abs();
+        return 'مستحق منذ $days يوم';
+      }
+      return 'متأخر ومستحق اليوم';
+    }
+    if (urgency == AlertUrgency.dueToday) {
+      return 'مستحق اليوم';
     }
     if (remaining.inMinutes < 60) {
       return 'متبقي ${remaining.inMinutes} دقيقة';
@@ -57,6 +65,8 @@ class ClinicAlertItem {
         return Colors.orange.shade800;
       case AlertUrgency.twelveHours:
         return AppColors.accent;
+      case AlertUrgency.dueToday:
+        return const Color(0xFFE76F51);
       case AlertUrgency.pastDue:
         return Colors.red.shade900;
     }
@@ -70,9 +80,23 @@ class ClinicAlertItem {
         return 'تنبيه موعد (خلال 6 ساعات)';
       case AlertUrgency.twelveHours:
         return 'تذكير مسبق (خلال 12 ساعة)';
+      case AlertUrgency.dueToday:
+        return 'مراجعة مستحقة اليوم';
       case AlertUrgency.pastDue:
-        return 'موعد متأخر';
+        return type == 'follow_up' ? 'موعد مراجعة متأخر ومستحق' : 'موعد متأخر';
     }
+  }
+
+  String get formattedDateTime {
+    final y = scheduledDateTime.year;
+    final m = scheduledDateTime.month.toString().padLeft(2, '0');
+    final d = scheduledDateTime.day.toString().padLeft(2, '0');
+    final hRaw = scheduledDateTime.hour;
+    final min = scheduledDateTime.minute.toString().padLeft(2, '0');
+    final isPm = hRaw >= 12;
+    final h = hRaw == 0 ? 12 : (hRaw > 12 ? hRaw - 12 : hRaw);
+    final period = isPm ? 'م' : 'ص';
+    return '$y-$m-$d $h:$min $period';
   }
 }
 
@@ -89,7 +113,7 @@ class AlertsController extends GetxController {
   final RxList<ClinicAlertItem> alerts = <ClinicAlertItem>[].obs;
   final RxInt activeAlertsCount = 0.obs;
   final RxBool isLoading = false.obs;
-  final RxString selectedFilter = 'all'.obs; // all, 1h, 6h, 12h
+  final RxString selectedFilter = 'all'.obs; // all, due_followups, 1h, 6h, 12h
 
   List<ClinicAlertItem> get filteredAlerts {
     if (selectedFilter.value == '1h') {
@@ -98,6 +122,14 @@ class AlertsController extends GetxController {
       return alerts.where((a) => a.urgency == AlertUrgency.sixHours).toList();
     } else if (selectedFilter.value == '12h') {
       return alerts.where((a) => a.urgency == AlertUrgency.twelveHours).toList();
+    } else if (selectedFilter.value == 'due_followups') {
+      return alerts
+          .where((a) =>
+              a.type == 'follow_up' &&
+              (a.urgency == AlertUrgency.pastDue ||
+                  a.urgency == AlertUrgency.dueToday ||
+                  a.urgency == AlertUrgency.oneHour))
+          .toList();
     }
     return alerts;
   }
@@ -183,14 +215,19 @@ class AlertsController extends GetxController {
     required DateTime target,
     required Duration diff,
   }) {
+    final now = DateTime.now();
+    final isToday = target.year == now.year && target.month == now.month && target.day == now.day;
     AlertUrgency? urgency;
-    if (diff.isNegative && diff.inHours.abs() <= 24) {
+
+    if (diff.isNegative) {
       urgency = AlertUrgency.pastDue;
-    } else if (!diff.isNegative && diff.inMinutes <= 60) {
+    } else if (diff.inMinutes <= 60) {
       urgency = AlertUrgency.oneHour;
-    } else if (!diff.isNegative && diff.inHours <= 6) {
+    } else if (type == 'follow_up' && isToday) {
+      urgency = AlertUrgency.dueToday;
+    } else if (diff.inHours <= 6) {
       urgency = AlertUrgency.sixHours;
-    } else if (!diff.isNegative && diff.inHours <= 12) {
+    } else if (diff.inHours <= 12) {
       urgency = AlertUrgency.twelveHours;
     }
 

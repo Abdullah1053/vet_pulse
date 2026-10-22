@@ -113,12 +113,12 @@ class DashboardView extends GetView<DashboardController> {
               _buildQuickActionButtons(context, authController),
               const SizedBox(height: 24),
 
-              // Recent Consultations & Medical Alerts
+              // Today's Clinical Examinations
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'آخر الكشوفات السريرية',
+                    'كشوفات اليوم السريرية',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.darkNeutral,
@@ -201,24 +201,6 @@ class DashboardView extends GetView<DashboardController> {
                     ),
                   );
                 }),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.wifi_off, size: 14, color: Colors.white),
-                SizedBox(width: 6),
-                Text(
-                  'محلي بالكامل',
-                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                ),
               ],
             ),
           ),
@@ -483,7 +465,7 @@ class DashboardView extends GetView<DashboardController> {
                   Icon(Icons.notes_outlined, size: 36, color: AppColors.textMuted),
                   const SizedBox(height: 8),
                   Text(
-                    'لا توجد كشوفات مسجلة مؤخراً',
+                    'لا توجد كشوفات سريرية مسجلة لهذا اليوم',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ],
