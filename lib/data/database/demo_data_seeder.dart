@@ -569,7 +569,7 @@ class DemoDataSeeder {
 
       // 8. Financial Transactions (Ledger)
       // Transaction 1: Simba Consultation (Partially paid: 4,000 paid, 2,500 remaining deferred)
-      final tx1Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner1Id,
@@ -585,7 +585,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 2: Simba Surgery (Fully paid: 35,000 via Kuraimi)
-      final tx2Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'surgery',
         'owner_id': owner1Id,
@@ -617,7 +617,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 4: Misho Pharmacy (Fully paid: 4,500 via Cash)
-      final tx4Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'pharmacy',
         'owner_id': owner3Id,
@@ -633,7 +633,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 5: Louza Consultation (5,500 - Paid 3,500 via Jawali, Remaining 2,000)
-      final tx5Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner4Id,
@@ -649,7 +649,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 6: Bobby Dental (12,000 - Paid 12,000 via Jeeb)
-      final tx6Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner5Id,
@@ -665,7 +665,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 7: Kitty Vaccination (9,000 - Paid 9,000 via Floosak)
-      final tx7Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner6Id,
@@ -681,7 +681,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 8: Bella Ear Treatment (7,500 - Paid 7,500 via Kuraimi)
-      final tx8Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner2Id,
@@ -697,7 +697,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 9: Max Orthopedic Surgery (60,000 - Paid 60,000 via Kuraimi)
-      final tx9Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'surgery',
         'owner_id': owner5Id,
@@ -713,7 +713,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 10: Max Consultation & X-Ray (15,000 - Paid 10,000 Cash, Remaining 5,000)
-      final tx10Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'consultation',
         'owner_id': owner5Id,
@@ -729,7 +729,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 11: Bobby Pharmacy items (8,500 - Paid 8,500 via Jeeb)
-      final tx11Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'pharmacy',
         'owner_id': owner5Id,
@@ -745,7 +745,7 @@ class DemoDataSeeder {
       });
 
       // Transaction 12: Simba Urinary Prescription Food (14,000 - Paid 14,000 via Kuraimi)
-      final tx12Id = await txn.insert(DatabaseTables.tableTransactions, {
+      await txn.insert(DatabaseTables.tableTransactions, {
         'transaction_type': 'income',
         'category': 'pharmacy',
         'owner_id': owner1Id,
@@ -760,115 +760,55 @@ class DemoDataSeeder {
         'notes': 'أغذية علاجية رويال كانين للمسالك البولية (مسدد عبر كريمي)',
       });
 
-      // 9. Customer Payments (سجل الدفعات وسندات القبض المستقلة)
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
+      // 9. Customer Payments & Receipt Vouchers (سندات القبض المستقلة لسداد الحسابات)
+      final pay1Id = await txn.insert(DatabaseTables.tableCustomerPayments, {
         'owner_id': owner1Id,
-        'transaction_id': tx1Id,
-        'amount': 4000.0,
+        'transaction_id': null,
+        'amount': 1000.0,
         'payment_method': 'نقدا',
         'payment_date': todayStr,
-        'receipt_number': 'REC-1001',
-        'notes': 'دفعة أولى نقدية من كشف سمبا',
+        'receipt_number': 'REC-PAY-101',
+        'notes': 'سند قبض وتحصيل دفعة نقدية لحساب العميل (سداد جزئي من متبقي كشف سمبا)',
       });
 
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'payment',
+        'category': 'direct_payment',
         'owner_id': owner1Id,
-        'transaction_id': tx2Id,
-        'amount': 35000.0,
-        'payment_method': 'كريمي',
-        'payment_date': pastSurgeryDate,
-        'receipt_number': 'REC-1002',
-        'notes': 'سداد كامل تكلفة عملية استئصال الحصوات عبر كريمي',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner3Id,
-        'transaction_id': tx4Id,
-        'amount': 4500.0,
+        'pet_id': pet1Id,
+        'reference_id': pay1Id,
+        'reference_type': 'customer_payment',
+        'amount': 1000.0,
+        'paid_amount': 1000.0,
+        'remaining_amount': 0.0,
         'payment_method': 'نقدا',
-        'payment_date': recentDate2,
-        'receipt_number': 'REC-1003',
-        'notes': 'سداد كامل قيمة مستلزمات وفيتامينات ميشو نقداً',
+        'transaction_date': todayStr,
+        'notes': 'سند قبض وتحصيل دفعة نقدية لحساب العميل (سند رقم: REC-PAY-101)',
       });
 
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner4Id,
-        'transaction_id': tx5Id,
-        'amount': 3500.0,
-        'payment_method': 'جوالي',
-        'payment_date': pastDate3,
-        'receipt_number': 'REC-1004',
-        'notes': 'دفعة كشف وفحص عيون لوزة عبر محفظة جوالي',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner5Id,
-        'transaction_id': tx6Id,
-        'amount': 12000.0,
-        'payment_method': 'جيب',
-        'payment_date': yesterdayStr,
-        'receipt_number': 'REC-1005',
-        'notes': 'سداد فحص وجلسة أسنان بوبي عبر محفظة جيب',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner6Id,
-        'transaction_id': tx7Id,
-        'amount': 9000.0,
-        'payment_method': 'فلوسك',
-        'payment_date': pastDate5,
-        'receipt_number': 'REC-1006',
-        'notes': 'سداد كشف وتطعيم كيتي عبر محفظة فلوسك',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
+      final pay2Id = await txn.insert(DatabaseTables.tableCustomerPayments, {
         'owner_id': owner2Id,
-        'transaction_id': tx8Id,
-        'amount': 7500.0,
+        'transaction_id': null,
+        'amount': 3000.0,
         'payment_method': 'كريمي',
         'payment_date': pastDate8,
-        'receipt_number': 'REC-1007',
-        'notes': 'سداد كشف وعلاج أذن بيلا عبر بنك الكريمي',
+        'receipt_number': 'REC-PAY-102',
+        'notes': 'سند قبض وتحصيل عبر بنك الكريمي (سداد جزئي من مديونية كشف روكي)',
       });
 
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner5Id,
-        'transaction_id': tx10Id,
-        'amount': 10000.0,
-        'payment_method': 'نقدا',
-        'payment_date': pastDate12,
-        'receipt_number': 'REC-1008',
-        'notes': 'دفعة أولى نقدية لفحص وأشعة ماكس',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner5Id,
-        'transaction_id': tx9Id,
-        'amount': 60000.0,
+      await txn.insert(DatabaseTables.tableTransactions, {
+        'transaction_type': 'payment',
+        'category': 'direct_payment',
+        'owner_id': owner2Id,
+        'pet_id': pet2Id,
+        'reference_id': pay2Id,
+        'reference_type': 'customer_payment',
+        'amount': 3000.0,
+        'paid_amount': 3000.0,
+        'remaining_amount': 0.0,
         'payment_method': 'كريمي',
-        'payment_date': maxSurgeryDate,
-        'receipt_number': 'REC-1009',
-        'notes': 'سداد كامل جراحة العظام ماكس عبر بنك الكريمي',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner5Id,
-        'transaction_id': tx11Id,
-        'amount': 8500.0,
-        'payment_method': 'جيب',
-        'payment_date': yesterdayStr,
-        'receipt_number': 'REC-1010',
-        'notes': 'سداد مشتريات صيدلية بوبي عبر محفظة جيب',
-      });
-
-      await txn.insert(DatabaseTables.tableCustomerPayments, {
-        'owner_id': owner1Id,
-        'transaction_id': tx12Id,
-        'amount': 14000.0,
-        'payment_method': 'كريمي',
-        'payment_date': pastDate7,
-        'receipt_number': 'REC-1011',
-        'notes': 'سداد أغذية علاجية سمبا عبر بنك الكريمي',
+        'transaction_date': pastDate8,
+        'notes': 'سند قبض وتحصيل عبر بنك الكريمي (سند رقم: REC-PAY-102)',
       });
 
       // Expense transactions in ledger

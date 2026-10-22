@@ -175,7 +175,7 @@ class FinancialRepository {
             : 'سند قبض وتحصيل دفعة نقدية لحساب العميل (سند رقم: $receipt)',
       });
 
-      // 3. If tied to a specific transaction, update remaining amount on it
+      // 3. If tied to a specific transaction, update remaining amount on it (do not increment paid_amount to prevent double counting in ledger)
       if (transactionId != null) {
         final txRows = await txn.query(
           DatabaseTables.tableTransactions,
@@ -185,14 +185,11 @@ class FinancialRepository {
         );
         if (txRows.isNotEmpty) {
           final tx = txRows.first;
-          final currentPaid = (tx['paid_amount'] as num?)?.toDouble() ?? 0.0;
-          final totalAmount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-          final newPaid = currentPaid + amount;
-          final newRemaining = (totalAmount - newPaid).clamp(0.0, double.infinity);
+          final currentRemaining = (tx['remaining_amount'] as num?)?.toDouble() ?? 0.0;
+          final newRemaining = (currentRemaining - amount).clamp(0.0, double.infinity);
           await txn.update(
             DatabaseTables.tableTransactions,
             {
-              'paid_amount': newPaid,
               'remaining_amount': newRemaining,
             },
             where: 'id = ?',
@@ -303,7 +300,11 @@ class FinancialRepository {
     final rawEntries = <_RawStatementEntry>[];
 
     if (txList.isNotEmpty) {
-      final hasCustomerPayments = paymentLedger.isNotEmpty;
+      // Map of income transactions by ID for checking initial payments
+      final incomeTxMap = {
+        for (final tx in txList.where((t) => t.transactionType == 'income' && t.id != null))
+          tx.id!: tx
+      };
 
       for (final tx in txList) {
         if (tx.transactionType == 'income') {
@@ -316,7 +317,7 @@ class FinancialRepository {
               : tx.transactionDate;
 
           final debit = tx.amount;
-          final credit = hasCustomerPayments ? 0.0 : tx.paidAmount;
+          final credit = tx.paidAmount;
 
           rawEntries.add(_RawStatementEntry(
             id: tx.id,
@@ -331,8 +332,8 @@ class FinancialRepository {
           ));
         } else if (tx.transactionType == 'payment') {
           final alreadyInLedger = paymentLedger.any((p) =>
-              p.amount == tx.amount &&
-              p.paymentDate.startsWith(tx.transactionDate.substring(0, 10)));
+              (tx.referenceId != null && tx.referenceType == 'customer_payment' && p.id == tx.referenceId) ||
+              (p.amount == tx.amount && p.paymentDate.startsWith(tx.transactionDate.substring(0, 10))));
 
           if (!alreadyInLedger) {
             final dateStr = tx.transactionDate.length >= 10
@@ -354,29 +355,40 @@ class FinancialRepository {
         }
       }
 
-      if (hasCustomerPayments) {
-        for (final p in paymentLedger) {
-          final dateStr = p.paymentDate.length >= 10
-              ? p.paymentDate.substring(0, 10)
-              : p.paymentDate;
+      for (final p in paymentLedger) {
+        // Ignore legacy auto-generated receipt vouchers from consultation/surgery creation
+        final receiptNum = p.receiptNumber ?? '';
+        final isAutoReceipt = receiptNum.startsWith('REC-SURG-') ||
+            RegExp(r'^REC-\d+-1$').hasMatch(receiptNum);
 
-          String desc = 'سند قبض (${p.paymentMethodDisplayArabic})';
-          if (p.receiptNumber != null && p.receiptNumber!.isNotEmpty) {
-            desc = '$desc - ${p.receiptNumber}';
-          }
+        // Also ignore if tied to an income transaction that already recorded an initial payment
+        final linkedIncomeTx = p.transactionId != null ? incomeTxMap[p.transactionId] : null;
+        final isDuplicateInitialPayment = linkedIncomeTx != null && linkedIncomeTx.paidAmount > 0;
 
-          rawEntries.add(_RawStatementEntry(
-            id: p.id,
-            date: dateStr,
-            type: 'payment',
-            description: desc,
-            petName: null,
-            debit: 0.0,
-            credit: p.amount,
-            paymentMethod: p.paymentMethod,
-            notes: p.notes,
-          ));
+        if (isAutoReceipt || isDuplicateInitialPayment) {
+          continue;
         }
+
+        final dateStr = p.paymentDate.length >= 10
+            ? p.paymentDate.substring(0, 10)
+            : p.paymentDate;
+
+        String desc = 'سند قبض (${p.paymentMethodDisplayArabic})';
+        if (p.receiptNumber != null && p.receiptNumber!.isNotEmpty) {
+          desc = '$desc - ${p.receiptNumber}';
+        }
+
+        rawEntries.add(_RawStatementEntry(
+          id: p.id,
+          date: dateStr,
+          type: 'payment',
+          description: desc,
+          petName: null,
+          debit: 0.0,
+          credit: p.amount,
+          paymentMethod: p.paymentMethod,
+          notes: p.notes,
+        ));
       }
     } else {
       // Fallback: Query owner's pets' consultations and surgeries directly
@@ -433,6 +445,11 @@ class FinancialRepository {
       }
 
       for (final p in paymentLedger) {
+        final receiptNum = p.receiptNumber ?? '';
+        final isAutoReceipt = receiptNum.startsWith('REC-SURG-') ||
+            RegExp(r'^REC-\d+-1$').hasMatch(receiptNum);
+        if (isAutoReceipt) continue;
+
         final dateStr = p.paymentDate.length >= 10
             ? p.paymentDate.substring(0, 10)
             : p.paymentDate;

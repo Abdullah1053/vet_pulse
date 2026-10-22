@@ -157,7 +157,7 @@ class ConsultationRepository {
         final paid = consultation.paidAmount;
         final remaining = (consultation.visitCost - paid).clamp(0.0, double.infinity);
 
-        final txId = await txn.insert(DatabaseTables.tableTransactions, {
+        await txn.insert(DatabaseTables.tableTransactions, {
           'transaction_type': 'income',
           'category': 'consultation',
           'owner_id': ownerId,
@@ -171,19 +171,6 @@ class ConsultationRepository {
           'transaction_date': consultation.visitDate,
           'notes': 'أتعاب كشف واستشارة سريرية: ${consultation.diagnosis}${remaining > 0 ? ' (متبقي آجل: ${remaining.toStringAsFixed(0)} ر.ي)' : ' (خالص ومسدد بالكامل)'}',
         });
-
-        // Record in customer_payments if an initial payment was made
-        if (paid > 0 && ownerId != null) {
-          await txn.insert(DatabaseTables.tableCustomerPayments, {
-            'owner_id': ownerId,
-            'transaction_id': txId,
-            'amount': paid,
-            'payment_method': consultation.paymentMethod,
-            'payment_date': consultation.visitDate,
-            'receipt_number': 'REC-$consultationId-1',
-            'notes': 'دفعة مسددة عند تسجيل الكشف السريري',
-          });
-        }
       }
 
       return consultationId;

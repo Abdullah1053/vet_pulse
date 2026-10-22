@@ -137,7 +137,7 @@ class SurgeryRepository {
           final paid = paidAmount.clamp(0.0, finalCost);
           final remaining = (finalCost - paid).clamp(0.0, double.infinity);
 
-          final txId = await txn.insert(DatabaseTables.tableTransactions, {
+          await txn.insert(DatabaseTables.tableTransactions, {
             'transaction_type': 'income',
             'category': 'surgery',
             'owner_id': ownerId,
@@ -151,19 +151,6 @@ class SurgeryRepository {
             'transaction_date': DateTime.now().toIso8601String(),
             'notes': 'أتعاب عملية جراحية: ${surgery.surgeryName}${remaining > 0 ? ' (متبقي آجل: ${remaining.toStringAsFixed(0)} ر.ي)' : ' (خالص ومسدد بالكامل)'}',
           });
-
-          // Record in customer_payments if an initial payment was made
-          if (paid > 0 && ownerId != null) {
-            await txn.insert(DatabaseTables.tableCustomerPayments, {
-              'owner_id': ownerId,
-              'transaction_id': txId,
-              'amount': paid,
-              'payment_method': paymentMethod,
-              'payment_date': DateTime.now().toIso8601String(),
-              'receipt_number': 'REC-SURG-${surgery.id}-1',
-              'notes': 'دفعة مسددة عند اعتماد وإنهاء العملية الجراحية (${surgery.surgeryName})',
-            });
-          }
         }
       }
     });

@@ -282,5 +282,14 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
       }
     } catch (_) {}
+
+    // Clean up legacy auto-generated receipt vouchers from consultations and surgeries
+    try {
+      await db.execute('''
+        DELETE FROM ${DatabaseTables.tableCustomerPayments}
+        WHERE receipt_number LIKE 'REC-%-1' 
+           OR receipt_number LIKE 'REC-SURG-%';
+      ''');
+    } catch (_) {}
   }
 }
