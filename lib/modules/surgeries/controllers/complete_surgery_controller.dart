@@ -24,11 +24,41 @@ class CompleteSurgeryController extends GetxController {
   final finalCostController = TextEditingController();
   final paidAmountController = TextEditingController();
 
+  final RxDouble remainingAmount = 0.0.obs;
   final RxString selectedPaymentMethod = AppPaymentMethods.cash.obs;
+
+  bool get isDeferredPayment => selectedPaymentMethod.value == AppPaymentMethods.deferred;
+
+  void setPaymentMethod(String method) {
+    final oldMethod = selectedPaymentMethod.value;
+    selectedPaymentMethod.value = method;
+    if (method == AppPaymentMethods.deferred) {
+      paidAmountController.text = '0';
+      updateRemainingAmount();
+    } else if (oldMethod == AppPaymentMethods.deferred) {
+      if (paidAmountController.text.trim() == '0' || paidAmountController.text.trim() == '0.0') {
+        paidAmountController.text = finalCostController.text.trim();
+      }
+      updateRemainingAmount();
+    }
+  }
+
+  void updateRemainingAmount() {
+    final cost = double.tryParse(finalCostController.text.trim()) ?? (surgery.value?.estimatedCost ?? 0.0);
+    if (isDeferredPayment) {
+      remainingAmount.value = cost;
+      return;
+    }
+    final paid = double.tryParse(paidAmountController.text.trim()) ?? 0.0;
+    remainingAmount.value = (cost - paid).clamp(0.0, double.infinity);
+  }
 
   @override
   void onInit() {
     super.onInit();
+    finalCostController.addListener(updateRemainingAmount);
+    paidAmountController.addListener(updateRemainingAmount);
+
     final args = Get.arguments;
     if (args is SurgeryModel) {
       initSurgery(args);
@@ -42,6 +72,7 @@ class CompleteSurgeryController extends GetxController {
     final cost = model.estimatedCost ?? 0.0;
     finalCostController.text = cost > 0 ? cost.toStringAsFixed(0) : '';
     paidAmountController.text = cost > 0 ? cost.toStringAsFixed(0) : '';
+    updateRemainingAmount();
   }
 
   Future<void> submitCompletion() async {
@@ -71,7 +102,7 @@ class CompleteSurgeryController extends GetxController {
       combinedNotes.writeln(homeCareInstructionsController.text.trim());
 
       final finalCost = double.tryParse(finalCostController.text.trim()) ?? surg.estimatedCost ?? 0.0;
-      final paidAmount = double.tryParse(paidAmountController.text.trim()) ?? finalCost;
+      final paidAmount = isDeferredPayment ? 0.0 : (double.tryParse(paidAmountController.text.trim()) ?? 0.0);
 
       final updatedSurgery = surg.copyWith(
         status: 'completed',

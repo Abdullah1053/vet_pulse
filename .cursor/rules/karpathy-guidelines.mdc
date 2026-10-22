@@ -1,0 +1,56 @@
+---
+description: Karpathy behavioral guidelines + VetPulse strict GetX MVVM rules. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and verify DI/SQLite rules.
+alwaysApply: true
+---
+# VetPulse Agent Guidelines (Karpathy Behavioral Rules + Strict GetX MVVM)
+
+## Part 1: Karpathy Behavioral Principles (HOW You Work)
+**Tradeoff:** Bias toward caution and surgical precision over speculative speed.
+
+### 1. Think Before Coding
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- State assumptions explicitly before writing code. If uncertain, ask.
+- If multiple interpretations exist, present them briefly — do not pick silently.
+- If a simpler approach exists within our existing widgets/controllers, say so.
+
+### 2. Simplicity First
+**Minimum code that solves the problem. Nothing speculative.**
+- DO NOT add features, widgets, dialogs, or decorative cards beyond what was explicitly asked.
+- DO NOT create abstractions for single-use code.
+- If you write 200 lines and it could be 50, rewrite it.
+- Always reuse `CustomTextField`, `PrimaryButton`, `StatusChip`, `EmptyStateView`, `AppColors`, `AppStringsAr`, and `AppPaymentMethods`.
+
+### 3. Surgical Changes
+**Touch only what you must. Clean up only your own mess.**
+- DO NOT "improve" or reformat adjacent code, comments, or working features.
+- DO NOT refactor things that aren't broken.
+- When your changes create orphans, remove imports/variables/methods that YOUR changes made unused.
+- **The Test:** Every changed line in `git diff` must trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+**Define verifiable success criteria. Loop until verified.**
+Before multi-step tasks, state a brief verification plan:
+1. [Step] → verify: [check DI bindings / state]
+2. [Step] → verify: [check SQLite / DataSyncService]
+3. [Step] → verify: [run flutter analyze with 0 errors]
+
+---
+
+## Part 2: VetPulse Architecture Rules (WHAT You Build)
+
+### 1. Strict MVVM + GetX Pattern
+- **Model & Repository Layer (`lib/data/models/` & `lib/data/repositories/`):**
+  - ALL SQLite queries (`DatabaseHelper`) and atomic transactions (`db.transaction`) MUST live in Repositories. Zero raw SQL in Controllers or Views.
+  - Every `insert`, `update`, or `delete` in a Repository MUST trigger the appropriate `DataSyncService.notify...Changed()` hook.
+- **ViewModel Layer (`lib/modules/<module>/controllers/`):**
+  - Every ViewModel extends `GetxController`.
+  - **NO GOD CONTROLLERS:** Keep controllers focused on a single responsibility (< 250 lines).
+  - Inject Repositories via `Bindings` (`Get.lazyPut` with `fenix: true` where shared) and include safe constructor fallbacks (`Get.isRegistered<Repo>() ? Get.find<Repo>() : Get.put(Repo(), permanent: true)`) so `DataSyncService` never triggers a missing dependency error.
+- **View Layer (`lib/modules/<module>/views/` & `widgets/`):**
+  - Every screen and sub-view MUST extend `GetView<TController>` or `StatelessWidget`.
+  - **STRICT BAN ON `StatefulWidget`:** Never use `StatefulWidget`, `StatefulBuilder`, or `setState()`. Use `Obx()` and reactive `Rx` variables in the Controller.
+
+### 2. Mandatory Core Checks Before Completing Any Task
+1. **DI Check:** If a controller or `DataSyncService` touches `PetRepository` or `FinancialRepository`, verify they are registered in the active `Binding` (or have safe fallbacks).
+2. **Financial Ledger Sync:** Billable actions (`Consultations`, `Surgeries`) must atomically record `financial_transactions` (and `customer_payments` only when `paidAmount > 0`). When payment method is `آجل` (`AppPaymentMethods.deferred`), `paidAmount` must be `0.0` and `remainingAmount` must equal the full cost.
+3. **Analyzer Verification:** Always run `flutter analyze` as your final step and fix any warnings or unused imports you introduced.

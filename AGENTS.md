@@ -1,28 +1,52 @@
-# VetPulse Architecture & Agent Rules (Strict GetX + MVVM)
+# VetPulse Agent Guidelines (Karpathy Behavioral Rules + Strict GetX MVVM)
 
-## 1. Strict MVVM + GetX Pattern
-Every feature module under `lib/modules/<module_name>/` MUST strictly follow the MVVM pattern using GetX:
-- **Model & Data Layer (`lib/data/models/` & `lib/data/repositories/`):**
-  - Models are pure Dart data classes (`fromMap`, `toMap`, `copyWith`) with zero UI or DB logic.
-  - Repositories handle ALL SQLite (`DatabaseHelper`) queries, atomic transactions (`db.transaction`), and trigger `DataSyncService` notifications automatically upon mutation.
-  - Every domain entity MUST have its own dedicated Repository (1-to-1 responsibility).
+## Part 1: Karpathy Behavioral Principles (HOW You Work)
+**Tradeoff:** Bias toward caution and surgical precision over speculative speed.
+
+### 1. Think Before Coding
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- State assumptions explicitly before writing code. If uncertain, ask.
+- If multiple interpretations exist, present them briefly — do not pick silently.
+- If a simpler approach exists within our existing widgets/controllers, say so.
+
+### 2. Simplicity First
+**Minimum code that solves the problem. Nothing speculative.**
+- DO NOT add features, widgets, dialogs, or decorative cards beyond what was explicitly asked.
+- DO NOT create abstractions for single-use code.
+- If you write 200 lines and it could be 50, rewrite it.
+- Always reuse `CustomTextField`, `PrimaryButton`, `StatusChip`, `EmptyStateView`, `AppColors`, `AppStringsAr`, and `AppPaymentMethods`.
+
+### 3. Surgical Changes
+**Touch only what you must. Clean up only your own mess.**
+- DO NOT "improve" or reformat adjacent code, comments, or working features.
+- DO NOT refactor things that aren't broken.
+- When your changes create orphans, remove imports/variables/methods that YOUR changes made unused.
+- **The Test:** Every changed line in `git diff` must trace directly to the user's request.
+
+### 4. Goal-Driven Execution
+**Define verifiable success criteria. Loop until verified.**
+Before multi-step tasks, state a brief verification plan:
+1. [Step] → verify: [check DI bindings / state]
+2. [Step] → verify: [check SQLite / DataSyncService]
+3. [Step] → verify: [run flutter analyze with 0 errors]
+
+---
+
+## Part 2: VetPulse Architecture Rules (WHAT You Build)
+
+### 1. Strict MVVM + GetX Pattern
+- **Model & Repository Layer (`lib/data/models/` & `lib/data/repositories/`):**
+  - ALL SQLite queries (`DatabaseHelper`) and atomic transactions (`db.transaction`) MUST live in Repositories. Zero raw SQL in Controllers or Views.
+  - Every `insert`, `update`, or `delete` in a Repository MUST trigger the appropriate `DataSyncService.notify...Changed()` hook.
 - **ViewModel Layer (`lib/modules/<module>/controllers/`):**
-  - Every ViewModel MUST extend `GetxController` (or `GetxService` for global services).
-  - **NO GOD CONTROLLERS:** A single Controller must manage ONE specific View or sub-feature (e.g., separate `ConsultationFormController`, `DosageCalculatorController`, `PrescriptionController`, `ConsultationDetailController`).
-  - Controllers must NEVER exceed ~200 lines or hold more than 8 `TextEditingController`s. If a screen has multiple complex sections, split them into child controllers and sub-views.
-  - Repositories MUST be injected via GetX `Bindings` (`Get.lazyPut(() => Repo())` and `Get.lazyPut(() => Controller(Get.find()))`), never instantiated raw (`final _repo = Repo()`) inside a controller or view.
+  - Every ViewModel extends `GetxController`.
+  - **NO GOD CONTROLLERS:** Keep controllers focused on a single responsibility (< 250 lines).
+  - Inject Repositories via `Bindings` (`Get.lazyPut` with `fenix: true` where shared) and include safe constructor fallbacks (`Get.isRegistered<Repo>() ? Get.find<Repo>() : Get.put(Repo(), permanent: true)`) so `DataSyncService` never triggers a missing dependency error.
 - **View Layer (`lib/modules/<module>/views/` & `widgets/`):**
   - Every screen and sub-view MUST extend `GetView<TController>` or `StatelessWidget`.
-  - **STRICT BAN ON `StatefulWidget`:** Never use `StatefulWidget`, `setState()`, or `initState()` in module views or dialogs. Use `Obx()`, `GetBuilder`, and Controller lifecycle methods (`onInit`, `onReady`, `onClose`).
-  - Views must contain ZERO business logic, ZERO direct repository calls, and ZERO SQL queries.
+  - **STRICT BAN ON `StatefulWidget`:** Never use `StatefulWidget`, `StatefulBuilder`, or `setState()`. Use `Obx()` and reactive `Rx` variables in the Controller.
 
-## 2. Anti-Hallucination & Scope Guardrails
-- DO NOT invent extra widgets, decorative cards, or unrequested UI features.
-- DO NOT duplicate Views as Dialogs (e.g., never create both `X_view.dart` and `X_dialog.dart` for the same screen).
-- Always reuse core widgets (`CustomTextField`, `PrimaryButton`, `StatusChip`, `EmptyStateView`) and constants (`AppColors`, `AppStringsAr`, `AppPaymentMethods`).
-
-## 3. Mandatory Core Hooks (Check on Every Task)
-1. **Demo Quota:** Call `DemoConfig.canAdd...()` in the Controller before any creation flow.
-2. **Auto-Sync in Repos:** Every `insert`, `update`, or `delete` inside a Repository MUST call the appropriate `DataSyncService.notify...Changed()` method before returning.
-3. **Financial Ledger:** Billable actions (Consultations, Surgeries, Pharmacy sales) MUST atomically insert/update `financial_transactions` (and `customer_payments` if `paid_amount > 0`) inside a single SQLite `db.transaction()`.
-4. **Database Schema:** `DatabaseTables` is the SINGLE source of truth for SQL table definitions. `DatabaseHelper.ensureAllTablesExist()` must reference `DatabaseTables` constants directly—never duplicate raw `CREATE TABLE` strings.
+### 2. Mandatory Core Checks Before Completing Any Task
+1. **DI Check:** If a controller or `DataSyncService` touches `PetRepository` or `FinancialRepository`, verify they are registered in the active `Binding` (or have safe fallbacks).
+2. **Financial Ledger Sync:** Billable actions (`Consultations`, `Surgeries`) must atomically record `financial_transactions` (and `customer_payments` only when `paidAmount > 0`). When payment method is `آجل` (`AppPaymentMethods.deferred`), `paidAmount` must be `0.0` and `remainingAmount` must equal the full cost.
+3. **Analyzer Verification:** Always run `flutter analyze` as your final step and fix any warnings or unused imports you introduced.

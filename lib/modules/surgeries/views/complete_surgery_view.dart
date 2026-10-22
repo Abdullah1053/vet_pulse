@@ -221,29 +221,16 @@ class CompleteSurgeryView extends GetView<CompleteSurgeryController> {
                         ],
                       ),
                       const SizedBox(height: 14),
-                      CustomTextField(
-                        label: 'التكلفة الإجمالية للعملية (${AppStringsAr.currencyShort})',
-                        hint: '35000',
-                        controller: controller.finalCostController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
-                      CustomTextField(
-                        label: 'المبلغ المسدد الآن (${AppStringsAr.currencyShort})',
-                        hint: '35000',
-                        controller: controller.paidAmountController,
-                        keyboardType: TextInputType.number,
-                      ),
-                      const SizedBox(height: 12),
                       Obx(() => DropdownButtonFormField<String>(
                             initialValue: controller.selectedPaymentMethod.value,
                             decoration: const InputDecoration(
-                              labelText: 'طريقة السداد',
+                              labelText: 'طريقة السداد *',
                               prefixIcon: Icon(Icons.account_balance_wallet_outlined),
                             ),
-                            items: AppPaymentMethods.fixedOptions.map((opt) {
+                            items: AppPaymentMethods.billingOptions.map((opt) {
                               String label = opt;
                               if (opt == AppPaymentMethods.cash) label = 'نقداً (كاش)';
+                              if (opt == AppPaymentMethods.deferred) label = 'آجل (ذمم / دفع لاحق)';
                               if (opt == AppPaymentMethods.kuraimi) label = 'بنك الكريمي';
                               if (opt == AppPaymentMethods.jawali) label = 'محفظة جوالي';
                               if (opt == AppPaymentMethods.jeeb) label = 'محفظة جيب';
@@ -251,9 +238,101 @@ class CompleteSurgeryView extends GetView<CompleteSurgeryController> {
                               return DropdownMenuItem(value: opt, child: Text(label));
                             }).toList(),
                             onChanged: (val) {
-                              if (val != null) controller.selectedPaymentMethod.value = val;
+                              if (val != null) controller.setPaymentMethod(val);
                             },
                           )),
+                      const SizedBox(height: 12),
+                      CustomTextField(
+                        label: 'التكلفة الإجمالية للعملية (${AppStringsAr.currencyShort})',
+                        hint: '35000',
+                        controller: controller.finalCostController,
+                        keyboardType: TextInputType.number,
+                      ),
+                      Obx(() {
+                        if (controller.isDeferredPayment) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            CustomTextField(
+                              label: 'المبلغ المسدد الآن (${AppStringsAr.currencyShort})',
+                              hint: '35000',
+                              controller: controller.paidAmountController,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 12),
+                      // Live remaining calculation banner for surgery
+                      Obx(() {
+                        final cost = double.tryParse(controller.finalCostController.text.trim()) ?? 0.0;
+                        final remaining = controller.remainingAmount.value;
+                        final isDeferred = controller.isDeferredPayment;
+                        final paid = isDeferred ? 0.0 : (double.tryParse(controller.paidAmountController.text.trim()) ?? 0.0);
+                        final isFullyPaid = !isDeferred && remaining <= 0.001;
+
+                        Color bgColor = isFullyPaid
+                            ? AppColors.success.withValues(alpha: 0.1)
+                            : (isDeferred || paid <= 0.001 ? Colors.red.shade50 : Colors.amber.shade50);
+                        Color borderColor = isFullyPaid
+                            ? AppColors.success.withValues(alpha: 0.4)
+                            : (isDeferred || paid <= 0.001 ? Colors.red.shade300 : Colors.amber.shade400);
+                        Color textColor = isFullyPaid
+                            ? AppColors.success
+                            : (isDeferred || paid <= 0.001 ? Colors.red.shade800 : Colors.amber.shade900);
+                        IconData icon = isFullyPaid
+                            ? Icons.check_circle_outline
+                            : (isDeferred || paid <= 0.001 ? Icons.pending_actions : Icons.hourglass_bottom);
+
+                        String statusTitle;
+                        String statusSubtitle;
+                        if (isDeferred) {
+                          statusTitle = 'مبلغ آجل بالكامل (${cost.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                          statusSubtitle = 'سيتم ترحيل كامل تكلفة العملية كمديونية على حساب العميل';
+                        } else if (isFullyPaid) {
+                          statusTitle = 'مسدد بالكامل (${paid.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                          statusSubtitle = 'لا توجد مبالغ متبقية على هذه العملية';
+                        } else {
+                          statusTitle = 'سداد جزئي - متبقي آجل (${remaining.toStringAsFixed(0)} ${AppStringsAr.currencyShort})';
+                          statusSubtitle = 'تم دفع ${paid.toStringAsFixed(0)} وسيرحل المتبقي كمديونية على حساب العميل';
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(icon, color: textColor, size: 24),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      statusTitle,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    Text(
+                                      statusSubtitle,
+                                      style: TextStyle(fontSize: 11, color: textColor.withValues(alpha: 0.85)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),

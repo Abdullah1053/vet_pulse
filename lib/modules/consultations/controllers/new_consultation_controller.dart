@@ -63,6 +63,22 @@ class NewConsultationController extends GetxController {
   final RxString selectedPaymentMethod = AppPaymentMethods.cash.obs;
   final RxBool showCostInPrescription = true.obs;
 
+  bool get isDeferredPayment => selectedPaymentMethod.value == AppPaymentMethods.deferred;
+
+  void setPaymentMethod(String method) {
+    final oldMethod = selectedPaymentMethod.value;
+    selectedPaymentMethod.value = method;
+    if (method == AppPaymentMethods.deferred) {
+      paidAmountController.text = '0';
+      updateRemainingAmount();
+    } else if (oldMethod == AppPaymentMethods.deferred) {
+      if (paidAmountController.text.trim() == '0' || paidAmountController.text.trim() == '0.0') {
+        paidAmountController.text = costController.text.trim();
+      }
+      updateRemainingAmount();
+    }
+  }
+
   // Surgery Option
   final RxBool needSurgery = false.obs;
   final surgeryNameController = TextEditingController();
@@ -124,6 +140,10 @@ class NewConsultationController extends GetxController {
 
   void updateRemainingAmount() {
     final cost = double.tryParse(costController.text.trim()) ?? 0.0;
+    if (isDeferredPayment) {
+      remainingAmount.value = cost;
+      return;
+    }
     final paid = double.tryParse(paidAmountController.text.trim()) ?? 0.0;
     remainingAmount.value = (cost - paid).clamp(0.0, double.infinity);
   }
@@ -192,7 +212,7 @@ class NewConsultationController extends GetxController {
         diagnosis: diagnosis,
         treatmentPlan: planController.text.trim(),
         visitCost: double.tryParse(costController.text.trim()) ?? 0.0,
-        paidAmount: double.tryParse(paidAmountController.text.trim()) ?? 0.0,
+        paidAmount: isDeferredPayment ? 0.0 : (double.tryParse(paidAmountController.text.trim()) ?? 0.0),
         paymentMethod: selectedPaymentMethod.value,
         petName: selectedPet.value!.name,
         petSpecies: selectedPet.value!.species,

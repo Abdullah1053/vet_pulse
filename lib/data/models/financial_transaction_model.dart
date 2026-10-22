@@ -115,6 +115,9 @@ class FinancialTransactionModel {
 
   String get paymentMethodDisplayArabic {
     switch (paymentMethod) {
+      case 'deferred':
+      case 'آجل':
+        return 'آجل (مديونية)';
       case 'cash':
       case 'نقدا':
         return 'نقدا';
