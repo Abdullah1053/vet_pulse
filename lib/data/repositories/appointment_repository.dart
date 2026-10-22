@@ -1,4 +1,6 @@
+import 'package:get/get.dart';
 import '../../core/services/data_sync_service.dart';
+import '../../core/services/notification_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/follow_up_model.dart';
@@ -62,6 +64,9 @@ class AppointmentRepository {
     final db = await _dbHelper.database;
     final res = await db.insert(DatabaseTables.tableFollowUps, followUp.toMap());
     DataSyncService.notifyFollowUpChanged(petId: followUp.petId);
+    if (Get.isRegistered<NotificationService>()) {
+      NotificationService.to.scheduleFollowUpReminder(followUp.copyWith(id: res));
+    }
     return res;
   }
 
@@ -74,6 +79,13 @@ class AppointmentRepository {
       whereArgs: [followUp.id],
     );
     DataSyncService.notifyFollowUpChanged(petId: followUp.petId);
+    if (Get.isRegistered<NotificationService>()) {
+      if (followUp.status == 'pending') {
+        NotificationService.to.scheduleFollowUpReminder(followUp);
+      } else if (followUp.id != null) {
+        NotificationService.to.cancelFollowUpReminder(followUp.id!);
+      }
+    }
     return res;
   }
 
@@ -91,6 +103,9 @@ class AppointmentRepository {
       whereArgs: [id],
     );
     DataSyncService.notifyFollowUpChanged(petId: petId);
+    if (status != 'pending' && Get.isRegistered<NotificationService>()) {
+      NotificationService.to.cancelFollowUpReminder(id);
+    }
     return res;
   }
 
@@ -124,6 +139,9 @@ class AppointmentRepository {
       whereArgs: [id],
     );
     DataSyncService.notifyFollowUpChanged(petId: petId);
+    if (Get.isRegistered<NotificationService>()) {
+      NotificationService.to.cancelFollowUpReminder(id);
+    }
     return res;
   }
 

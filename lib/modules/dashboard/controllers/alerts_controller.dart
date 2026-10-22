@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../data/models/follow_up_model.dart';
+import '../../../data/models/surgery_model.dart';
 import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
 
@@ -172,6 +175,14 @@ class AlertsController extends GetxController {
           if (alert != null) list.add(alert);
         }
       }
+      if (Get.isRegistered<NotificationService>()) {
+        for (final row in followUpRows) {
+          try {
+            final followUp = FollowUpModel.fromMap(row);
+            NotificationService.to.scheduleFollowUpReminder(followUp);
+          } catch (_) {}
+        }
+      }
 
       // 2. Surgeries from repository
       final surgeryRows = await _surgeryRepo.getScheduledSurgeriesForAlerts();
@@ -192,6 +203,14 @@ class AlertsController extends GetxController {
             diff: diff,
           );
           if (alert != null) list.add(alert);
+        }
+      }
+      if (Get.isRegistered<NotificationService>()) {
+        for (final row in surgeryRows) {
+          try {
+            final surgery = SurgeryModel.fromMap(row);
+            NotificationService.to.scheduleSurgeryReminders(surgery);
+          } catch (_) {}
         }
       }
 
@@ -249,35 +268,7 @@ class AlertsController extends GetxController {
   }
 
   DateTime? _parseDateTime(String dateStr, String? timeStr) {
-    try {
-      final cleanDate = dateStr.trim().split(' ').first;
-      final parts = cleanDate.split('-');
-      if (parts.length != 3) return null;
-      final year = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final day = int.parse(parts[2]);
-
-      int hour = 9;
-      int minute = 0;
-
-      final checkTime = timeStr ?? (dateStr.trim().contains(' ') ? dateStr.trim().split(' ').sublist(1).join(' ') : null);
-
-      if (checkTime != null && checkTime.isNotEmpty) {
-        final isPm = checkTime.contains('م') || checkTime.toLowerCase().contains('pm');
-        final rawNumbers = RegExp(r'(\d+):(\d+)').firstMatch(checkTime);
-        if (rawNumbers != null) {
-          hour = int.parse(rawNumbers.group(1)!);
-          minute = int.parse(rawNumbers.group(2)!);
-          if (isPm && hour < 12) hour += 12;
-          if (!isPm && hour == 12 && (checkTime.contains('ص') || checkTime.toLowerCase().contains('am'))) {
-            hour = 0;
-          }
-        }
-      }
-      return DateTime(year, month, day, hour, minute);
-    } catch (_) {
-      return null;
-    }
+    return NotificationService.parseDateTime(dateStr, timeStr);
   }
 
   Future<void> sendWhatsAppAlert(ClinicAlertItem item) async {

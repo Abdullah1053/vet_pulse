@@ -1,4 +1,6 @@
+import 'package:get/get.dart';
 import '../../core/services/data_sync_service.dart';
+import '../../core/services/notification_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/follow_up_model.dart';
@@ -76,6 +78,9 @@ class SurgeryRepository {
     final db = await _dbHelper.database;
     final res = await db.insert(DatabaseTables.tableSurgeries, surgery.toMap());
     DataSyncService.notifySurgeryChanged(petId: surgery.petId);
+    if (Get.isRegistered<NotificationService>()) {
+      NotificationService.to.scheduleSurgeryReminders(surgery.copyWith(id: res));
+    }
     return res;
   }
 
@@ -88,6 +93,13 @@ class SurgeryRepository {
       whereArgs: [surgery.id],
     );
     DataSyncService.notifySurgeryChanged(petId: surgery.petId);
+    if (Get.isRegistered<NotificationService>()) {
+      if (surgery.status == 'scheduled') {
+        NotificationService.to.scheduleSurgeryReminders(surgery);
+      } else if (surgery.id != null) {
+        NotificationService.to.cancelSurgeryReminders(surgery.id!);
+      }
+    }
     return res;
   }
 
@@ -159,6 +171,9 @@ class SurgeryRepository {
     if (followUp != null) {
       DataSyncService.notifyFollowUpChanged(petId: surgery.petId);
     }
+    if (Get.isRegistered<NotificationService>() && surgery.id != null) {
+      NotificationService.to.cancelSurgeryReminders(surgery.id!);
+    }
   }
 
   Future<int> togglePreOpChecklist(int id, bool passed) async {
@@ -192,6 +207,9 @@ class SurgeryRepository {
       whereArgs: [id],
     );
     DataSyncService.notifySurgeryChanged(petId: petId);
+    if (status != 'scheduled' && Get.isRegistered<NotificationService>()) {
+      NotificationService.to.cancelSurgeryReminders(id);
+    }
     return res;
   }
 
@@ -208,6 +226,9 @@ class SurgeryRepository {
       whereArgs: [id],
     );
     DataSyncService.notifySurgeryChanged(petId: petId);
+    if (Get.isRegistered<NotificationService>()) {
+      NotificationService.to.cancelSurgeryReminders(id);
+    }
     return res;
   }
 
