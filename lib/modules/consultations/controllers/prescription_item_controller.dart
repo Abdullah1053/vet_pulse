@@ -9,7 +9,10 @@ class PrescriptionItemController extends GetxController {
   final InventoryRepository inventoryRepo;
 
   PrescriptionItemController({InventoryRepository? inventoryRepo})
-      : inventoryRepo = inventoryRepo ?? Get.find<InventoryRepository>();
+      : inventoryRepo = inventoryRepo ??
+            (Get.isRegistered<InventoryRepository>()
+                ? Get.find<InventoryRepository>()
+                : Get.put(InventoryRepository(), permanent: true));
 
   // Available medicines for clinic use
   final RxList<MedicineModel> availableMedicines = <MedicineModel>[].obs;

@@ -41,7 +41,7 @@ class DashboardController extends GetxController {
   Future<void> loadDashboardData() async {
     isLoading.value = true;
     try {
-      todaySurgeries.value = await _surgeryRepo.getTodaySurgeriesCount();
+      todaySurgeries.value = await _surgeryRepo.getScheduledSurgeriesCount();
       pendingFollowUps.value = await _appointmentRepo.getPendingTodayCount();
 
       final lowStock = await _inventoryRepo.getLowStockMedicines();

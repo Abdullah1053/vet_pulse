@@ -4,6 +4,7 @@ import '../../core/services/notification_service.dart';
 import '../database/database_helper.dart';
 import '../database/database_tables.dart';
 import '../models/follow_up_model.dart';
+import '../models/prescription_model.dart';
 import '../models/surgery_model.dart';
 
 class SurgeryRepository {
@@ -23,7 +24,7 @@ class SurgeryRepository {
       INNER JOIN ${DatabaseTables.tablePets} p ON s.pet_id = p.id
       INNER JOIN ${DatabaseTables.tableUsers} u ON s.lead_surgeon_id = u.id
       INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
-      ORDER BY s.scheduled_date DESC
+      ORDER BY s.scheduled_date DESC, s.id DESC
     ''';
     final res = await db.rawQuery(sql);
     return res.map((m) => SurgeryModel.fromMap(m)).toList();
@@ -68,7 +69,7 @@ class SurgeryRepository {
       LEFT JOIN ${DatabaseTables.tableUsers} u ON s.lead_surgeon_id = u.id
       INNER JOIN ${DatabaseTables.tableOwners} o ON p.owner_id = o.id
       WHERE s.pet_id = ?
-      ORDER BY s.scheduled_date DESC
+      ORDER BY s.scheduled_date DESC, s.id DESC
     ''';
     final res = await db.rawQuery(sql, [petId]);
     return res.map((m) => SurgeryModel.fromMap(m)).toList();
@@ -109,8 +110,11 @@ class SurgeryRepository {
     double paidAmount = 0.0,
     String paymentMethod = 'نقدا',
     FollowUpModel? followUp,
+    List<PrescriptionModel> medications = const [],
   }) async {
     final db = await _dbHelper.database;
+    bool hasClinicDeduction = false;
+
     await db.transaction((txn) async {
       // 1. Update Surgery record to completed
       await txn.update(
@@ -120,7 +124,31 @@ class SurgeryRepository {
         whereArgs: [surgery.id],
       );
 
-      // 2. Insert Follow-up if requested
+      // 2. Deduct clinic shelf stock ONLY for in-clinic administered medications
+      for (final rx in medications) {
+        if (rx.isClinicAdministered && rx.medicineId != null && rx.medicineId! > 0) {
+          final medRows = await txn.query(
+            DatabaseTables.tableMedicines,
+            where: 'id = ?',
+            whereArgs: [rx.medicineId],
+            limit: 1,
+          );
+
+          if (medRows.isNotEmpty) {
+            final currentStock = medRows.first['clinic_stock'] as int? ?? 0;
+            final updatedStock = (currentStock - rx.quantityDispensed).clamp(0, 999999);
+            await txn.update(
+              DatabaseTables.tableMedicines,
+              {'clinic_stock': updatedStock},
+              where: 'id = ?',
+              whereArgs: [rx.medicineId],
+            );
+            hasClinicDeduction = true;
+          }
+        }
+      }
+
+      // 3. Insert Follow-up if requested
       if (followUp != null) {
         await txn.insert(
           DatabaseTables.tableFollowUps,
@@ -128,7 +156,7 @@ class SurgeryRepository {
         );
       }
 
-      // 3. Atomically record income transaction in financial ledger
+      // 4. Atomically record income transaction in financial ledger
       if (finalCost > 0) {
         final existingTx = await txn.query(
           DatabaseTables.tableTransactions,
@@ -149,7 +177,7 @@ class SurgeryRepository {
           final paid = paidAmount.clamp(0.0, finalCost);
           final remaining = (finalCost - paid).clamp(0.0, double.infinity);
 
-          await txn.insert(DatabaseTables.tableTransactions, {
+          final txId = await txn.insert(DatabaseTables.tableTransactions, {
             'transaction_type': 'income',
             'category': 'surgery',
             'owner_id': ownerId,
@@ -163,17 +191,47 @@ class SurgeryRepository {
             'transaction_date': DateTime.now().toIso8601String(),
             'notes': 'أتعاب عملية جراحية: ${surgery.surgeryName}${remaining > 0 ? ' (متبقي آجل: ${remaining.toStringAsFixed(0)} ر.ي)' : ' (خالص ومسدد بالكامل)'}',
           });
+
+          if (paid > 0) {
+            await txn.insert(DatabaseTables.tableCustomerPayments, {
+              'transaction_id': txId,
+              'owner_id': ownerId,
+              'amount': paid,
+              'payment_method': paymentMethod,
+              'receipt_number': 'REC-SURG-${surgery.id}-1',
+              'payment_date': DateTime.now().toIso8601String(),
+              'notes': 'دفعة مسددة أتعاب عملية جراحية',
+            });
+          }
         }
       }
     });
 
     DataSyncService.notifySurgeryChanged(petId: surgery.petId);
+    DataSyncService.notifyFinancialChanged();
     if (followUp != null) {
       DataSyncService.notifyFollowUpChanged(petId: surgery.petId);
+    }
+    if (hasClinicDeduction) {
+      DataSyncService.notifyInventoryChanged();
     }
     if (Get.isRegistered<NotificationService>() && surgery.id != null) {
       NotificationService.to.cancelSurgeryReminders(surgery.id!);
     }
+  }
+
+  Future<Map<String, dynamic>?> getSurgeryFinancialSummary(int surgeryId) async {
+    final db = await _dbHelper.database;
+    final res = await db.query(
+      DatabaseTables.tableTransactions,
+      where: 'reference_type = ? AND reference_id = ?',
+      whereArgs: ['surgery', surgeryId],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return res.first;
+    }
+    return null;
   }
 
   Future<int> togglePreOpChecklist(int id, bool passed) async {
@@ -213,23 +271,59 @@ class SurgeryRepository {
     return res;
   }
 
-  Future<int> deleteSurgery(int id) async {
+  Future<int> cancelSurgery(int id, {String? cancelReason}) async {
     final db = await _dbHelper.database;
     int? petId;
+    String? existingNotes;
     try {
-      final rows = await db.query(DatabaseTables.tableSurgeries, columns: ['pet_id'], where: 'id = ?', whereArgs: [id]);
-      if (rows.isNotEmpty) petId = rows.first['pet_id'] as int?;
+      final rows = await db.query(
+        DatabaseTables.tableSurgeries,
+        columns: ['pet_id', 'post_op_notes'],
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (rows.isNotEmpty) {
+        petId = rows.first['pet_id'] as int?;
+        existingNotes = rows.first['post_op_notes'] as String?;
+      }
     } catch (_) {}
-    final res = await db.delete(
+
+    String updatedNotes = existingNotes ?? '';
+    if (cancelReason != null && cancelReason.isNotEmpty) {
+      if (updatedNotes.isNotEmpty) {
+        updatedNotes = '$cancelReason\n$updatedNotes';
+      } else {
+        updatedNotes = cancelReason;
+      }
+    }
+
+    final res = await db.update(
       DatabaseTables.tableSurgeries,
+      {
+        'status': 'cancelled',
+        if (updatedNotes.isNotEmpty) 'post_op_notes': updatedNotes,
+      },
       where: 'id = ?',
       whereArgs: [id],
     );
+
     DataSyncService.notifySurgeryChanged(petId: petId);
     if (Get.isRegistered<NotificationService>()) {
       NotificationService.to.cancelSurgeryReminders(id);
     }
     return res;
+  }
+
+  Future<int> deleteSurgery(int id) async {
+    return cancelSurgery(id);
+  }
+
+  Future<int> getScheduledSurgeriesCount() async {
+    final db = await _dbHelper.database;
+    final res = await db.rawQuery(
+      "SELECT COUNT(*) as cnt FROM ${DatabaseTables.tableSurgeries} WHERE status IN ('scheduled', 'in_progress')",
+    );
+    return res.first['cnt'] as int? ?? 0;
   }
 
   Future<int> getTodaySurgeriesCount() async {

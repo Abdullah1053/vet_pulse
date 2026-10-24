@@ -27,6 +27,7 @@ import '../modules/surgeries/bindings/surgery_binding.dart';
 import '../modules/surgeries/views/complete_surgery_view.dart';
 import '../modules/surgeries/views/new_surgery_view.dart';
 import '../modules/surgeries/views/surgery_calendar_view.dart';
+import '../modules/surgeries/views/surgery_detail_view.dart';
 import '../modules/users_management/bindings/users_binding.dart';
 import '../modules/users_management/views/users_list_view.dart';
 import '../modules/financials/bindings/financial_binding.dart';
@@ -160,6 +161,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.completeSurgery,
       page: () => const CompleteSurgeryView(),
+      binding: SurgeryBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.surgeryDetail,
+      page: () => const SurgeryDetailView(),
       binding: SurgeryBinding(),
     ),
 

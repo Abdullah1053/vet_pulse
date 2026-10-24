@@ -3,12 +3,21 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_payment_methods.dart';
 import '../../../data/models/surgery_model.dart';
 import '../../../data/repositories/surgery_repository.dart';
+import '../../../routes/app_routes.dart';
+import '../../consultations/controllers/prescription_item_controller.dart';
 import 'surgery_follow_up_controller.dart';
 
 class CompleteSurgeryController extends GetxController {
   final SurgeryRepository _surgeryRepo;
+  final PrescriptionItemController prescriptionController;
 
-  CompleteSurgeryController(this._surgeryRepo);
+  CompleteSurgeryController(
+    this._surgeryRepo, {
+    PrescriptionItemController? prescriptionController,
+  }) : prescriptionController = prescriptionController ??
+            (Get.isRegistered<PrescriptionItemController>()
+                ? Get.find<PrescriptionItemController>()
+                : Get.put(PrescriptionItemController()));
 
   final Rx<SurgeryModel?> surgery = Rx<SurgeryModel?>(null);
   final RxBool isInitialized = false.obs;
@@ -101,6 +110,24 @@ class CompleteSurgeryController extends GetxController {
       combinedNotes.writeln('\n🏠 تعليمات الرعاية المنزلية للمالك:');
       combinedNotes.writeln(homeCareInstructionsController.text.trim());
 
+      final clinicMedications = prescriptionController.clinicTreatments.toList();
+      final homeMedications = prescriptionController.homePrescriptions.toList();
+      final allMedications = [...clinicMedications, ...homeMedications];
+
+      if (clinicMedications.isNotEmpty) {
+        combinedNotes.writeln('\n💉 العلاجات والإبر المعطاة بالعيادة:');
+        for (final m in clinicMedications) {
+          combinedNotes.writeln('• ${m.displayName}: ${m.dosage} (${m.route ?? "حقن"})');
+        }
+      }
+
+      if (homeMedications.isNotEmpty) {
+        combinedNotes.writeln('\n💊 روشتة العلاج المنزلي:');
+        for (final m in homeMedications) {
+          combinedNotes.writeln('• ${m.displayName}: ${m.dosage} (${m.frequency} لمدة ${m.durationDays} يوم)');
+        }
+      }
+
       final finalCost = double.tryParse(finalCostController.text.trim()) ?? surg.estimatedCost ?? 0.0;
       final paidAmount = isDeferredPayment ? 0.0 : (double.tryParse(paidAmountController.text.trim()) ?? 0.0);
 
@@ -119,9 +146,10 @@ class CompleteSurgeryController extends GetxController {
         paidAmount: paidAmount,
         paymentMethod: selectedPaymentMethod.value,
         followUp: followUp,
+        medications: allMedications,
       );
 
-      Get.back(result: true);
+      Get.offNamed(AppRoutes.surgeryDetail, arguments: updatedSurgery);
       Get.snackbar(
         'تم إتمام العملية بنجاح',
         'تم تسجيل تقرير العملية الجراحية وقيد المعاملة المالية${followUp != null ? " وحجز موعد المراجعة" : ""} بنجاح',

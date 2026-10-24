@@ -179,7 +179,7 @@ void main() {
       );
 
       expect(surgery.preOpChecklistPassed, isTrue);
-      expect(surgery.statusDisplayArabic, 'مجدولة');
+      expect(surgery.statusDisplayArabic, 'مجدولة (اليوم)');
     });
   });
 }

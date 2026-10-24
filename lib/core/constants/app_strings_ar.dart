@@ -56,7 +56,7 @@ class AppStringsAr {
   // Dashboard KPIs
   static const String dashboard = 'لوحة التحكم';
   static const String todayVisits = 'كشوفات اليوم';
-  static const String todaySurgeries = 'عمليات اليوم';
+  static const String todaySurgeries = 'العمليات المجدولة';
   static const String pendingFollowUps = 'مراجعات مستحقة';
   static const String lowStockAlerts = 'أدوية أوشكت على النفاد';
   static const String expiredMedsAlerts = 'أدوية منتهية / قريبة';

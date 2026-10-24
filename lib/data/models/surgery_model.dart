@@ -74,19 +74,34 @@ class SurgeryModel {
     };
   }
 
+  bool get isToday {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    return scheduledDate.startsWith(today);
+  }
+
+  bool get isNoShow =>
+      (status == 'cancelled' && (postOpNotes?.contains('[لم يحضر الموعد]') ?? false)) ||
+      status == 'missed';
+
+  bool get isOverdue {
+    if (isNoShow) return true;
+    if (status != 'scheduled') return false;
+    final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+    final dateStr = scheduledDate.length >= 10 ? scheduledDate.substring(0, 10) : scheduledDate;
+    return dateStr.compareTo(todayStr) < 0;
+  }
+
   String get statusDisplayArabic {
-    switch (status) {
-      case 'scheduled':
-        return 'مجدولة';
-      case 'in_progress':
-        return 'جارية الآن';
-      case 'completed':
-        return 'مكتملة بنجاح';
-      case 'cancelled':
-        return 'ملغية';
-      default:
-        return status;
+    if (status == 'completed') return 'مكتملة بنجاح';
+    if (status == 'in_progress') return 'جارية الآن';
+    if (isNoShow) return 'متأخرة / لم يحضر';
+    if (status == 'cancelled') return 'ملغية';
+    if (status == 'scheduled') {
+      if (isOverdue) return 'متأخرة / لم يحضر';
+      if (isToday) return 'مجدولة (اليوم)';
+      return 'مجدولة (قادمة)';
     }
+    return status;
   }
 
   SurgeryModel copyWith({

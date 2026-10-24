@@ -11,6 +11,25 @@ class SurgeryListController extends GetxController {
 
   final RxList<SurgeryModel> surgeries = <SurgeryModel>[].obs;
   final RxBool isLoading = false.obs;
+  final RxString selectedFilter = 'all'.obs;
+
+  List<SurgeryModel> get filteredSurgeries {
+    switch (selectedFilter.value) {
+      case 'today':
+        return surgeries.where((s) => s.isToday && s.status != 'cancelled').toList();
+      case 'overdue':
+        return surgeries.where((s) => s.isOverdue).toList();
+      case 'upcoming':
+        return surgeries.where((s) => s.status == 'scheduled' && !s.isToday && !s.isOverdue).toList();
+      case 'all':
+      default:
+        return surgeries;
+    }
+  }
+
+  void setFilter(String filter) {
+    selectedFilter.value = filter;
+  }
 
   @override
   void onInit() {
@@ -51,12 +70,36 @@ class SurgeryListController extends GetxController {
     }
   }
 
-  Future<void> deleteSurgery(int id, {int? petId}) async {
-    await _surgeryRepo.deleteSurgery(id);
+  Future<void> cancelSurgery(int id, {String? cancelReason, int? petId}) async {
+    await _surgeryRepo.cancelSurgery(id, cancelReason: cancelReason);
     await loadSurgeries();
     DataSyncService.notifySurgeryChanged(petId: petId);
     if (Get.context != null) {
-      Get.snackbar('تم الحذف', 'تم حذف حجز العملية الجراحية بنجاح', backgroundColor: Colors.green.shade100);
+      Get.snackbar(
+        'تم الإلغاء',
+        'تم إلغاء موعد العملية مع الاحتفاظ بالسجل في التاريخ الطبي',
+        backgroundColor: Colors.amber.shade100,
+      );
     }
+  }
+
+  Future<void> markNoShow(int id, {int? petId}) async {
+    await _surgeryRepo.cancelSurgery(
+      id,
+      cancelReason: '[لم يحضر الموعد] لم يحضر المريض للجراحة في الموعد المحدد',
+    );
+    await loadSurgeries();
+    DataSyncService.notifySurgeryChanged(petId: petId);
+    if (Get.context != null) {
+      Get.snackbar(
+        'تم التسجيل',
+        'تم تسجيل عدم حضور المريض بنجاح',
+        backgroundColor: Colors.amber.shade100,
+      );
+    }
+  }
+
+  Future<void> deleteSurgery(int id, {int? petId}) async {
+    await cancelSurgery(id, cancelReason: 'تم إلغاء الحجز بواسطة الطبيب', petId: petId);
   }
 }

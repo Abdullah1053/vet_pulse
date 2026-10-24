@@ -6,6 +6,8 @@ import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../routes/app_routes.dart';
+import '../../consultations/widgets/clinic_treatments_section.dart';
+import '../../consultations/widgets/home_prescriptions_section.dart';
 import '../controllers/complete_surgery_controller.dart';
 import '../widgets/surgery_follow_up_card.dart';
 
@@ -201,7 +203,15 @@ class CompleteSurgeryView extends GetView<CompleteSurgeryController> {
               ),
               const SizedBox(height: 16),
 
-              // Card 3: Post-Op Follow-up Booking Sub-view
+              // Card 3: In-Clinic Administered Injections & Treatments
+              const ClinicTreatmentsSection(),
+              const SizedBox(height: 16),
+
+              // Card 4: Prescribed Home Medications
+              const HomePrescriptionsSection(),
+              const SizedBox(height: 16),
+
+              // Card 5: Post-Op Follow-up Booking Sub-view
               const SurgeryFollowUpCard(),
               const SizedBox(height: 16),
 

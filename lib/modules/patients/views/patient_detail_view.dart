@@ -617,43 +617,42 @@ class PatientDetailView extends GetView<PatientDetailController> {
                           separatorBuilder: (_, _) => const Divider(height: 16),
                           itemBuilder: (context, idx) {
                             final s = controller.petSurgeries[idx];
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          s.surgeryName,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: s.status == 'completed' ? Colors.green.shade50 : Colors.amber.shade50,
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: s.status == 'completed' ? Colors.green.shade300 : Colors.amber.shade300),
-                                        ),
-                                        child: Text(
-                                          s.statusDisplayArabic,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: s.status == 'completed' ? Colors.green.shade800 : Colors.amber.shade900,
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(10),
+                              onTap: () => Get.toNamed(AppRoutes.surgeryDetail, arguments: s),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            s.surgeryName,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                        StatusChip(
+                                          label: s.statusDisplayArabic,
+                                          type: s.status == 'completed'
+                                              ? ChipStatusType.success
+                                              : (s.status == 'in_progress'
+                                                  ? ChipStatusType.warning
+                                                  : (s.isOverdue || s.isNoShow
+                                                      ? ChipStatusType.critical
+                                                      : (s.status == 'cancelled'
+                                                          ? ChipStatusType.neutral
+                                                          : ChipStatusType.info))),
+                                        ),
+                                      ],
+                                    ),
                                   const SizedBox(height: 6),
                                   Row(
                                     children: [
@@ -691,7 +690,8 @@ class PatientDetailView extends GetView<PatientDetailController> {
                                   ],
                                 ],
                               ),
-                            );
+                            ),
+                          );
                           },
                         ),
                     ],

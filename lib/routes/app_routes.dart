@@ -29,6 +29,7 @@ abstract class AppRoutes {
   static const surgeries = '/surgeries';
   static const newSurgery = '/surgeries/new';
   static const completeSurgery = '/surgeries/complete';
+  static const surgeryDetail = '/surgeries/detail';
 
   static const usersManagement = '/users';
 
