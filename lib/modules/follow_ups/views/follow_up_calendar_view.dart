@@ -218,18 +218,18 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                   return Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () => Get.toNamed(AppRoutes.patientDetail, arguments: item.petId),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => Get.toNamed(AppRoutes.followUpDetail, arguments: item),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
                                   child: Row(
                                     children: [
                                       CircleAvatar(
@@ -242,19 +242,11 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Row(
-                                              children: [
-                                                Flexible(
-                                                  child: Text(
-                                                    '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
-                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                const Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.primary),
-                                              ],
+                                            Text(
+                                              '${item.petName ?? "المريض"} (${item.petSpecies ?? ""})',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                             Text(
                                               'المالك: ${item.ownerName ?? "غير محدد"}',
@@ -268,113 +260,118 @@ class FollowUpCalendarView extends GetView<FollowUpController> {
                                     ],
                                   ),
                                 ),
-                              ),
-                              Row(
-                                children: [
-                                  _buildStatusTag(item.statusDisplayArabic, item.isOverdue, item.isToday),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
-                                    onSelected: (action) {
-                                      if (action == 'edit') {
-                                        controller.initEdit(item);
-                                        _showScheduleDialog(context, isEdit: true);
-                                      } else if (action == 'delete') {
-                                        _confirmDelete(context, item.id!, item.petName ?? 'المريض');
-                                      }
-                                    },
-                                    itemBuilder: (ctx) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.edit, size: 18, color: AppColors.primary),
-                                            SizedBox(width: 8),
-                                            Text(AppStringsAr.edit),
-                                          ],
+                                Row(
+                                  children: [
+                                    _buildStatusTag(item.statusDisplayArabic, item.isOverdue, item.isToday),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                                      onSelected: (action) {
+                                        if (action == 'detail') {
+                                          Get.toNamed(AppRoutes.followUpDetail, arguments: item);
+                                        } else if (action == 'edit') {
+                                          controller.initEdit(item);
+                                          _showScheduleDialog(context, isEdit: true);
+                                        } else if (action == 'delete') {
+                                          _confirmDelete(context, item.id!, item.petName ?? 'المريض');
+                                        }
+                                      },
+                                      itemBuilder: (ctx) => [
+                                        const PopupMenuItem(
+                                          value: 'detail',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.visibility_outlined, size: 18, color: AppColors.primary),
+                                              SizedBox(width: 8),
+                                              Text('جلسة وفحص المراجعة'),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete, size: 18, color: AppColors.critical),
-                                            SizedBox(width: 8),
-                                            Text(AppStringsAr.delete),
-                                          ],
+                                        const PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, size: 18, color: AppColors.primary),
+                                              SizedBox(width: 8),
+                                              Text(AppStringsAr.edit),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20),
-                          Row(
-                            children: [
-                              const Icon(Icons.calendar_today, size: 14, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(
-                                item.scheduledDate,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                              if (item.scheduledTime != null) ...[
-                                const SizedBox(width: 12),
-                                const Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
-                                const SizedBox(width: 4),
-                                Text(item.scheduledTime!, style: const TextStyle(fontSize: 13)),
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete, size: 18, color: AppColors.critical),
+                                              SizedBox(width: 8),
+                                              Text(AppStringsAr.delete),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'سبب المراجعة: ${item.reason}',
-                            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.darkNeutral),
-                          ),
-                          if (item.notes != null && item.notes!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
+                            ),
+                            const Divider(height: 20),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today, size: 14, color: AppColors.primary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  item.scheduledDate,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                if (item.scheduledTime != null) ...[
+                                  const SizedBox(width: 12),
+                                  const Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
+                                  const SizedBox(width: 4),
+                                  Text(item.scheduledTime!, style: const TextStyle(fontSize: 13)),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 8),
                             Text(
-                              'ملاحظات: ${item.notes}',
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              'سبب المراجعة: ${item.reason}',
+                              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.darkNeutral),
+                            ),
+                            if (item.notes != null && item.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'ملاحظات: ${item.notes}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+
+                            // Actions: One-Tap WhatsApp Reminder & Details Link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () => controller.sendWhatsAppReminder(item),
+                                  icon: const Icon(Icons.chat, size: 16),
+                                  label: Text(
+                                    item.reminderSent ? 'تم إرسال تذكير (إعادة)' : 'إرسال تذكير واتساب',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => Get.toNamed(AppRoutes.followUpDetail, arguments: item),
+                                  icon: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                                  label: const Text(
+                                    'جلسة المراجعة',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                          const SizedBox(height: 14),
-
-                          // Actions: One-Tap WhatsApp Reminder & Mark Done
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () => controller.sendWhatsAppReminder(item),
-                                icon: const Icon(Icons.chat, size: 16),
-                                label: Text(
-                                  item.reminderSent ? 'تم إرسال تذكير (إعادة)' : 'إرسال تذكير واتساب',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF25D366),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  if (item.isPending)
-                                    IconButton(
-                                      icon: const Icon(Icons.check_circle_outline, color: AppColors.success),
-                                      tooltip: 'إتمام المراجعة',
-                                      onPressed: () => controller.markStatus(item.id!, 'completed'),
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(Icons.cancel_outlined, color: AppColors.critical),
-                                    tooltip: 'إلغاء الموعد',
-                                    onPressed: () => controller.markStatus(item.id!, 'cancelled'),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   );

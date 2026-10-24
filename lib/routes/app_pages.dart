@@ -13,6 +13,7 @@ import '../modules/dashboard/views/dashboard_view.dart';
 import '../modules/dashboard/views/weekly_reports_view.dart';
 import '../modules/follow_ups/bindings/follow_up_binding.dart';
 import '../modules/follow_ups/views/follow_up_calendar_view.dart';
+import '../modules/follow_ups/views/follow_up_detail_view.dart';
 import '../modules/patients/bindings/patient_binding.dart';
 import '../modules/patients/views/add_patient_view.dart';
 import '../modules/patients/views/owner_detail_view.dart';
@@ -144,6 +145,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.followUps,
       page: () => const FollowUpCalendarView(),
+      binding: FollowUpBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.followUpDetail,
+      page: () => const FollowUpDetailView(),
       binding: FollowUpBinding(),
     ),
 

@@ -25,6 +25,7 @@ abstract class AppRoutes {
   static const stockTransfer = '/pharmacy/transfer';
 
   static const followUps = '/follow-ups';
+  static const followUpDetail = '/follow-ups/detail';
 
   static const surgeries = '/surgeries';
   static const newSurgery = '/surgeries/new';

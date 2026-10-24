@@ -754,64 +754,57 @@ class PatientDetailView extends GetView<PatientDetailController> {
                           separatorBuilder: (_, _) => const Divider(height: 16),
                           itemBuilder: (context, idx) {
                             final f = controller.petFollowUps[idx];
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          children: [
-                                            const Icon(Icons.alarm, size: 16, color: AppColors.primary),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              child: Text(
-                                                '${f.scheduledDate} ${f.scheduledTime != null ? "(${f.scheduledTime})" : ""}',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(10),
+                              onTap: () => Get.toNamed(AppRoutes.followUpDetail, arguments: f),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.alarm, size: 16, color: AppColors.primary),
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: Text(
+                                                  '${f.scheduledDate} ${f.scheduledTime != null ? "(${f.scheduledTime})" : ""}',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: f.status == 'completed'
-                                              ? Colors.green.shade50
-                                              : (f.isOverdue ? Colors.red.shade50 : Colors.blue.shade50),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          f.statusDisplayArabic,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: f.status == 'completed'
-                                              ? Colors.green.shade800
-                                              : (f.isOverdue ? Colors.red.shade800 : Colors.blue.shade800),
+                                            ],
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        StatusChip(
+                                          label: f.statusDisplayArabic,
+                                          type: f.isCompleted
+                                              ? ChipStatusType.success
+                                              : (f.isMissed || f.isOverdue
+                                                  ? ChipStatusType.critical
+                                                  : (f.isToday ? ChipStatusType.warning : ChipStatusType.info)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text('سبب المراجعة: ${f.reason}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                    if (f.notes != null && f.notes!.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text('ملاحظات: ${f.notes}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                     ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text('سبب المراجعة: ${f.reason}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                  if (f.notes != null && f.notes!.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text('ملاحظات المالك: ${f.notes}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                                   ],
-                                ],
+                                ),
                               ),
                             );
                           },

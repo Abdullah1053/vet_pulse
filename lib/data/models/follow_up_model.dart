@@ -90,7 +90,7 @@ class FollowUpModel {
       case 'completed':
         return 'تمت الزيارة';
       case 'missed':
-        return 'فائتة';
+        return 'فائتة / لم يحضر';
       case 'cancelled':
         return 'ملغية';
       default:
