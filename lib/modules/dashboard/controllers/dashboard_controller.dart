@@ -1,10 +1,12 @@
 import 'package:get/get.dart';
+import '../../../core/services/license_service.dart';
 import '../../../data/models/consultation_model.dart';
 import '../../../data/models/medicine_model.dart';
 import '../../../data/repositories/appointment_repository.dart';
 import '../../../data/repositories/consultation_repository.dart';
 import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/surgery_repository.dart';
+import '../../../routes/app_routes.dart';
 
 class DashboardController extends GetxController {
   final ConsultationRepository _consultationRepo;
@@ -39,6 +41,12 @@ class DashboardController extends GetxController {
   }
 
   Future<void> loadDashboardData() async {
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
     isLoading.value = true;
     try {
       todaySurgeries.value = await _surgeryRepo.getScheduledSurgeriesCount();

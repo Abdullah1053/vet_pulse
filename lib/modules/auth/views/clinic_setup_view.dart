@@ -189,12 +189,107 @@ class ClinicSetupView extends GetView<AuthController> {
                         prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.primary),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'عنوان المنشأة البيطرية مطلوب' : null,
                       ),
+                      const SizedBox(height: 24),
+
+                      // Lead Doctor Admin Account Credentials Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryLight.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.admin_panel_settings_outlined,
+                                      color: AppColors.primary, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    'بيانات الحساب الرئيسي لمدير النظام (Lead Doctor)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.currentUser.value == null
+                                  ? 'قم بتعيين اسم المستخدم وكلمة المرور ورمز PIN السريع لتسجيل الدخول الأولي للنظام'
+                                  : 'تحديث بيانات الدخول الخاصة بالطبيب الرئيسي',
+                              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Admin Username
+                            CustomTextField(
+                              label: 'اسم مستخدم مدير النظام *',
+                              hint: 'admin',
+                              controller: controller.adminUsernameController,
+                              prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Admin Password
+                            Obx(() => CustomTextField(
+                                  label: controller.currentUser.value == null
+                                      ? 'كلمة مرور مدير النظام *'
+                                      : 'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)',
+                                  hint: '••••••••',
+                                  controller: controller.adminPasswordController,
+                                  obscureText: controller.isAdminPasswordHidden.value,
+                                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      controller.isAdminPasswordHidden.value
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    onPressed: controller.toggleAdminPasswordVisibility,
+                                  ),
+                                )),
+                            const SizedBox(height: 14),
+
+                            // Admin Quick PIN (4 digits)
+                            CustomTextField(
+                              label: 'رمز PIN السريع (4 أرقام لفتح القفل السريع) *',
+                              hint: '1234',
+                              controller: controller.adminPinController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 4,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              prefixIcon: const Icon(Icons.pin_outlined, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 28),
 
                       Obx(() => PrimaryButton(
-                            text: AppStringsAr.save,
+                            text: controller.currentUser.value == null
+                                ? 'حفظ البيانات وبدء تشغيل النظام'
+                                : AppStringsAr.save,
                             isLoading: controller.isLoading.value,
-                            icon: Icons.check,
+                            icon: Icons.check_circle_outline,
                             onPressed: controller.saveClinicProfile,
                           )),
                     ],

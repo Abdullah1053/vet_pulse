@@ -3,10 +3,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'core/constants/app_strings_ar.dart';
 import 'core/constants/app_theme.dart';
+import 'core/services/license_service.dart';
 import 'core/services/notification_service.dart';
 import 'data/database/database_helper.dart';
 import 'modules/auth/controllers/auth_controller.dart';
 import 'routes/app_pages.dart';
+import 'routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,14 +17,28 @@ void main() async {
   await DatabaseHelper.instance.database;
 
   // Initialize global services
+  final licenseService = await Get.putAsync(() => LicenseService().init(), permanent: true);
   Get.put<NotificationService>(NotificationService(), permanent: true);
   Get.put<AuthController>(AuthController(), permanent: true);
 
-  runApp(const VetPulseApp());
+  // Dynamic Initial Startup Routing Guard
+  final String initialRoute;
+  if (!licenseService.onboardingCompleted.value) {
+    initialRoute = AppRoutes.onboarding;
+  } else if (!licenseService.isLicenseActive.value) {
+    initialRoute = AppRoutes.activation;
+  } else if (!licenseService.clinicSetupCompleted.value) {
+    initialRoute = AppRoutes.clinicSetup;
+  } else {
+    initialRoute = AppRoutes.login;
+  }
+
+  runApp(VetPulseApp(initialRoute: initialRoute));
 }
 
 class VetPulseApp extends StatelessWidget {
-  const VetPulseApp({super.key});
+  final String initialRoute;
+  const VetPulseApp({super.key, this.initialRoute = AppRoutes.login});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +46,7 @@ class VetPulseApp extends StatelessWidget {
       title: AppStringsAr.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      
+
       // Native Arabic RTL Configuration
       locale: const Locale('ar', 'SA'),
       fallbackLocale: const Locale('ar', 'SA'),
@@ -44,7 +60,7 @@ class VetPulseApp extends StatelessWidget {
       ],
 
       // Navigation & Routes
-      initialRoute: AppPages.initial,
+      initialRoute: initialRoute,
       getPages: AppPages.routes,
       defaultTransition: Transition.fadeIn,
     );

@@ -1,4 +1,7 @@
 import 'package:get/get.dart';
+import '../modules/onboarding/bindings/onboarding_binding.dart';
+import '../modules/onboarding/views/activation_view.dart';
+import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/clinic_setup_view.dart';
 import '../modules/auth/views/login_view.dart';
@@ -44,6 +47,18 @@ class AppPages {
   static const initial = AppRoutes.login;
 
   static final routes = [
+    // Onboarding & Licensing
+    GetPage(
+      name: AppRoutes.onboarding,
+      page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.activation,
+      page: () => const ActivationView(),
+      binding: ActivationBinding(),
+    ),
+
     // Auth
     GetPage(
       name: AppRoutes.login,

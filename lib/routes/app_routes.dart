@@ -1,6 +1,8 @@
 abstract class AppRoutes {
   AppRoutes._();
 
+  static const onboarding = '/onboarding';
+  static const activation = '/activation';
   static const login = '/login';
   static const clinicSetup = '/clinic-setup';
   static const pinLock = '/pin-lock';

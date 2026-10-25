@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/services/license_service.dart';
 import '../../../core/utils/yemeni_phone_validator.dart';
 import '../../../data/models/clinic_model.dart';
 import '../../../data/models/user_model.dart';
@@ -21,6 +22,13 @@ class AuthController extends GetxController {
   // Password visibility toggle for LoginView
   final RxBool isPasswordHidden = true.obs;
   void togglePasswordVisibility() => isPasswordHidden.value = !isPasswordHidden.value;
+
+  // Admin Setup Controllers (First-run Lead Doctor account)
+  final adminUsernameController = TextEditingController(text: 'admin');
+  final adminPasswordController = TextEditingController();
+  final adminPinController = TextEditingController(text: '1234');
+  final RxBool isAdminPasswordHidden = true.obs;
+  void toggleAdminPasswordVisibility() => isAdminPasswordHidden.value = !isAdminPasswordHidden.value;
 
   /// RBAC Permission checking helper
   bool checkPermission(bool Function(UserModel u) check, String deniedMessage) {
@@ -71,6 +79,12 @@ class AuthController extends GetxController {
       addressController.text = clinicInfo.value!.address ?? '';
       clinicLogoPath.value = clinicInfo.value!.logoPath;
     }
+
+    final leadDoctor = await _authRepo.getUserById(1);
+    if (leadDoctor != null) {
+      adminUsernameController.text = leadDoctor.username;
+      adminPinController.text = leadDoctor.pinCode ?? '1234';
+    }
   }
 
   Future<void> pickClinicLogo() async {
@@ -90,6 +104,12 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
     final user = usernameController.text.trim();
     final pass = passwordController.text;
 
@@ -118,6 +138,13 @@ class AuthController extends GetxController {
 
   Future<void> unlockWithPin(String pin) async {
     if (pin.length < 4) return;
+
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
     isLoading.value = true;
     try {
       final userModel = await _authRepo.loginWithPin(pin);
@@ -175,6 +202,10 @@ class AuthController extends GetxController {
     final phoneRaw = phoneController.text.trim();
     final address = addressController.text.trim();
 
+    final adminUser = adminUsernameController.text.trim();
+    final adminPass = adminPasswordController.text;
+    final adminPin = adminPinController.text.trim();
+
     if (name.isEmpty) {
       Get.snackbar('تنبيه', 'اسم المنشأة البيطرية مطلوب',
           backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
@@ -206,6 +237,25 @@ class AuthController extends GetxController {
       return;
     }
 
+    // Lead Doctor account validation during first-run or when fields are provided
+    if (currentUser.value == null) {
+      if (adminUser.isEmpty) {
+        Get.snackbar('تنبيه', 'اسم مستخدم مدير النظام مطلوب',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+      if (adminPass.isEmpty) {
+        Get.snackbar('تنبيه', 'كلمة مرور مدير النظام مطلوبة',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+      if (adminPin.length != 4) {
+        Get.snackbar('تنبيه', 'رمز PIN السريع يجب أن يتكون من 4 أرقام',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+    }
+
     isLoading.value = true;
     try {
       final formattedPhone = YemeniPhoneValidator.formatWithCountryCode(phoneRaw);
@@ -220,9 +270,43 @@ class AuthController extends GetxController {
       );
       await _authRepo.saveClinicInfo(updated);
       clinicInfo.value = updated;
-      Get.back();
-      Get.snackbar('تم', 'تم حفظ بيانات وهوية العيادة بنجاح',
-          backgroundColor: Colors.green.shade100, colorText: Colors.green.shade900);
+
+      // Update or create Lead Doctor (id = 1) in tableUsers
+      if (adminUser.isNotEmpty) {
+        final existingAdmin = await _authRepo.getUserById(1);
+        final leadDoctor = UserModel(
+          id: 1,
+          username: adminUser,
+          passwordHash: adminPass.isNotEmpty ? adminPass : (existingAdmin?.passwordHash ?? 'admin123'),
+          fullName: doc,
+          role: 'lead_doctor',
+          phone: formattedPhone,
+          pinCode: adminPin.isNotEmpty ? adminPin : (existingAdmin?.pinCode ?? '1234'),
+          isActive: true,
+        );
+        if (existingAdmin != null) {
+          await _authRepo.updateUser(leadDoctor);
+        } else {
+          await _authRepo.addUser(leadDoctor);
+        }
+      }
+
+      await LicenseService.to.completeClinicSetup();
+
+      if (currentUser.value == null) {
+        Get.offAllNamed(AppRoutes.login);
+        Get.snackbar(
+          'تم إعداد النظام بنجاح 🎉',
+          'تم حفظ هوية العيادة وحساب مدير النظام، يرجى تسجيل الدخول للبدء',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          duration: const Duration(seconds: 4),
+        );
+      } else {
+        Get.back();
+        Get.snackbar('تم', 'تم حفظ بيانات وهوية العيادة بنجاح',
+            backgroundColor: Colors.green.shade100, colorText: Colors.green.shade900);
+      }
     } finally {
       isLoading.value = false;
     }
@@ -238,6 +322,9 @@ class AuthController extends GetxController {
     licenseController.dispose();
     phoneController.dispose();
     addressController.dispose();
+    adminUsernameController.dispose();
+    adminPasswordController.dispose();
+    adminPinController.dispose();
     super.onClose();
   }
 }

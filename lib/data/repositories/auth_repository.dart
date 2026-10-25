@@ -62,6 +62,20 @@ class AuthRepository {
     return null;
   }
 
+  Future<UserModel?> getUserById(int id) async {
+    final db = await _dbHelper.database;
+    final res = await db.query(
+      DatabaseTables.tableUsers,
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return UserModel.fromMap(res.first);
+    }
+    return null;
+  }
+
   Future<List<UserModel>> getAllUsers() async {
     final db = await _dbHelper.database;
     final res = await db.query(DatabaseTables.tableUsers, orderBy: 'id ASC');

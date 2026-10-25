@@ -15,6 +15,7 @@ class DatabaseTables {
   static const String tableTransactions = 'financial_transactions';
   static const String tableCustomerPayments = 'customer_payments';
   static const String tableBackupLogs = 'backup_logs';
+  static const String tableAppLicenseState = 'app_license_state';
 
   static const String createClinicInfoTable = '''
     CREATE TABLE IF NOT EXISTS $tableClinicInfo (
@@ -275,6 +276,20 @@ class DatabaseTables {
     CREATE INDEX IF NOT EXISTS idx_backup_logs_date ON $tableBackupLogs(created_at);
   ''';
 
+  static const String createAppLicenseStateTable = '''
+    CREATE TABLE IF NOT EXISTS $tableAppLicenseState (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      onboarding_completed INTEGER NOT NULL DEFAULT 0,
+      clinic_setup_completed INTEGER NOT NULL DEFAULT 0,
+      device_fingerprint TEXT NOT NULL,
+      activation_code TEXT,
+      activated_at TEXT,
+      expiry_date TEXT,
+      last_seen_timestamp TEXT,
+      used_codes_json TEXT NOT NULL DEFAULT '[]'
+    );
+  ''';
+
   static const List<String> allTablesAndIndices = [
     createClinicInfoTable,
     createUsersTable,
@@ -300,5 +315,6 @@ class DatabaseTables {
     createCustomerPaymentsDateIndex,
     createBackupLogsTable,
     createBackupLogsDateIndex,
+    createAppLicenseStateTable,
   ];
 }

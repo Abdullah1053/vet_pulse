@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/config/demo_config.dart';
+import '../../../core/services/license_service.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/database/demo_data_seeder.dart';
 import '../../../routes/app_routes.dart';
@@ -961,10 +962,57 @@ class DashboardView extends GetView<DashboardController> {
         left: 12,
         right: 12,
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
+          // Remaining License Days Badge
+          Obx(() {
+            final isLifetime = LicenseService.to.isLifetime.value;
+            final remaining = LicenseService.to.remainingDays.value;
+            final isActive = LicenseService.to.isLicenseActive.value;
+            final badgeText = isLifetime
+                ? 'ترخيص دائم • مفعل'
+                : (isActive
+                    ? 'الترخيص نشط (متبقي $remaining يوم)'
+                    : 'الترخيص غير نشط');
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isActive ? AppColors.successBackground : AppColors.criticalBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isActive
+                      ? AppColors.success.withValues(alpha: 0.3)
+                      : AppColors.critical.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isActive ? Icons.verified_user_rounded : Icons.warning_amber_rounded,
+                    size: 14,
+                    color: isActive ? AppColors.success : AppColors.critical,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    badgeText,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? AppColors.success : AppColors.critical,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
                 shape: RoundedRectangleBorder(
@@ -1007,6 +1055,8 @@ class DashboardView extends GetView<DashboardController> {
               },
             ),
           ),
+        ],
+      ),
         ],
       ),
     );

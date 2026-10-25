@@ -60,6 +60,8 @@ dependencies:
   flutter_contacts: 1.1.7
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.0
+  device_info_plus: ^13.3.0
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
