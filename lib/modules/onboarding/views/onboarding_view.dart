@@ -76,40 +76,10 @@ class OnboardingView extends GetView<OnboardingController> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 16),
-                            // Modern Hero Icon Container
-                            Container(
-                              width: 110,
-                              height: 110,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.15),
-                                    AppColors.secondaryLight,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                slide.icon,
-                                size: 54,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 8),
+                            // Layered Textured Hero Illustration Frame
+                            _buildHeroIllustration(slide),
+                            const SizedBox(height: 22),
 
                             // Slide Title
                             Text(
@@ -248,6 +218,127 @@ class OnboardingView extends GetView<OnboardingController> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeroIllustration(OnboardingSlide slide) {
+    return Container(
+      height: 230,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.secondaryLight,
+            AppColors.secondary.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Concentric decorative background circles
+          Positioned(
+            right: -25,
+            top: -25,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  width: 18,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -35,
+            bottom: -35,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  width: 22,
+                ),
+              ),
+            ),
+          ),
+          // Elevated White Framing Container with Soft Teal Glow Shadow
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.9),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Image.asset(
+                slide.imageAsset,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Icon(slide.icon, size: 64, color: AppColors.primary),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Category Pill Floating Badge
+          Positioned(
+            top: 20,
+            right: 22,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primaryDark.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(slide.icon, size: 13, color: Colors.white),
+                  const SizedBox(width: 5),
+                  Text(
+                    slide.title.split(' ').take(2).join(' '),
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

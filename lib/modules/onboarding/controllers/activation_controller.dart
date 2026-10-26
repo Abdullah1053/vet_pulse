@@ -26,22 +26,41 @@ class ActivationController extends GetxController {
   }
 
   Future<void> sendWhatsAppToDeveloper() async {
-    final phone = DemoConfig.contactPhone.replaceAll(RegExp(r'\D'), '');
-    final fullPhone = phone.startsWith('967') ? phone : '967$phone';
+    const phone = DemoConfig.contactPhone; // 967771882350
     final message = Uri.encodeComponent(
       'السلام عليكم ورحمة الله وبركاته،\n'
       'أرغب في تفعيل ترخيص نظام VetPulse لإدارة المنشآت والعيادات البيطرية.\n'
       'معرف الجهاز المعتمد:\n$requestCode',
     );
-    final url = Uri.parse('https://wa.me/$fullPhone?text=$message');
+    final nativeUrl = Uri.parse('whatsapp://send?phone=$phone&text=$message');
+    final webUrl = Uri.parse('https://wa.me/$phone?text=$message');
+
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+      if (await canLaunchUrl(nativeUrl)) {
+        await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(webUrl)) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
       } else {
-        Get.snackbar('تنبيه', 'تعذر فتح تطبيق واتساب مباشرة');
+        Get.snackbar(
+          'تنبيه',
+          'تعذر فتح تطبيق واتساب. رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
+          snackPosition: SnackPosition.BOTTOM,
+        );
       }
-    } catch (e) {
-      Get.snackbar('خطأ', 'حدث خطأ أثناء فتح واتساب: $e');
+    } catch (_) {
+      try {
+        if (await canLaunchUrl(webUrl)) {
+          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+        } else {
+          Get.snackbar(
+            'تنبيه',
+            'رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        }
+      } catch (e) {
+        Get.snackbar('خطأ', 'حدث خطأ أثناء فتح واتساب: $e');
+      }
     }
   }
 

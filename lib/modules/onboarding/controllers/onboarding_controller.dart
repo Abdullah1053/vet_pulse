@@ -7,12 +7,14 @@ class OnboardingSlide {
   final String title;
   final String description;
   final IconData icon;
+  final String imageAsset;
   final List<String> highlights;
 
   const OnboardingSlide({
     required this.title,
     required this.description,
     required this.icon,
+    required this.imageAsset,
     required this.highlights,
   });
 }
@@ -27,6 +29,7 @@ class OnboardingController extends GetxController {
       description:
           'ملفات طبية شاملة لجميع الحيوانات الأليفة، وفحوصات سريرية دقيقة وفق منهجية SOAP المعتمدة، وتوثيق العلاجات داخل العيادة، مع تصدير تلقائي للروشتات الطبية ومشاركتها عبر واتساب.',
       icon: Icons.medical_services_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_1_soap.png',
       highlights: [
         'سجل طبي تراكمي يشمل الحساسية وتاريخ الأوزان',
         'تشخيص سريري وفق منهجية SOAP المعتمدة عالمياً',
@@ -38,6 +41,7 @@ class OnboardingController extends GetxController {
       description:
           'جدولة دقيقة للعمليات الجراحية، وقوائم التحقق والسلامة قبل وبعد التخدير، ورحلة متابعة سريرية متقدمة مع إشعارات وتنبيهات هاتفية قبل الموعد بـ (12 ساعة، 6 ساعات، وساعة واحدة).',
       icon: Icons.healing_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_2_surgery.png',
       highlights: [
         'تقويم جراحي ذكي وإدارة بروتوكولات التخدير والتعافي',
         'قوائم تدقيق السلامة الجراحية لمنع الأخطاء الطبية',
@@ -49,6 +53,7 @@ class OnboardingController extends GetxController {
       description:
           'نظام المخزون المزدوج (المستودع ورفوف العيادة) مع الخصم التلقائي، وحسابات العملاء (نقداً وآجل)، وتوثيق الدفعات وسندات القبض، مع نسخ احتياطي محلي مشفر واستعادة فورية للبيانات.',
       icon: Icons.inventory_2_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_3_management.jpg',
       highlights: [
         'مخزون مزدوج وخصم تلقائي مع مراقبة تواريخ الصلاحية',
         'كشوفات حسابات المربين وسندات القبض النقدية والآجلة',

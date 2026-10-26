@@ -243,7 +243,7 @@ class ActivationView extends GetView<ActivationController> {
                             const Icon(Icons.support_agent_rounded, size: 16, color: AppColors.textSecondary),
                             const SizedBox(width: 6),
                             Text(
-                              'المطور: ${DemoConfig.developerName} (${DemoConfig.contactPhone})',
+                              'المطور: ${DemoConfig.developerName} (${DemoConfig.contactPhoneDisplay})',
                               style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                             ),
                           ],

@@ -17,7 +17,8 @@ class DemoConfig {
   /// Developer & Sales Contact Details
   static const String developerName = 'مهندس برمجيات / عبدالله عبدالمغني الأديمي';
   static const String developerRole = 'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
-  static const String contactPhone = '777123456';
+  static const String contactPhone = '967771882350';
+  static const String contactPhoneDisplay = '+967 771 882 350';
   static const String demoWatermark = 'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
 
   /// Helper to check if a new patient can be registered

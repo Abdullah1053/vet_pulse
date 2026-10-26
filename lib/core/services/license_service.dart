@@ -18,9 +18,34 @@ class LicenseService extends GetxService {
   static LicenseService get to =>
       Get.isRegistered<LicenseService>() ? Get.find<LicenseService>() : Get.put(LicenseService(), permanent: true);
 
-  // Cryptographic Secret Salt & HMAC Signing Key
-  static const String secretKey = 'VETPULSE_HMAC_SECRET_KEY_2026_SA_YE_SECURE_AUTH';
-  static const String secretSalt = 'VETPULSE_DEVICE_SALT_9942_SECURE_HASH';
+  // XOR-Masked Cryptographic Secret Salt & HMAC Signing Key
+  static const List<int> _kXorMask = [0x56, 0x7E, 0x54, 0x50, 0x32, 0x30, 0x32, 0x36];
+  static const List<int> _kMaskedKey = [
+    0x00, 0x3B, 0x00, 0x00, 0x67, 0x7C, 0x61, 0x73, 0x09, 0x36, 0x19, 0x11, 0x71, 0x6F, 0x61, 0x73,
+    0x15, 0x2C, 0x11, 0x04, 0x6D, 0x7B, 0x77, 0x6F, 0x09, 0x4C, 0x64, 0x62, 0x04, 0x6F, 0x61, 0x77,
+    0x09, 0x27, 0x11, 0x0F, 0x61, 0x75, 0x71, 0x63, 0x04, 0x3B, 0x0B, 0x11, 0x67, 0x64, 0x7A,
+  ];
+  static const List<int> _kMaskedSalt = [
+    0x00, 0x3B, 0x00, 0x00, 0x67, 0x7C, 0x61, 0x73, 0x09, 0x3A, 0x11, 0x06, 0x7B, 0x73, 0x77, 0x69,
+    0x05, 0x3F, 0x18, 0x04, 0x6D, 0x09, 0x0B, 0x02, 0x64, 0x21, 0x07, 0x15, 0x71, 0x65, 0x60, 0x73,
+    0x09, 0x36, 0x15, 0x03, 0x7A,
+  ];
+
+  static List<int> _reconstructSecretBytes(List<int> masked, List<int> mask) {
+    return List<int>.generate(masked.length, (i) => masked[i] ^ mask[i % mask.length]);
+  }
+
+  static List<int> get _secretKeyBytes => _reconstructSecretBytes(_kMaskedKey, _kXorMask);
+  static List<int> get _secretSaltBytes => _reconstructSecretBytes(_kMaskedSalt, _kXorMask);
+
+  static bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    int result = 0;
+    for (int i = 0; i < a.length; i++) {
+      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return result == 0;
+  }
 
   final Rx<LicenseStatus> licenseStatus = LicenseStatus.unactivated.obs;
   final RxBool onboardingCompleted = false.obs;
@@ -110,7 +135,7 @@ class LicenseService extends GetxService {
       rawHardware = 'VETPULSE_DEFAULT_HW_STRING';
     }
 
-    final hashBytes = sha256.convert(utf8.encode('$rawHardware|$secretSalt')).bytes;
+    final hashBytes = sha256.convert([...utf8.encode('$rawHardware|'), ..._secretSaltBytes]).bytes;
     final hexStr = hashBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
     final fp12 = hexStr.substring(0, 12);
 
@@ -125,7 +150,7 @@ class LicenseService extends GetxService {
         '${now.month.toString().padLeft(2, '0')}'
         '${now.day.toString().padLeft(2, '0')}';
 
-    final hmac = Hmac(sha256, utf8.encode(secretKey));
+    final hmac = Hmac(sha256, _secretKeyBytes);
     final chkBytes = hmac.convert(utf8.encode('$cleanFp|$ymd')).bytes;
     final chk4 = chkBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase().substring(0, 4);
 
@@ -150,16 +175,18 @@ class LicenseService extends GetxService {
     final nonce4 = parts[2];
     final sig12 = parts[3];
 
-    if (expiryYmd.length != 8 || nonce4.length != 4 || sig12.length != 12) {
+    final validHex12 = RegExp(r'^[0-9A-F]{12}$');
+    final validYmd = RegExp(r'^\d{8}$');
+    if (!validYmd.hasMatch(expiryYmd) || nonce4.length != 4 || !validHex12.hasMatch(sig12)) {
       _showFeedback(
         'كود غير صالح',
-        'أجزاء كود التفعيل غير مكتملة',
+        'أجزاء كود التفعيل غير مكتملة أو غير صالحة',
       );
       return false;
     }
 
-    // 1. Verify Signature matches current device's fingerprint
-    final hmac = Hmac(sha256, utf8.encode(secretKey));
+    // 1. Verify Signature matches current device's fingerprint (constant-time)
+    final hmac = Hmac(sha256, _secretKeyBytes);
     final expectedSigBytes = hmac.convert(utf8.encode('$cleanFingerprint|$expiryYmd|$nonce4')).bytes;
     final expectedSig12 = expectedSigBytes
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
@@ -167,7 +194,7 @@ class LicenseService extends GetxService {
         .toUpperCase()
         .substring(0, 12);
 
-    if (sig12 != expectedSig12) {
+    if (!_constantTimeEquals(sig12, expectedSig12)) {
       _showFeedback(
         'فشل التفعيل',
         'كود التفعيل غير مخصص لهذا الجهاز ومقفل على بصمة جهاز آخر',
@@ -418,7 +445,7 @@ class LicenseService extends GetxService {
 
     final nonce4 = (nonce ?? '9A7F').toUpperCase().padLeft(4, '0').substring(0, 4);
 
-    final hmac = Hmac(sha256, utf8.encode(secretKey));
+    final hmac = Hmac(sha256, _secretKeyBytes);
     final sigBytes = hmac.convert(utf8.encode('$cleanFp|$ymd|$nonce4')).bytes;
     final sig12 = sigBytes
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
