@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <title>عرض تقديم تطبيق نبض البيطري | VetPulse — المنظومة البيطرية السريرية والمحاسبية المتكاملة</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      color: #1e293b;
+      line-height: 1.45;
+    }
+
+    .no-print-bar {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: #0f172a;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .btn-print {
+      background: #0d9488;
+      color: white;
+      border: none;
+      padding: 9px 22px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-print:hover {
+      background: #0f766e;
+    }
+
+    .page-container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .page-frame {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 25px;
+      box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05);
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      min-height: 270mm;
+      max-height: 280mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      border: 1.5px solid #ccfbf1;
+      position: relative;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #ccfbf1;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      border: 2px solid #14b8a6;
+      object-fit: cover;
+    }
+
+    .header-title-box h1 {
+      margin: 0;
+      color: #0f766e;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .header-title-box p {
+      margin: 2px 0 0 0;
+      color: #0d9488;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .page-badge {
+      background: #0d9488;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .footer-bar {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 7px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #64748b;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 11px 13px;
+      margin-bottom: 9px;
+    }
+
+    .card-teal {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 10px;
+      padding: 11px 13px;
+      margin-bottom: 9px;
+    }
+
+    .card-dark {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 13px 16px;
+      margin-bottom: 10px;
+      border-right: 5px solid #14b8a6;
+    }
+
+    .section-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #0f766e;
+      margin: 0 0 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .feature-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 9px;
+      margin-bottom: 9px;
+    }
+
+    .feature-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+
+    .bullet-list {
+      margin: 0;
+      padding-right: 18px;
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .bullet-list li {
+      margin-bottom: 3px;
+    }
+
+    .pill-tag {
+      display: inline-block;
+      background: #ccfbf1;
+      color: #0f766e;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    @media print {
+      body {
+        background: transparent;
+      }
+
+      .no-print-bar {
+        display: none !important;
+      }
+
+      .page-container {
+        max-width: 100%;
+        margin: 0;
+      }
+
+      .page-frame {
+        box-shadow: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        min-height: 275mm !important;
+        max-height: 280mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- شريط التحكم بالطباعة أعلى الصفحة -->
+  <div class="no-print-bar">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 20px;">🐾</span>
+      <div>
+        <div style="font-weight: 800; font-size: 15px;">نظام نبض البيطري | VetPulse — الملف التعريفي والتقني المتكامل
+        </div>
+        <div style="font-size: 11.5px; color: #94a3b8;">إعداد وتطوير: م. عبدالله عبدالمغني الأديمي • جاهز للطباعة والحفظ
+          كـ PDF (6 صفحات A4 قياسية)</div>
+      </div>
+    </div>
+    <button class="btn-print" onclick="window.print()">
+      <span>🖨️</span>
+      <span>طباعة أو تصدير PDF مباشر</span>
+    </button>
+  </div>
+
+  <div class="page-container">
+
+    <!-- =================================================================== -->
+    <!-- PAGE 1: الغلاف التقديمي والنظرة التنفيذية الشاملة -->
+    <!-- =================================================================== -->
+    <div class="page-frame"
+      style="border: 2px solid #0d9488; background: linear-gradient(175deg, #ffffff 0%, #f0fdfa 100%);">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="VetPulse Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>نظام نبض البيطري | VetPulse</h1>
+              <p>المنظومة السريرية والمحاسبية وإدارة المستودعات المتكاملة للعيادات والمراكز البيطرية</p>
+            </div>
+          </div>
+          <div class="page-badge">الإصدار الإنتاجي المعتمد v1.0.0</div>
+        </div>
+
+        <!-- البانر التقديمي الرسمي للنظام -->
+        <div style="text-align: center; margin: 6px 0 10px 0;">
+          <img src="assets/images/showcase_banner.jpg" alt="VetPulse Showcase"
+            style="width: 100%; max-height: 240px; object-fit: cover; border-radius: 12px; border: 1.5px solid #99f6e4; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);" />
+        </div>
+
+        <!-- بطاقة النظرة التنفيذية الداكنة -->
+        <div class="card-dark">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="flex: 1; min-width: 280px;">
+              <span class="pill-tag" style="background: #0d9488; color: #ffffff; margin-bottom: 4px;">المنظومة الرقمية
+                الشاملة</span>
+              <h2 style="margin: 4px 0 3px 0; font-size: 16px; color: #2dd4bf;">رعاية بيطرية سريرية متقدمة وإدارة مالية
+                دقيقة</h2>
+              <p style="margin: 0; color: #cbd5e1; font-size: 11px; line-height: 1.55;">
+                تطبيق احترافي متكامل مصمم خصيصاً لتلبية متطلبات العيادات والمستشفيات البيطرية الميدانية والخاصة. يجمع
+                بين التوثيق السريري الدقيق (SOAP)، إدارة العمليات الجراحية، الصيدلية المزدوجة، والفوترة المحاسبية
+                المتوافقة مع السوق المحلي.
+              </p>
+            </div>
+            <div style="text-align: left; border-right: 1px solid #334155; padding-right: 14px;">
+              <div style="color: #94a3b8; font-size: 10px;">الاستشاري ومطور النظام:</div>
+              <div style="color: #f8fafc; font-weight: 800; font-size: 13px;">م. عبدالله عبدالمغني الأديمي</div>
+              <div style="color: #38bdf8; font-size: 10.5px; margin-top: 2px;">⚡ أوفلاين 100% (محلي وآمن)</div>
+              <div style="color: #34d399; font-size: 10.5px;">🇾🇪 العملة: الريال اليمني (ر.ي)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 بطاقات محاور رئيسية -->
+        <div style="margin-bottom: 6px;">
+          <h3 style="font-size: 12.5px; color: #0f766e; margin: 0 0 6px 0; font-weight: 800;">ركائز النظام الأربع
+            المتكاملة:</h3>
+        </div>
+        <div class="feature-grid-4">
+          <div
+            style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px; text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">🩺</div>
+            <div style="color: #0f766e; font-size: 12px; font-weight: 800;">الرعاية السريرية SOAP</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4;">فحص العلامات الحيوية، تشخيص
+              فوري، حاسبة جرعات ذكية، وروشتة مطبوعة.</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px; text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">🏥</div>
+            <div style="color: #0f766e; font-size: 12px; font-weight: 800;">الجناح الجراحي والمتابعة</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4;">5 حالات جراحية محكمة،
+              بروتوكول تخدير، وتتبع مسار المراجعات مع استئناف الجدولة.</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px; text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">💊</div>
+            <div style="color: #0f766e; font-size: 12px; font-weight: 800;">الصيدلية والمخزون المزدوج</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4;">فصل تام بين رف العيادة
+              السريري والمستودع، تحويل فوري ومراقبة الصلاحيات.</div>
+          </div>
+          <div
+            style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px; text-align: center;">
+            <div style="font-size: 20px; margin-bottom: 4px;">💰</div>
+            <div style="color: #0f766e; font-size: 12px; font-weight: 800;">المحاسبة وكشوفات المربين</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4;">نقداً، 4 محافظ إلكترونية،
+              ودفع آجل تلقائي بدون ازدواجية، وسندات وتقارير أسبوعية.</div>
+          </div>
+        </div>
+
+        <!-- الميزات التقنية الحصرية -->
+        <div class="card-teal" style="margin-top: 4px; padding: 9px 12px;">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #0f766e; font-weight: 700;">
+            <span>🛡️ توثيق عتادي مشفر للجهاز (HMAC-SHA256)</span>
+            <span>📱 إشعارات هاتف أصلية على النظام (Native Android)</span>
+            <span>💾 نسخ احتياطي محلي وتصدير خارجي آمن</span>
+            <span>🔒 أمان مشدد ومقاومة الهندسة العكسية (R8)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 1 من 6 • الغلاف والنظرة التنفيذية</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 2: التهيئة الأولية، التوثيق الرقمي للجهاز، وإدارة الصلاحيات -->
+    <!-- =================================================================== -->
+    <div class="page-frame">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>التهيئة الأولية وتوثيق الترخيص الرقمي وإدارة الصلاحيات</h1>
+              <p>شاشات التعريف الثلاث، التوثيق العتادي المشفر، وحماية خصوصية العيادة (RBAC)</p>
+            </div>
+          </div>
+          <div class="page-badge">الصفحة 2 • الأمان والتهيئة</div>
+        </div>
+
+        <!-- شبكة شاشات التعريف الثلاث بالصور الفعلية -->
+        <div style="margin-bottom: 8px;">
+          <div class="section-title">📱 جولة التهيئة والترحيب المدمجة بالتطبيق (3 Onboarding Screens):</div>
+          <div class="feature-grid-3">
+            <div
+              style="background: #ffffff; border: 1.5px solid #ccfbf1; border-radius: 10px; padding: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div
+                style="background: linear-gradient(145deg, #e9f4f1, #cbe4de); border-radius: 8px; padding: 6px; margin-bottom: 6px;">
+                <img src="assets/images/onboarding/onboarding_1_soap.png" alt="Clinical SOAP"
+                  style="width: 100%; height: 115px; object-fit: contain; border-radius: 6px;" />
+              </div>
+              <div style="font-size: 11.5px; font-weight: 800; color: #0f766e;">1. الرعاية السريرية SOAP</div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">فحص بيطري دقيق، تشخيص، وحاسبة الجرعات
+                بالوزن مع تتبع العلامات الحيوية.</div>
+            </div>
+            <div
+              style="background: #ffffff; border: 1.5px solid #ccfbf1; border-radius: 10px; padding: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div
+                style="background: linear-gradient(145deg, #e9f4f1, #cbe4de); border-radius: 8px; padding: 6px; margin-bottom: 6px;">
+                <img src="assets/images/onboarding/onboarding_2_surgery.png" alt="Surgical Suite"
+                  style="width: 100%; height: 115px; object-fit: contain; border-radius: 6px;" />
+              </div>
+              <div style="font-size: 11.5px; font-weight: 800; color: #0f766e;">2. الجراحة والمراجعات</div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">جدولة دقيقة للعمليات، بروتوكولات التخدير،
+                وتذكير ذكي للمراجعات الدورية.</div>
+            </div>
+            <div
+              style="background: #ffffff; border: 1.5px solid #ccfbf1; border-radius: 10px; padding: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div
+                style="background: linear-gradient(145deg, #e9f4f1, #cbe4de); border-radius: 8px; padding: 6px; margin-bottom: 6px;">
+                <img src="assets/images/onboarding/onboarding_3_management.png" alt="Clinic Management"
+                  style="width: 100%; height: 115px; object-fit: contain; border-radius: 6px;" />
+              </div>
+              <div style="font-size: 11.5px; font-weight: 800; color: #0f766e;">3. الإدارة والمخزون والنسخ</div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 2px;">صيدلية مزدوجة، فوترة فورية، تقارير
+                أسبوعية، ونسخ احتياطي محلي وخارجي آمن.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- نظام التفعيل والتوثيق الرقمي للجهاز -->
+        <div class="card-teal">
+          <div class="section-title">🔑 نظام التفعيل والتوثيق الرقمي المرتبط بالجهاز (LicenseService):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">1. بصمة الجهاز وكود
+                الطلب الفريد:</div>
+              <p style="margin: 0 0 6px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                يقوم النظام بجمع معرّفات عتادية غير قابلة للتكرار (المعالج، اللوحة الأم، نظام التشغيل) وتوليد بصمة من 12
+                خانة وكود طلب موثق بصيغة: <code
+                  style="background: #e2e8f0; padding: 1px 4px; border-radius: 4px;">VP1-XXXXXXXXXXXX-YYYYMMDD-CHK4</code>.
+              </p>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">2. إرسال مباشر عبر
+                واتساب بنقرة واحدة:</div>
+              <p style="margin: 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                يرتبط زر التفعيل مباشرة بواتساب المطور الرسمي (<code
+                  style="color: #0d9488; font-weight: bold;">+967 771 882 350</code>) لفتح محادثة موثقة تتضمن كود طلب
+                التفعيل الجاهز للاعتماد الفوري.
+              </p>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">3. توقيع رقمي محمي
+                وتشفير XOR:</div>
+              <p style="margin: 0 0 6px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                يولد المطور كود تفعيل معتمد <code
+                  style="background: #e2e8f0; padding: 1px 4px; border-radius: 4px;">VPACT-...</code> بتوقيع <strong
+                  style="color: #0f766e;">HMAC-SHA256</strong>. تم حماية المفاتيح السرية بمصفوفة بايتات مقنعة بـ XOR
+                ومقارنة التوقيع في زمن ثابت (<code style="font-size: 9.5px;">constant-time</code>) لمنع ثغرات التوقيت
+                والهندسة العكسية.
+              </p>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">4. استقرار البيانات
+                100% وحماية التلاعب:</div>
+              <p style="margin: 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                يدعم النظام التراخيص التجريبية، السنوية، والدائمة (<code
+                  style="color: #0d9488; font-weight: bold;">Lifetime</code>) مع كشف إرجاع ساعة الجهاز، مع <strong>حفظ
+                  واستمرار كافة بيانات العيادة والمرضى والحسابات 100%</strong> دون أي حذف أو فقد عند انتهاء الصلاحية أو
+                التجديد.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- تهيئة هوية العيادة وإدارة الصلاحيات -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="section-title">👥 تهيئة هوية العيادة وإدارة الصلاحيات والأدوار (Clinic Setup & RBAC):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">🏢 إعداد بيانات وهوية
+                العيادة:</div>
+              <ul class="bullet-list">
+                <li>تسجيل اسم المنشأة الطبية، الطبيب المسؤول، ورقم الترخيص البيطري المعتمد.</li>
+                <li>إدخال رقم الهاتف اليمني المعتمد (<code style="color: #0d9488;">+967</code>) لربطه بترويسة المطبوعات
+                  والتواصل.</li>
+                <li>تحديد العنوان التفصيلي، ورفع شعار العيادة (Logo) ليظهر في أعلى الروشتات والتقارير الطبية وكشوفات
+                  الحساب.</li>
+                <li>ميزة <strong>القفل السريع للشاشة برمز PIN (من 4 أرقام)</strong> لحماية السجلات أثناء مغادرة الطبيب
+                  المؤقتة لمكتبه.</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">🛡️ 4 أدوار وظيفية
+                بصلاحيات دقيقة (RBAC):</div>
+              <ul class="bullet-list">
+                <li><strong style="color: #0f766e;">طبيب رئيسي (Lead Doctor):</strong> صلاحيات سيادية كاملة لإدارة
+                  النظام، الإعدادات، واستعادة النسخ الاحتياطية وتعديل السجلات.</li>
+                <li><strong style="color: #0f766e;">طبيب مساعد (Assistant Vet):</strong> إجراء الكشوفات، جدولة العمليات،
+                  كتابة الروشتات وصرف الأدوية من الرف.</li>
+                <li><strong style="color: #0f766e;">موظف استقبال (Receptionist):</strong> تسجيل المرضى وأصحابهم، تنظيم
+                  المواعيد، وإصدار سندات القبض والدفعات.</li>
+                <li><strong style="color: #0f766e;">أمين المستودع (Pharmacist):</strong> استلام شحنات الأدوية، التحويل
+                  بين المستودع والرف، وجرد المخزون.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 2 من 6 • التهيئة والتوثيق الرقمي</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 3: سجل المرضى، الكشف السريري (SOAP)، والتقرير الطبي بـ 4 أقسام -->
+    <!-- =================================================================== -->
+    <div class="page-frame">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>سجل المرضى ودليل المربين والكشف السريري والروشتة</h1>
+              <p>الملف الطبي، منهجية SOAP، حاسبة الجرعات، والتقرير الطبي المرتب بـ 4 أقسام</p>
+            </div>
+          </div>
+          <div class="page-badge">الصفحة 3 • الرعاية السريرية</div>
+        </div>
+
+        <!-- ملف المريض ودليل المربين المتكامل -->
+        <div class="card-teal">
+          <div class="section-title">🐾 ملف المريض ودليل المربين الموثق (Patients & Owners Management):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 2px;">📋 شمولية السجل الصحي
+                للمريض:</div>
+              <ul class="bullet-list">
+                <li>تسجيل الفصيلة (قط، كلب، أبقار، أغنام، خيول، طيور)، السلالة، الجنس، العمر، وتاريخ الميلاد.</li>
+                <li>توثيق حالة التعقيم الجراحي، ورقم الشريحة الإلكترونية التعريفي (<code
+                    style="color: #0d9488;">Microchip</code>).</li>
+                <li>إمكانية التقاط أو رفع صورة الحيوان لتمييز الحالة وتسهيل التعرف البصري.</li>
+                <li><strong>شريط تنبيه الحساسية الدوائية الحرج (Allergy Banner):</strong> شريط أحمر بارز يظهر فور فتح
+                  ملف المريض يحذر الطبيب من أي دواء يسبب تحسساً خطيراً للحيوان.</li>
+                <li><strong>سجل تتبع الأوزان التاريخي:</strong> تسجيل الوزن بالكيلوجرام في كل زيارة ومراقبة مؤشر النمو
+                  أو النحول.</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 2px;">📞 دليل المربين والربط
+                مع هاتف العيادة:</div>
+              <ul class="bullet-list">
+                <li>تسجيل الاسم الكامل للمربي، العنوان، والملاحظات الخاصة.</li>
+                <li><strong>التحقق الذكي من أرقام شبكات الاتصالات اليمنية:</strong> مطابقة فورية لمقدمات الشبكات المحلية
+                  (<code style="color: #0d9488;">77, 78, 73, 71, 70</code>) لمنع الأخطاء في تسجيل الأرقام.</li>
+                <li><strong>الحفظ التلقائي في جهات اتصال هاتف النظام (DeviceContactService):</strong> بمجرد إضافة
+                  المربي، يتم حفظ رقمه واسمه واسم حيوانه تلقائياً في دليل الهاتف لتسهيل التواصل والتعرف الفوري على
+                  المتصل.</li>
+                <li>زر تواصل مباشر وسريع للاتصال الهاتفي أو فتح محادثة واتساب بضغطة واحدة.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- منهجية الفحص السريري SOAP وحاسبة الجرعات -->
+        <div class="card">
+          <div class="section-title">🩺 منهجية الكشف السريري البيطري وحاسبة الجرعات التفاعلية (SOAP Notes):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">🌡️ العلامات الحيوية
+                والتوثيق الرباعي:</div>
+              <ul class="bullet-list">
+                <li>تسجيل العلامات الحيوية: درجة الحرارة (<code style="color: #e11d48;">°C</code>)، ومعدل نبضات القلب
+                  (<code style="color: #e11d48;">bpm</code>).</li>
+                <li><strong style="color: #0f766e;">S (Subjective):</strong> الشكوى الرئيسية وتاريخ المرض كما رواه
+                  المربي.</li>
+                <li><strong style="color: #0f766e;">O (Objective):</strong> نتائج الفحص السريري، الجس، والسماعة والأغشية
+                  المخاطية.</li>
+                <li><strong style="color: #0f766e;">A (Assessment):</strong> التشخيص النهائي واختياره من قائمة تشخيصات
+                  العيادة المعتمدة.</li>
+                <li><strong style="color: #0f766e;">P (Plan):</strong> الخطة العلاجية الدقيقة (علاجات العيادة، العلاج
+                  المنزلي، الجراحة، والمراجعات).</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">⚖️ حاسبة الجرعات
+                البيطرية الذكية:</div>
+              <p style="margin: 0 0 5px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                حاسبة دقيقة مدمجة في شاشة الكشف تعتمد على وزن المريض بالكيلوجرام والجرعة الموصى بها (<code
+                  style="color: #0d9488;">mg/kg</code>) وتركيز المستحضر الدوائي، لتحديد الحجم المطلوب إعطاؤه بالمليلتر
+                (<code style="color: #0d9488;">ml</code>) بدقة تامة لتفادي أخطاء الجرعات الزائدة.
+              </p>
+              <div
+                style="background: #e6fffa; border: 1px dashed #0d9488; border-radius: 6px; padding: 6px; font-size: 10px; color: #0f766e;">
+                💡 <strong>الربط المخزني الفوري:</strong> أي دواء يُعطى كعلاج فوري داخل العيادة أثناء الكشف يُخصم
+                تلقائياً من رصيد رف العيادة مع إثبات تكلفته في فاتورة الزيارة.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- التقرير الطبي والروشتة المطبوعة المكونة من 4 أقسام مرتبة -->
+        <div class="card-teal" style="margin-bottom: 0;">
+          <div class="section-title">📄 التقرير الطبي والروشتة الرسمية (PrescriptionPdfHelper — 4 أقسام مرتبة):</div>
+          <p style="margin: 0 0 6px 0; font-size: 10.5px; color: #334155; line-height: 1.45;">
+            يولد النظام تقريراً طبياً احترافياً بصيغة PDF مهيأ للطباعة الورقية أو المشاركة الفورية عبر واتساب، يتضمن
+            ترويسة العيادة والباركود، ومقسماً بوضوح إلى <strong>4 أقسام متسلسلة أصولياً من اليمين لليسار:</strong>
+          </p>
+          <div class="feature-grid-4" style="margin-bottom: 0;">
+            <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 7px;">
+              <div style="color: #0f766e; font-size: 11px; font-weight: 800; margin-bottom: 2px;">1️⃣ علاجات العيادة
+                الفورية</div>
+              <div style="font-size: 9.5px; color: #475569; line-height: 1.4;">الحقن والمحاليل والإجراءات المعطاة داخل
+                العيادة مع خصمها آلياً من رف الأدوية.</div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 7px;">
+              <div style="color: #0f766e; font-size: 11px; font-weight: 800; margin-bottom: 2px;">2️⃣ روشتة العلاج
+                المنزلي</div>
+              <div style="font-size: 9.5px; color: #475569; line-height: 1.4;">جدول الأدوية التي يصرفها المربي للحيوان
+                في المنزل مع الجرعة وطريقة وتوقيت الاستخدام.</div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 7px;">
+              <div style="color: #0f766e; font-size: 11px; font-weight: 800; margin-bottom: 2px;">3️⃣ العمليات الجراحية
+              </div>
+              <div style="font-size: 9.5px; color: #475569; line-height: 1.4;">توثيق العمليات الجراحية المقررة للحالة،
+                تاريخها المجدول، وملاحظات التجهيز والصيام.</div>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #99f6e4; border-radius: 8px; padding: 7px;">
+              <div style="color: #0f766e; font-size: 11px; font-weight: 800; margin-bottom: 2px;">4️⃣ جلسات المتابعة
+                والمراجعة</div>
+              <div style="font-size: 9.5px; color: #475569; line-height: 1.4;">جدول مواعيد المراجعات القادمة لمراقبة
+                الحالة السريرية واستقرار استجابة المريض.</div>
+            </div>
+          </div>
+          <div style="margin-top: 6px; font-size: 10px; color: #0f766e; font-weight: 700; text-align: left;">
+            ✨ ميزة اختيارية حصرية: إمكانية إظهار أو إخفاء التكاليف المالية في الروشتة المطبوعة بضغطة زر حسب رغبة الطبيب.
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 3 من 6 • الرعاية السريرية والروشتة</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 4: الجناح الجراحي المتكامل ونظام جلسات المتابعة السريرية -->
+    <!-- =================================================================== -->
+    <div class="page-frame">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>الجناح الجراحي المتكامل ونظام جلسات المتابعة السريرية</h1>
+              <p>حالات العمليات الخمس، بروتوكولات التخدير، مسار المراجعات، واستئناف الجدولة</p>
+            </div>
+          </div>
+          <div class="page-badge">الصفحة 4 • الجراحة والمراجعات</div>
+        </div>
+
+        <!-- الجناح الجراحي المتكامل -->
+        <div class="card-teal">
+          <div class="section-title">🏥 الجناح الجراحي البيطري المتكامل (Surgery Management Suite):</div>
+          <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">⚙️ الحالات الجراحية
+                الخمس المنضبطة:</div>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; color: #334155;">
+                <div><span class="pill-tag" style="background: #e0f2fe; color: #0369a1;">1. مجدولة (Scheduled):</span>
+                  حجز مسبق مع تحديد اليوم، الوقت، واسم الطبيب الجراح.</div>
+                <div><span class="pill-tag" style="background: #fef3c7; color: #b45309;">2. جارية الآن (In
+                    Progress):</span> الحالة داخل غرفة العمليات مع تشغيل مؤقت الإجراء.</div>
+                <div><span class="pill-tag" style="background: #dcfce7; color: #15803d;">3. مكتملة بنجاح
+                    (Completed):</span> توثيق نجاح العملية، الأدوية، وترحيل الأتعاب المالية.</div>
+                <div><span class="pill-tag" style="background: #fee2e2; color: #b91c1c;">4. متأخرة / لم يحضر
+                    (Overdue):</span> تجاوزت موعدها المحدد لإنذار الفريق وإعادة التواصل.</div>
+                <div><span class="pill-tag" style="background: #f1f5f9; color: #64748b;">5. ملغية (Cancelled):</span>
+                  توثيق سبب الإلغاء مع <strong>منع الحذف النهائي</strong> للحفاظ على التاريخ الطبي.</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">📋 قائمة الفحص
+                والبروتوكول الجراحي:</div>
+              <ul class="bullet-list">
+                <li><strong>قائمة التحقق قبل الجراحة (Pre-Op Checklist):</strong> التحقق من الصيام، حرارة الحيوان،
+                  وسلامة التنفس، وموافقة المربي.</li>
+                <li><strong>بروتوكول التخدير (Anesthesia Protocol):</strong> توثيق أدوية التخدير الكلي والموضعي
+                  والمهدئات وملاحظات الإنعاش.</li>
+                <li><strong>تقرير نتائج العملية الجراحية:</strong> توثيق سير العملية، الغرز المستخدمة، وإرشادات الرعاية
+                  والعناية بالجروح للمربي.</li>
+                <li>إصدار <strong>تقرير جراحي رسمي مستقل بصيغة PDF</strong> قابل للطباعة والمشاركة الفورية عبر واتساب.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- فلاتر العمليات وتقويم الجراحة -->
+        <div class="card" style="padding: 9px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 800; color: #0f766e;">🗓️ الفلاتر الذكية للجناح الجراحي:</div>
+            <div style="display: flex; gap: 6px; font-size: 10px;">
+              <span class="pill-tag" style="background: #0d9488; color: #ffffff;">عمليات اليوم</span>
+              <span class="pill-tag" style="background: #fee2e2; color: #991b1b;">العمليات المتأخرة</span>
+              <span class="pill-tag" style="background: #e0f2fe; color: #075985;">العمليات القادمة</span>
+              <span class="pill-tag" style="background: #f1f5f9; color: #334155;">عرض الكل والبحث بالاسم</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- نظام جلسات المتابعة والمراجعات المتتالية -->
+        <div class="card-teal">
+          <div class="section-title">🔄 نظام جلسات المتابعة والمراجعات المتتالية (Follow-Up Journey):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">🩺 شاشة جلسة المراجعة
+                المتكاملة:</div>
+              <ul class="bullet-list">
+                <li>ربط الجلسة مباشرة بسياق الكشف السريري والتشخيص الأصلي للحالة.</li>
+                <li>عرض خط زمني تفاعلي (<code style="color: #0d9488;">Session Timeline</code>) يوضح رقم الجلسة من إجمالي
+                  الخطة.</li>
+                <li>تسجيل التطور السريري، درجة الحرارة الحالية، ومدى استجابة الحيوان للعلاج.</li>
+                <li><strong>صرف وتوثيق علاجات جلسة المراجعة:</strong> إمكانية حقن أو صرف أدوية إضافية مع خصمها التلقائي
+                  من رف العيادة وإثبات تكلفتها فوراً.</li>
+                <li>تسجيل أتعاب المراجعة (نقداً أو آجل) وإصدار <strong>تقرير مراجعة سريرية PDF</strong>.</li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 3px;">⚡ ميزة استئناف وإعادة
+                جدولة الخطة المنقطعة:</div>
+              <p style="margin: 0 0 5px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                في حال تخلف المربي عن الحضور في الموعد المحدد، يوثق النظام الجلسة كـ <span class="pill-tag"
+                  style="background: #fee2e2; color: #991b1b;">فائتة / لم يحضر</span>.
+              </p>
+              <div style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 8px; padding: 7px;">
+                <div style="font-size: 11px; font-weight: 800; color: #0f766e; margin-bottom: 2px;">🚀 استئناف الخطة
+                  العلاجية بمرونة كاملة:</div>
+                <p style="margin: 0; font-size: 10px; color: #475569; line-height: 1.45;">
+                  تتيح ميزة <strong>استئناف المتابعة</strong> للطبيب إدخال تاريخ بدء جديد وعدد أيام متتالية إضافية
+                  لإكمال العلاج دون حذف الجلسات الفائتة، مما يحفظ الأرشيف الطبي والقانوني للعيادة بشكل مثالي.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- التنبيهات المباشرة للمراجعات -->
+        <div class="card" style="margin-bottom: 0; background: #fffbeb; border: 1px solid #fef3c7;">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #92400e;">
+            <span>📢 <strong>تنبيهات فورية للمربي:</strong> زر واتساب مباشر في شاشة المراجعات لإرسال رسالة تذكيرية باسم
+              الحيوان وتاريخ الجلسة بنقرة واحدة.</span>
+            <span class="pill-tag" style="background: #d97706; color: white;">تذكير واتساب فوري</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 4 من 6 • العمليات والمراجعات</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 5: الصيدلية والمخزون المزدوج، وإشعارات الهاتف الذكية -->
+    <!-- =================================================================== -->
+    <div class="page-frame">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>الصيدلية وإدارة المخزون المزدوج والإشعارات الأصلية</h1>
+              <p>فصل رف العيادة والمستودع، التحويل الفوري، وتنبيهات أندرويد الاستباقية</p>
+            </div>
+          </div>
+          <div class="page-badge">الصفحة 5 • الصيدلية والإشعارات</div>
+        </div>
+
+        <!-- هيكلية الصيدلية والمخزون المزدوج -->
+        <div class="card-teal">
+          <div class="section-title">💊 هيكلية المخزون المزدوج المتطور (Dual-Inventory Architecture):</div>
+          <p style="margin: 0 0 8px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+            تنفرد منظومة VetPulse بتطبيق مفهوم <strong>المخزون المزدوج المنفصل تماماً</strong> لضبط استهلاك الأدوية
+            البيطرية بدقة ومنع العجز المخزني:
+          </p>
+          <div class="feature-grid-2" style="margin-bottom: 8px;">
+            <div style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 12px; font-weight: 800; color: #0f766e;">🏥 رصيد رف العيادة (Clinic Shelf
+                  Stock)</span>
+                <span class="pill-tag" style="background: #ccfbf1; color: #0f766e;">صرف سريري مباشر</span>
+              </div>
+              <ul class="bullet-list">
+                <li>الكميات المتاحة تحت يد الطبيب في غرفة الكشف والعمليات.</li>
+                <li>يتم <strong>الخصم التلقائي الفوري</strong> منها بمجرد تسجيل علاج فوري أو حقنة في الكشف أو العملية أو
+                  جلسة المراجعة.</li>
+                <li>تتبع مستمر للرصيد الحرج لمنع نفاد الأدوية الحيوية أثناء معاينة الحالات الطارئة.</li>
+              </ul>
+            </div>
+            <div style="background: #ffffff; border: 1.5px solid #99f6e4; border-radius: 10px; padding: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-size: 12px; font-weight: 800; color: #0f766e;">📦 رصيد المستودع الرئيسي (Warehouse
+                  Stock)</span>
+                <span class="pill-tag" style="background: #e2e8f0; color: #334155;">المخزن العام للعيادة</span>
+              </div>
+              <ul class="bullet-list">
+                <li>مخزون الشحنات والتوريدات الكلية وصناديق الأدوية المشتراة.</li>
+                <li>تسجيل أسعار التكلفة وسعر البيع المعتمد بالريال اليمني.</li>
+                <li>محمي من الصرف المباشر العشوائي، ولا يخرج منه دواء إلا عبر أمر تحويل داخلي موثق.</li>
+              </ul>
+            </div>
+          </div>
+          <!-- نافذة التحويل المخزني ومراقبة الصلاحيات -->
+          <div
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #ffffff; border-radius: 8px; padding: 8px; border: 1px solid #ccfbf1;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; color: #0f766e; margin-bottom: 2px;">🔄 التحويل المخزني
+                الداخلي الفوري:</div>
+              <p style="margin: 0; font-size: 10px; color: #475569; line-height: 1.45;">
+                نافذة مخصصة تسمح بتحويل كميات محددة من المستودع إلى الرف بنقرة زر، مع خصم رصيد المستودع وزيادة رصيد الرف
+                في نفس اللحظة مع توثيق اسم الشخص المستلم.
+              </p>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 800; color: #0f766e; margin-bottom: 2px;">⏳ مراقبة تواريخ
+                الصلاحية والحد الأدنى:</div>
+              <div style="display: flex; gap: 4px; font-size: 9.5px; margin-top: 3px;">
+                <span class="pill-tag" style="background: #dcfce7; color: #15803d;">صالح للاستخدام</span>
+                <span class="pill-tag" style="background: #fef3c7; color: #b45309;">قريب الانتهاء (&lt; 30 يوم)</span>
+                <span class="pill-tag" style="background: #fee2e2; color: #b91c1c;">منتهي (منع الصرف)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- مركز التنبيهات وإشعارات الهاتف الأصلية -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="section-title">🔔 إشعارات الهاتف الأصلية على نظام أندرويد (Native Android Notifications):</div>
+          <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">⏰ نوافذ التنبيه
+                الاستباقية الثلاث للجراحة:</div>
+              <p style="margin: 0 0 5px 0; font-size: 10.5px; color: #334155; line-height: 1.5;">
+                تعتمد المنظومة مكتبة إشعارات النظام الأصلية (<code
+                  style="color: #0d9488;">flutter_local_notifications</code>) التي تطلق إشعارات فعلية بصوت وتنبيه شاشة
+                حتى لو كان التطبيق مغلقاً تماماً:
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 3.5px; font-size: 10px;">
+                <div
+                  style="background: #f0fdf4; border-right: 3px solid #22c55e; padding: 4px 8px; border-radius: 4px;">
+                  <strong>1. قبل 12 ساعة من موعد الجراحة:</strong> إشعار أولي لتذكير الطبيب وتأكيد موعد حضور الحالة.
+                </div>
+                <div
+                  style="background: #fffbeb; border-right: 3px solid #f59e0b; padding: 4px 8px; border-radius: 4px;">
+                  <strong>2. قبل 6 ساعات من موعد الجراحة:</strong> إشعار تنبيهي للتأكد من صيام الحيوان وتجهيز المعدات.
+                </div>
+                <div
+                  style="background: #fef2f2; border-right: 3px solid #ef4444; padding: 4px 8px; border-radius: 4px;">
+                  <strong>3. قبل ساعة واحدة (إنذار حرج ⚠️):</strong> إشعار استنفاري حرج لتحضير التخدير وغرفة العمليات
+                  فوراً.
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 3px;">📑 لوحة التنبيهات
+                السريعة (Alerts Sheet):</div>
+              <ul class="bullet-list">
+                <li><strong>تنبيهات المراجعات المستحقة اليوم:</strong> قائمة فورية بالحالات التي يتوجب حضورها للعيادة
+                  اليوم لمتابعة العلاج.</li>
+                <li><strong>العمليات والمراجعات المتأخرة:</strong> كشف بالحالات التي فات موعدها لاتخاذ قرار المتابعة
+                  الفورية.</li>
+                <li><strong>إلغاء التكرار والجدولة الذكية:</strong> عند اكتمال أو إلغاء العملية، يقوم النظام آلياً
+                  بإلغاء الإشعارات المجدولة الخاصة بها لعدم إزعاج الطبيب.</li>
+                <li><strong>تنبيهات الأدوية النافذة:</strong> إنذار فوري عند وصول أي صنف في الصيدلية إلى حد الطلب
+                  الأدنى.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 5 من 6 • الصيدلية وإشعارات النظام</span>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PAGE 6: المحاسبة المالية، الدفع الآجل، التقارير، والنسخ الاحتياطي -->
+    <!-- =================================================================== -->
+    <div class="page-frame" style="border: 2px solid #0d9488;">
+      <div>
+        <!-- رأس الصفحة -->
+        <div class="header-bar">
+          <div class="header-logo-group">
+            <img src="assets/images/app_icon_colorful.jpg" alt="Logo" class="app-logo" />
+            <div class="header-title-box">
+              <h1>الإدارة المالية والتقارير الأسبوعية والنسخ الاحتياطي</h1>
+              <p>طرق الدفع الست، الدفع الآجل الذكي، كشوفات الحساب، والنسخ الاحتياطي الخارجي</p>
+            </div>
+          </div>
+          <div class="page-badge">الصفحة 6 • المالية والاستقرار</div>
+        </div>
+
+        <!-- صورة الشاشة المالية الشاملة -->
+        <div style="text-align: center; margin: 4px 0 8px 0;">
+          <img src="assets/images/financial_dashboard_showcase.jpg" alt="Financial Dashboard"
+            style="width: 100%; max-height: 170px; object-fit: cover; border-radius: 10px; border: 1.5px solid #99f6e4; box-shadow: 0 3px 10px rgba(0,0,0,0.06);" />
+        </div>
+
+        <!-- الإدارة المالية وطرق الدفع المعتمدة -->
+        <div class="card-teal">
+          <div class="section-title">💰 الإدارة المالية والفوترة الدقيقة (Financial Management):</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 2px;">💳 دعم 6 خيارات دفع
+                معتمدة رسمياً:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; font-size: 10px; margin-bottom: 5px;">
+                <span class="pill-tag" style="background: #dcfce7; color: #166534;">1. نقداً (كاش)</span>
+                <span class="pill-tag" style="background: #fef3c7; color: #92400e;">2. آجل (ذمم مدينة)</span>
+                <span class="pill-tag" style="background: #e0f2fe; color: #075985;">3. محفظة جوالي</span>
+                <span class="pill-tag" style="background: #ede9fe; color: #5b21b6;">4. محفظة جيب</span>
+                <span class="pill-tag" style="background: #fce7f3; color: #9d174d;">5. بنك الكريمي</span>
+                <span class="pill-tag" style="background: #ccfbf1; color: #0f766e;">6. محفظة فلوسك</span>
+              </div>
+              <div style="font-size: 10px; color: #334155; line-height: 1.45;">
+                تمكين الطبيب من فرز الإيرادات حسب طريقة الاستلام بدقة لمطابقة النقدية في الخزينة مع أرصدة التطبيقات
+                البنكية والمحافظ.
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #0f766e; margin-bottom: 2px;">⚡ الدفع الآجل ومنع
+                الازدواجية:</div>
+              <ul class="bullet-list">
+                <li><strong>الدفع الآجل (آجل):</strong> بمجرد اختياره، يكتفي النظام بحقل التكلفة الإجمالية ويرحل المبلغ
+                  كمديونية على حساب العميل آلياً.</li>
+                <li><strong>منع الازدواجية المالية:</strong> عند السداد النقدي الكامل، تسجل كحركة إيراد واحدة مسددة بدون
+                  تكرار في دفتر اليومية.</li>
+                <li><strong>كشف حساب المربي (Account Statement):</strong> إصدار كشف حساب تفصيلي للعميل بجميع زياراته
+                  ومديونياته وسندات سداده مع إمكانية طباعته أو إرساله عبر واتساب.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- التقارير الأسبوعية والنسخ الاحتياطي -->
+        <div class="card" style="margin-bottom: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div class="section-title">📊 التقارير الأسبوعية التحليلية:</div>
+              <ul class="bullet-list">
+                <li>إجمالي إيرادات الأسبوع وصافي الأرباح ومصروفات التشغيل.</li>
+                <li>إحصائيات عدد الكشوفات، المرضى الجدد، والعمليات المنفذة.</li>
+                <li>قائمة التشخيصات الأكثر شيوعاً في العيادة خلال الأسبوع.</li>
+                <li>الأدوية الأكثر صرفاً واستهلاكاً لمساعدة العيادة في إعادة الشراء.</li>
+              </ul>
+            </div>
+            <div>
+              <div class="section-title">💾 النسخ الاحتياطي الآمن للبيانات (SQLite):</div>
+              <ul class="bullet-list">
+                <li><strong>نسخ احتياطي محلي فوري:</strong> حفظ نسخة من قاعدة البيانات داخل ذاكرة الجهاز بضغطة زر واحدة.
+                </li>
+                <li><strong>تصدير خارجي مباشر (External Backup):</strong> تصدير ملف قاعدة البيانات لمجلد خارجي أو فلاش
+                  ميموري أو مشاركته عبر إيميل / تيليجرام.</li>
+                <li><strong>استعادة آمنة محصورة بالطبيب الرئيسي:</strong> مع سجل تدقيق للعمليات (<code
+                    style="color: #0d9488;">Audit Logs</code>) لمنع أي عبث بالبيانات.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- صندوق التواصل والتدشين الرسمي -->
+        <div class="card-dark" style="margin-bottom: 0; padding: 11px 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="flex: 1; min-width: 260px;">
+              <h3 style="margin: 0 0 3px 0; color: #2dd4bf; font-size: 14px;">جاهزون لتدشين النظام وتدريب فريق عمل
+                عيادتكم الموقرة</h3>
+              <p style="margin: 0; color: #cbd5e1; font-size: 10.5px; line-height: 1.45;">
+                يشمل التدشين تثبيت النسخة الإنتاجية المشفرة، ضبط هوية وشعار العيادة، إعداد قائمة الأدوية الافتتاحية،
+                وتدريب الأطباء وموظفي الاستقبال على تشغيل النظام في وقت قياسي.
+              </p>
+            </div>
+            <div
+              style="background: #334155; padding: 8px 14px; border-radius: 8px; text-align: center; border: 1px solid #475569; min-width: 200px;">
+              <div style="font-size: 9.5px; color: #94a3b8;">الاستشاري ومطور النظام المعتمد:</div>
+              <div style="font-size: 13px; font-weight: 800; color: #ffffff; margin: 2px 0;">م. عبدالله عبدالمغني
+                الأديمي</div>
+              <div style="font-size: 10px; color: #2dd4bf; font-weight: 700;">استشاري ومطور البرمجيات والأنظمة الطبية
+              </div>
+              <div style="font-size: 12px; color: #38bdf8; font-weight: 800; direction: ltr; margin-top: 3px;">+967 771
+                882 350</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- تذييل الصفحة -->
+      <div class="footer-bar">
+        <span>نظام نبض البيطري (VetPulse) • تطوير: م. عبدالله عبدالمغني الأديمي • واتساب: 967771882350+</span>
+        <span style="font-weight: 700;">الصفحة 6 من 6 • نهاية الدليل التقديمي المعتمد</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

@@ -1,0 +1,94 @@
+===============================================================================
+           VETPULSE (نبض البيطري) — DEVELOPER OPERATIONS & CLI GUIDE
+===============================================================================
+Project Root: C:\flutter_apps\vet_pulse
+Developer: Eng. Abdullah Abdulmughni Al-Adeimi (+967 771 882 350)
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+1. GENERATING CUSTOMER ACTIVATION CODES (LICENSE KEYGEN)
+-------------------------------------------------------------------------------
+When a clinic installs the app, they will send you their Device Request Code 
+from the Activation Screen via WhatsApp.
+Format of Request Code: VP1-<12_CHAR_FINGERPRINT>-<YYYYMMDD>-<4_CHAR_CHECKSUM>
+Example Request Code:   VP1-8F3A9C120B4E-20261026-A1B2
+
+Open your terminal in the project root (C:\flutter_apps\vet_pulse) and run:
+
+[A] General Syntax:
+    dart run tools/license_keygen.dart <DEVICE_REQUEST_CODE> <DAYS_VALID>
+
+[B] Common License Durations:
+    • 7-Day Trial License (نسخة تجريبية 7 أيام):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 7
+
+    • 14-Day Trial License (نسخة تجريبية 14 يوم):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 14
+
+    • 1-Month Subscription (اشتراك شهري - 30 يوم):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 30
+
+    • 6-Month Subscription (اشتراك نصف سنوي - 180 يوم):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 180
+
+    • 1-Year Subscription (اشتراك سنوي - 365 يوم):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 365
+
+    • Permanent / Lifetime License (ترخيص دائم مدى الحياة - 9999 يوم):
+      dart run tools/license_keygen.dart VP1-8F3A9C120B4E-20261026-A1B2 9999
+
+* Note: You can also pass just the 12-character fingerprint (e.g., 8F3A9C120B4E)
+  or the formatted fingerprint (8F3A-9C12-0B4E) as the first argument.
+* Important: Every generated VPACT-... code is cryptographically locked to that
+  specific device's hardware fingerprint and cannot be reused after expiration.
+
+
+-------------------------------------------------------------------------------
+2. BUILDING THE HARDENED, ENCRYPTED & OBFUSCATED RELEASE APK
+-------------------------------------------------------------------------------
+This build process strips all Dart class/method names (--obfuscate), separates 
+debug symbols (--split-debug-info), shrinks resources, and runs Android R8 
+minification alongside XOR-masked secret keys.
+
+[Option A] One-Click Batch Script (Recommended):
+    .\build_secure_apk.bat
+
+[Option B] Manual Step-by-Step Terminal Commands:
+    flutter clean
+    flutter pub get
+    flutter analyze
+
+    =====
+    main command : 
+
+    flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+
+[Option C] Build Split APKs Per CPU Architecture (Smaller APK Size):
+    flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/app/outputs/symbols
+
+
+-------------------------------------------------------------------------------
+3. WHERE TO FIND THE GENERATED APK & SYMBOLS
+-------------------------------------------------------------------------------
+• Final Production APK (Send this file to the customer):
+  C:\flutter_apps\vet_pulse\build\app\outputs\flutter-apk\app-release.apk
+
+• Obfuscation Debug Symbols (Keep privately on your PC, NEVER send to customer):
+  C:\flutter_apps\vet_pulse\build\app\outputs\symbols\
+
+
+-------------------------------------------------------------------------------
+4. DE-OBFUSCATING CRASH STACK TRACES (IF NEEDED LATER)
+-------------------------------------------------------------------------------
+If a customer ever sends you a crash log from an obfuscated release build,
+you can translate the scrambled symbols back into readable Dart line numbers
+using your saved symbols file:
+
+    flutter symbolize -i <path_to_crash_log.txt> -d build/app/outputs/symbols/app.android-arm64.symbols
+===============================================================================
+
+
+
+
+

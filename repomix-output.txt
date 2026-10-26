@@ -53,6 +53,7 @@ lib/
     services/
       data_sync_service.dart
       device_contact_service.dart
+      license_service.dart
       notification_service.dart
     utils/
       arabic_date_helper.dart
@@ -180,6 +181,15 @@ lib/
       views/
         follow_up_calendar_view.dart
         follow_up_detail_view.dart
+    onboarding/
+      bindings/
+        onboarding_binding.dart
+      controllers/
+        activation_controller.dart
+        onboarding_controller.dart
+      views/
+        activation_view.dart
+        onboarding_view.dart
     patients/
       bindings/
         patient_binding.dart
@@ -4677,6 +4687,26 @@ class FollowUpDetailView extends GetView<FollowUpDetailController> {
 }
 </file>
 
+<file path="lib/modules/onboarding/bindings/onboarding_binding.dart">
+import 'package:get/get.dart';
+import '../controllers/activation_controller.dart';
+import '../controllers/onboarding_controller.dart';
+
+class OnboardingBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<OnboardingController>(() => OnboardingController());
+  }
+}
+
+class ActivationBinding extends Bindings {
+  @override
+  void dependencies() {
+    Get.lazyPut<ActivationController>(() => ActivationController());
+  }
+}
+</file>
+
 <file path="lib/modules/patients/controllers/patient_detail_controller.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6714,227 +6744,6 @@ class SurgeryFollowUpCard extends GetView<SurgeryFollowUpController> {
 }
 </file>
 
-<file path="lib/core/config/demo_config.dart">
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:sqflite/sqflite.dart';
-import '../../data/database/database_helper.dart';
-import '../../data/database/database_tables.dart';
-import '../constants/app_colors.dart';
-
-class DemoConfig {
-  DemoConfig._();
-
-  /// Flag to switch between Demo Edition and Full Commercial Edition
-  static const bool isDemoMode = false;
-
-  /// Maximum allowed records per feature in the Demo Edition (5 in everything)
-  static const int maxLimit = 5;
-
-  /// Developer & Sales Contact Details
-  static const String developerName = 'مهندس برمجيات / عبدالله عبدالمغني الأديمي';
-  static const String developerRole = 'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
-  static const String contactPhone = '777123456';
-  static const String demoWatermark = 'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
-
-  /// Helper to check if a new patient can be registered
-  static Future<bool> canAddPatient() async {
-    if (!isDemoMode) return true;
-    final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tablePets}'),
-        ) ??
-        0;
-
-    if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'مرضى (سجلات حيوانات أليفة)',
-        currentCount: count,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /// Helper to check if a new consultation (SOAP) can be registered
-  static Future<bool> canAddConsultation() async {
-    if (!isDemoMode) return true;
-    final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableConsultations}'),
-        ) ??
-        0;
-
-    if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'كشوفات سريرية (SOAP)',
-        currentCount: count,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /// Helper to check if a new surgery can be booked
-  static Future<bool> canAddSurgery() async {
-    if (!isDemoMode) return true;
-    final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableSurgeries}'),
-        ) ??
-        0;
-
-    if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'عمليات جراحية',
-        currentCount: count,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /// Helper to check if a new follow-up appointment can be booked
-  static Future<bool> canAddFollowUp() async {
-    if (!isDemoMode) return true;
-    final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableFollowUps}'),
-        ) ??
-        0;
-
-    if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'مواعيد ومراجعات',
-        currentCount: count,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /// Helper to check if a new medicine can be added to pharmacy
-  static Future<bool> canAddMedicine() async {
-    if (!isDemoMode) return true;
-    final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableMedicines}'),
-        ) ??
-        0;
-
-    if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'أصناف دوائية في الصيدلية',
-        currentCount: count,
-      );
-      return false;
-    }
-    return true;
-  }
-
-  /// Elegant Modal Dialog explaining the Demo Quota Limit
-  static void showDemoLimitDialog({
-    required String featureName,
-    int currentCount = maxLimit,
-  }) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            color: Colors.white,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.amber.shade300, width: 2),
-                ),
-                child: const Icon(
-                  Icons.lock_clock_outlined,
-                  color: Colors.amber,
-                  size: 34,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'الحد الأقصى للنسخة التجريبية (Demo)',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'لقد استنفدت السعة التجريبية المسموحة ($maxLimit $featureName).\n'
-                'هذه النسخة مخصصة للاختبار السريري واستكشاف المميزات.',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'لترقية النظام لمركزكم البيطري بدون أي قيود:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      developerName,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      developerRole,
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => Get.back(),
-                  child: const Text('فهمت ذلك', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-</file>
-
 <file path="lib/core/constants/app_colors.dart">
 import 'package:flutter/material.dart';
 
@@ -7168,6 +6977,467 @@ class AppTheme {
         space: 24,
       ),
     );
+  }
+}
+</file>
+
+<file path="lib/core/services/license_service.dart">
+import 'dart:convert';
+import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import '../../data/database/database_helper.dart';
+import '../../data/database/database_tables.dart';
+
+enum LicenseStatus {
+  unactivated,
+  active,
+  expired,
+  clockTampered,
+}
+
+class LicenseService extends GetxService {
+  static LicenseService get to =>
+      Get.isRegistered<LicenseService>() ? Get.find<LicenseService>() : Get.put(LicenseService(), permanent: true);
+
+  // XOR-Masked Cryptographic Secret Salt & HMAC Signing Key
+  static const List<int> _kXorMask = [0x56, 0x7E, 0x54, 0x50, 0x32, 0x30, 0x32, 0x36];
+  static const List<int> _kMaskedKey = [
+    0x00, 0x3B, 0x00, 0x00, 0x67, 0x7C, 0x61, 0x73, 0x09, 0x36, 0x19, 0x11, 0x71, 0x6F, 0x61, 0x73,
+    0x15, 0x2C, 0x11, 0x04, 0x6D, 0x7B, 0x77, 0x6F, 0x09, 0x4C, 0x64, 0x62, 0x04, 0x6F, 0x61, 0x77,
+    0x09, 0x27, 0x11, 0x0F, 0x61, 0x75, 0x71, 0x63, 0x04, 0x3B, 0x0B, 0x11, 0x67, 0x64, 0x7A,
+  ];
+  static const List<int> _kMaskedSalt = [
+    0x00, 0x3B, 0x00, 0x00, 0x67, 0x7C, 0x61, 0x73, 0x09, 0x3A, 0x11, 0x06, 0x7B, 0x73, 0x77, 0x69,
+    0x05, 0x3F, 0x18, 0x04, 0x6D, 0x09, 0x0B, 0x02, 0x64, 0x21, 0x07, 0x15, 0x71, 0x65, 0x60, 0x73,
+    0x09, 0x36, 0x15, 0x03, 0x7A,
+  ];
+
+  static List<int> _reconstructSecretBytes(List<int> masked, List<int> mask) {
+    return List<int>.generate(masked.length, (i) => masked[i] ^ mask[i % mask.length]);
+  }
+
+  static List<int> get _secretKeyBytes => _reconstructSecretBytes(_kMaskedKey, _kXorMask);
+  static List<int> get _secretSaltBytes => _reconstructSecretBytes(_kMaskedSalt, _kXorMask);
+
+  static bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    int result = 0;
+    for (int i = 0; i < a.length; i++) {
+      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return result == 0;
+  }
+
+  final Rx<LicenseStatus> licenseStatus = LicenseStatus.unactivated.obs;
+  final RxBool onboardingCompleted = false.obs;
+  final RxBool clinicSetupCompleted = false.obs;
+  final RxBool isLicenseActive = false.obs;
+  final RxBool isExpired = false.obs;
+  final RxBool isClockTampered = false.obs;
+  final RxString deviceFingerprint = ''.obs;
+  final RxString deviceRequestCode = ''.obs;
+  final RxnString expiryDate = RxnString();
+  final RxInt remainingDays = 0.obs;
+  final RxBool isLifetime = false.obs;
+
+  /// Clean 12-char uppercase hex fingerprint without dashes
+  String get cleanFingerprint => deviceFingerprint.value.replaceAll('-', '').toUpperCase();
+
+  Future<LicenseService> init() async {
+    await _initializeLicense();
+    return this;
+  }
+
+  Future<void> _initializeLicense() async {
+    try {
+      final fp = await getDeviceFingerprint();
+      deviceFingerprint.value = fp;
+      deviceRequestCode.value = getDeviceRequestCode(fp);
+
+      await checkLicenseValidity();
+
+      if (kDebugMode) {
+        final testCode = generateActivationCode(
+          cleanFingerprint: cleanFingerprint,
+          expiryDate: DateTime.now().add(const Duration(days: 30)),
+        );
+        debugPrint('====================================================');
+        debugPrint('🔑 [VetPulse Licensing] Device Fingerprint: $deviceFingerprint');
+        debugPrint('🔑 [VetPulse Licensing] Device Request Code: ${deviceRequestCode.value}');
+        debugPrint('🔑 [VetPulse Licensing] Test 30-Day Activation Code: $testCode');
+        debugPrint('🔑 [VetPulse Licensing] Status: ${licenseStatus.value.name}');
+        debugPrint('====================================================');
+      }
+    } catch (e, stack) {
+      debugPrint('Error initializing LicenseService: $e\n$stack');
+    }
+  }
+
+  /// Collects unique hardware identifiers and computes a 12-char fingerprint formatted as XXXX-XXXX-XXXX
+  Future<String> getDeviceFingerprint() async {
+    final deviceInfo = DeviceInfoPlugin();
+    String rawHardware = '';
+
+    try {
+      if (kIsWeb) {
+        final webInfo = await deviceInfo.webBrowserInfo;
+        rawHardware = '${webInfo.userAgent}|${webInfo.vendor}|${webInfo.platform}';
+      } else if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        rawHardware = [
+          androidInfo.id,
+          androidInfo.brand,
+          androidInfo.model,
+          androidInfo.device,
+          androidInfo.board,
+          androidInfo.hardware,
+        ].join('|');
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        rawHardware = '${iosInfo.identifierForVendor}|${iosInfo.model}|${iosInfo.systemName}';
+      } else if (Platform.isWindows) {
+        final winInfo = await deviceInfo.windowsInfo;
+        rawHardware = '${winInfo.deviceId}|${winInfo.computerName}|${winInfo.numberOfCores}';
+      } else if (Platform.isLinux) {
+        final linuxInfo = await deviceInfo.linuxInfo;
+        rawHardware = '${linuxInfo.machineId}|${linuxInfo.name}|${linuxInfo.id}';
+      } else if (Platform.isMacOS) {
+        final macInfo = await deviceInfo.macOsInfo;
+        rawHardware = '${macInfo.systemGUID}|${macInfo.computerName}|${macInfo.model}';
+      } else {
+        rawHardware = Platform.operatingSystem;
+      }
+    } catch (e) {
+      debugPrint('Error collecting device info: $e');
+      rawHardware = 'VETPULSE_GENERIC_FALLBACK_DEVICE';
+    }
+
+    if (rawHardware.trim().isEmpty) {
+      rawHardware = 'VETPULSE_DEFAULT_HW_STRING';
+    }
+
+    final hashBytes = sha256.convert([...utf8.encode('$rawHardware|'), ..._secretSaltBytes]).bytes;
+    final hexStr = hashBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase();
+    final fp12 = hexStr.substring(0, 12);
+
+    return '${fp12.substring(0, 4)}-${fp12.substring(4, 8)}-${fp12.substring(8, 12)}';
+  }
+
+  /// Generates the copyable user request string: `VP1-<FP12>-<YYYYMMDD>-<CHK4>`
+  String getDeviceRequestCode(String formattedFingerprint) {
+    final cleanFp = formattedFingerprint.replaceAll('-', '').toUpperCase();
+    final now = DateTime.now();
+    final ymd = '${now.year.toString().padLeft(4, '0')}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}';
+
+    final hmac = Hmac(sha256, _secretKeyBytes);
+    final chkBytes = hmac.convert(utf8.encode('$cleanFp|$ymd')).bytes;
+    final chk4 = chkBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase().substring(0, 4);
+
+    return 'VP1-$cleanFp-$ymd-$chk4';
+  }
+
+  /// Verifies an activation code and stores the license state upon success
+  Future<bool> verifyAndActivateCode(String rawCode) async {
+    final code = rawCode.trim().toUpperCase();
+
+    // Code Format: VPACT-<EXPIRY_YYYYMMDD>-<NONCE4>-<SIG12>
+    final parts = code.split('-');
+    if (parts.length != 4 || parts[0] != 'VPACT') {
+      _showFeedback(
+        'كود غير صالح',
+        'صيغة كود التفعيل غير صحيحة، يجب أن تبدأ بـ VPACT-',
+      );
+      return false;
+    }
+
+    final expiryYmd = parts[1];
+    final nonce4 = parts[2];
+    final sig12 = parts[3];
+
+    final validHex12 = RegExp(r'^[0-9A-F]{12}$');
+    final validYmd = RegExp(r'^\d{8}$');
+    if (!validYmd.hasMatch(expiryYmd) || nonce4.length != 4 || !validHex12.hasMatch(sig12)) {
+      _showFeedback(
+        'كود غير صالح',
+        'أجزاء كود التفعيل غير مكتملة أو غير صالحة',
+      );
+      return false;
+    }
+
+    // 1. Verify Signature matches current device's fingerprint (constant-time)
+    final hmac = Hmac(sha256, _secretKeyBytes);
+    final expectedSigBytes = hmac.convert(utf8.encode('$cleanFingerprint|$expiryYmd|$nonce4')).bytes;
+    final expectedSig12 = expectedSigBytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join()
+        .toUpperCase()
+        .substring(0, 12);
+
+    if (!_constantTimeEquals(sig12, expectedSig12)) {
+      _showFeedback(
+        'فشل التفعيل',
+        'كود التفعيل غير مخصص لهذا الجهاز ومقفل على بصمة جهاز آخر',
+      );
+      return false;
+    }
+
+    // 2. Verify SHA-256 hash is NOT in used_codes_json
+    final db = await DatabaseHelper.instance.database;
+    final rowList = await db.query(DatabaseTables.tableAppLicenseState, limit: 1);
+    List<dynamic> usedCodes = [];
+    if (rowList.isNotEmpty && rowList.first['used_codes_json'] != null) {
+      try {
+        usedCodes = jsonDecode(rowList.first['used_codes_json'] as String) as List<dynamic>;
+      } catch (_) {
+        usedCodes = [];
+      }
+    }
+
+    final codeHash = sha256.convert(utf8.encode(code)).toString().toUpperCase();
+    if (usedCodes.contains(codeHash)) {
+      _showFeedback(
+        'كود مستخدم مسبقاً',
+        'تم استخدام كود التفعيل هذا مسبقاً ولا يمكن تكرار استخدامه بعد انتهاء مدته',
+      );
+      return false;
+    }
+
+    // 3. Verify expiry date
+    String formattedExpiryIso;
+    bool lifetime = false;
+    if (expiryYmd == '99991231') {
+      formattedExpiryIso = '9999-12-31';
+      lifetime = true;
+    } else {
+      final year = int.tryParse(expiryYmd.substring(0, 4));
+      final month = int.tryParse(expiryYmd.substring(4, 6));
+      final day = int.tryParse(expiryYmd.substring(6, 8));
+
+      if (year == null || month == null || day == null) {
+        _showFeedback('فشل التفعيل', 'تاريخ انتهاء الترخيص في الكود غير صالح');
+        return false;
+      }
+
+      final expiryDt = DateTime(year, month, day, 23, 59, 59);
+      if (expiryDt.isBefore(DateTime.now())) {
+        _showFeedback(
+          'كود منتهي',
+          'كود التفعيل المدخل منتهي الصلاحية بالفعل',
+        );
+        return false;
+      }
+
+      formattedExpiryIso =
+          '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    }
+
+    // Update persistent state
+    usedCodes.add(codeHash);
+    final nowIso = DateTime.now().toIso8601String();
+
+    await db.update(
+      DatabaseTables.tableAppLicenseState,
+      {
+        'activation_code': code,
+        'activated_at': nowIso,
+        'expiry_date': formattedExpiryIso,
+        'last_seen_timestamp': nowIso,
+        'used_codes_json': jsonEncode(usedCodes),
+      },
+      where: 'id = 1',
+    );
+
+    // Update in-memory reactive state
+    licenseStatus.value = LicenseStatus.active;
+    isLicenseActive.value = true;
+    isExpired.value = false;
+    isClockTampered.value = false;
+    isLifetime.value = lifetime;
+    expiryDate.value = formattedExpiryIso;
+    _computeRemainingDays(formattedExpiryIso, lifetime);
+
+    _showFeedback(
+      'تم التفعيل بنجاح! 🎉',
+      lifetime
+          ? 'تم توثيق ترخيص النظام الدائم للعيادة'
+          : 'تم تفعيل النسخة حتى $formattedExpiryIso (متبقي ${remainingDays.value} يوم)',
+      duration: const Duration(seconds: 4),
+    );
+
+    return true;
+  }
+
+  void _showFeedback(String title, String message, {Duration? duration}) {
+    if (Get.context != null) {
+      try {
+        Get.snackbar(
+          title,
+          message,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: duration ?? const Duration(seconds: 3),
+        );
+      } catch (_) {}
+    }
+  }
+
+  /// Checks persistent database state, clock-rollback tampering, and expiration date
+  Future<LicenseStatus> checkLicenseValidity() async {
+    final db = await DatabaseHelper.instance.database;
+    final res = await db.query(DatabaseTables.tableAppLicenseState, limit: 1);
+
+    if (res.isEmpty) {
+      final fp = deviceFingerprint.value.isNotEmpty ? deviceFingerprint.value : await getDeviceFingerprint();
+      deviceFingerprint.value = fp;
+      deviceRequestCode.value = getDeviceRequestCode(fp);
+
+      final nowIso = DateTime.now().toIso8601String();
+      await db.insert(DatabaseTables.tableAppLicenseState, {
+        'id': 1,
+        'onboarding_completed': 0,
+        'clinic_setup_completed': 0,
+        'device_fingerprint': fp,
+        'activation_code': null,
+        'activated_at': null,
+        'expiry_date': null,
+        'last_seen_timestamp': nowIso,
+        'used_codes_json': '[]',
+      });
+
+      onboardingCompleted.value = false;
+      clinicSetupCompleted.value = false;
+      isLicenseActive.value = false;
+      isExpired.value = false;
+      isClockTampered.value = false;
+      licenseStatus.value = LicenseStatus.unactivated;
+      return LicenseStatus.unactivated;
+    }
+
+    final row = res.first;
+    onboardingCompleted.value = (row['onboarding_completed'] as int? ?? 0) == 1;
+    clinicSetupCompleted.value = (row['clinic_setup_completed'] as int? ?? 0) == 1;
+
+    final actCode = row['activation_code'] as String?;
+    final expiry = row['expiry_date'] as String?;
+    final lastSeen = row['last_seen_timestamp'] as String?;
+
+    if (actCode == null || actCode.isEmpty || expiry == null || expiry.isEmpty) {
+      isLicenseActive.value = false;
+      isExpired.value = false;
+      isClockTampered.value = false;
+      licenseStatus.value = LicenseStatus.unactivated;
+      return LicenseStatus.unactivated;
+    }
+
+    // Clock Tamper Detection (check if clock was turned back > 6 hours)
+    final now = DateTime.now();
+    if (lastSeen != null && lastSeen.isNotEmpty) {
+      final lastSeenDt = DateTime.tryParse(lastSeen);
+      if (lastSeenDt != null) {
+        final diff = now.difference(lastSeenDt);
+        if (diff.inMinutes < -360) {
+          isClockTampered.value = true;
+          isLicenseActive.value = false;
+          licenseStatus.value = LicenseStatus.clockTampered;
+          return LicenseStatus.clockTampered;
+        }
+      }
+    }
+
+    // Update last seen timestamp
+    await db.update(
+      DatabaseTables.tableAppLicenseState,
+      {'last_seen_timestamp': now.toIso8601String()},
+      where: 'id = 1',
+    );
+
+    // Expiration check
+    final lifetime = expiry == '9999-12-31';
+    isLifetime.value = lifetime;
+    expiryDate.value = expiry;
+
+    final todayStr = now.toIso8601String().substring(0, 10);
+    if (!lifetime && todayStr.compareTo(expiry) > 0) {
+      isExpired.value = true;
+      isLicenseActive.value = false;
+      licenseStatus.value = LicenseStatus.expired;
+      remainingDays.value = 0;
+      return LicenseStatus.expired;
+    }
+
+    // Active
+    isLicenseActive.value = true;
+    isExpired.value = false;
+    isClockTampered.value = false;
+    licenseStatus.value = LicenseStatus.active;
+    _computeRemainingDays(expiry, lifetime);
+    return LicenseStatus.active;
+  }
+
+  void _computeRemainingDays(String expiryIso, bool lifetime) {
+    if (lifetime) {
+      remainingDays.value = 9999;
+      return;
+    }
+    try {
+      final parts = expiryIso.split('-');
+      final expDt = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]), 23, 59, 59);
+      final now = DateTime.now();
+      final diffDays = expDt.difference(now).inDays + 1;
+      remainingDays.value = diffDays > 0 ? diffDays : 0;
+    } catch (_) {
+      remainingDays.value = 0;
+    }
+  }
+
+  Future<void> completeOnboarding() async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      DatabaseTables.tableAppLicenseState,
+      {'onboarding_completed': 1},
+      where: 'id = 1',
+    );
+    onboardingCompleted.value = true;
+  }
+
+  Future<void> completeClinicSetup() async {
+    final db = await DatabaseHelper.instance.database;
+    await db.update(
+      DatabaseTables.tableAppLicenseState,
+      {'clinic_setup_completed': 1},
+      where: 'id = 1',
+    );
+    clinicSetupCompleted.value = true;
+  }
+
+  /// Helper used by developer keygen tool and test generator
+  static String generateActivationCode({
+    required String cleanFingerprint,
+    required DateTime expiryDate,
+    String? nonce,
+  }) {
+    final cleanFp = cleanFingerprint.replaceAll('-', '').toUpperCase();
+    final ymd = expiryDate.year >= 9999
+        ? '99991231'
+        : '${expiryDate.year.toString().padLeft(4, '0')}'
+            '${expiryDate.month.toString().padLeft(2, '0')}'
+            '${expiryDate.day.toString().padLeft(2, '0')}';
+
+    final nonce4 = (nonce ?? '9A7F').toUpperCase().padLeft(4, '0').substring(0, 4);
+
+    final hmac = Hmac(sha256, _secretKeyBytes);
+    final sigBytes = hmac.convert(utf8.encode('$cleanFp|$ymd|$nonce4')).bytes;
+    final sig12 = sigBytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join()
+        .toUpperCase()
+        .substring(0, 12);
+
+    return 'VPACT-$ymd-$nonce4-$sig12';
   }
 }
 </file>
@@ -8832,110 +9102,6 @@ class UserModel {
 }
 </file>
 
-<file path="lib/data/repositories/auth_repository.dart">
-import 'package:sqflite/sqflite.dart';
-import '../../core/services/data_sync_service.dart';
-import '../database/database_helper.dart';
-import '../database/database_tables.dart';
-import '../models/clinic_model.dart';
-import '../models/user_model.dart';
-
-class AuthRepository {
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
-
-  Future<ClinicModel?> getClinicInfo() async {
-    final db = await _dbHelper.database;
-    final res = await db.query(DatabaseTables.tableClinicInfo, limit: 1);
-    if (res.isNotEmpty) {
-      return ClinicModel.fromMap(res.first);
-    }
-    return null;
-  }
-
-  Future<int> saveClinicInfo(ClinicModel clinic) async {
-    final db = await _dbHelper.database;
-    final int res;
-    if (clinic.id != null) {
-      res = await db.update(
-        DatabaseTables.tableClinicInfo,
-        clinic.toMap(),
-        where: 'id = ?',
-        whereArgs: [clinic.id],
-      );
-    } else {
-      res = await db.insert(DatabaseTables.tableClinicInfo, clinic.toMap());
-    }
-    DataSyncService.notifyAllChanged();
-    return res;
-  }
-
-  Future<UserModel?> login(String username, String password) async {
-    final db = await _dbHelper.database;
-    final res = await db.query(
-      DatabaseTables.tableUsers,
-      where: 'username = ? AND password_hash = ? AND is_active = 1',
-      whereArgs: [username.trim(), password],
-      limit: 1,
-    );
-    if (res.isNotEmpty) {
-      return UserModel.fromMap(res.first);
-    }
-    return null;
-  }
-
-  Future<UserModel?> loginWithPin(String pin) async {
-    final db = await _dbHelper.database;
-    final res = await db.query(
-      DatabaseTables.tableUsers,
-      where: 'pin_code = ? AND is_active = 1',
-      whereArgs: [pin.trim()],
-      limit: 1,
-    );
-    if (res.isNotEmpty) {
-      return UserModel.fromMap(res.first);
-    }
-    return null;
-  }
-
-  Future<List<UserModel>> getAllUsers() async {
-    final db = await _dbHelper.database;
-    final res = await db.query(DatabaseTables.tableUsers, orderBy: 'id ASC');
-    return res.map((m) => UserModel.fromMap(m)).toList();
-  }
-
-  Future<int> addUser(UserModel user) async {
-    final db = await _dbHelper.database;
-    final res = await db.insert(DatabaseTables.tableUsers, user.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    DataSyncService.notifyAllChanged();
-    return res;
-  }
-
-  Future<int> updateUser(UserModel user) async {
-    final db = await _dbHelper.database;
-    final res = await db.update(
-      DatabaseTables.tableUsers,
-      user.toMap(),
-      where: 'id = ?',
-      whereArgs: [user.id],
-    );
-    DataSyncService.notifyAllChanged();
-    return res;
-  }
-
-  Future<int> deleteUser(int id) async {
-    final db = await _dbHelper.database;
-    final res = await db.delete(
-      DatabaseTables.tableUsers,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    DataSyncService.notifyAllChanged();
-    return res;
-  }
-}
-</file>
-
 <file path="lib/data/repositories/inventory_repository.dart">
 import '../../core/services/data_sync_service.dart';
 import '../database/database_helper.dart';
@@ -9109,219 +9275,6 @@ class AuthBinding extends Bindings {
   void dependencies() {
     Get.lazyPut<AuthRepository>(() => AuthRepository());
     Get.lazyPut<AuthController>(() => AuthController(Get.find<AuthRepository>()));
-  }
-}
-</file>
-
-<file path="lib/modules/auth/views/clinic_setup_view.dart">
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings_ar.dart';
-import '../../../core/utils/yemeni_phone_validator.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../controllers/auth_controller.dart';
-
-class ClinicSetupView extends GetView<AuthController> {
-  const ClinicSetupView({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStringsAr.clinicSetupTitle),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'بيانات وهوية المنشأة البيطرية',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDark,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'تظهر هذه البيانات الرسمية والشعار تلقائياً على ترويسة الروشتات الطبية والفواتير وسندات القبض',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Clinic Logo Upload Section
-                      Center(
-                        child: Obx(() {
-                          final logo = controller.clinicLogoPath.value;
-                          return Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              GestureDetector(
-                                onTap: controller.pickClinicLogo,
-                                child: Container(
-                                  width: 104,
-                                  height: 104,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondaryLight.withValues(alpha: 0.6),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.primary, width: 2.5),
-                                    image: logo != null && File(logo).existsSync()
-                                        ? DecorationImage(
-                                            image: FileImage(File(logo)),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
-                                  ),
-                                  child: logo == null || !File(logo).existsSync()
-                                      ? const Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.add_photo_alternate_outlined,
-                                              size: 36,
-                                              color: AppColors.primary,
-                                            ),
-                                            SizedBox(height: 4),
-                                            Text(
-                                              'شعار العيادة',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.primary,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: controller.pickClinicLogo,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                              if (logo != null && File(logo).existsSync())
-                                Positioned(
-                                  top: 0,
-                                  left: 0,
-                                  child: GestureDetector(
-                                    onTap: controller.removeClinicLogo,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.shade700,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          );
-                        }),
-                      ),
-                      const SizedBox(height: 22),
-
-                      // Clinic Name
-                      CustomTextField(
-                        label: '${AppStringsAr.clinicName} *',
-                        hint: 'مثال: عيادة الرعاية البيطرية المتقدمة',
-                        controller: controller.clinicNameController,
-                        prefixIcon: const Icon(Icons.business_outlined, color: AppColors.primary),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'اسم المنشأة البيطرية مطلوب' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Responsible Doctor
-                      CustomTextField(
-                        label: '${AppStringsAr.doctorName} (الطبيب المسؤول) *',
-                        hint: 'مثال: د. أحمد محمد السالم',
-                        controller: controller.doctorNameController,
-                        prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primary),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'اسم الطبيب المسؤول مطلوب' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Practice License Number
-                      CustomTextField(
-                        label: '${AppStringsAr.licenseNumber} *',
-                        hint: 'رقم ترخيص مزاولة المهنة المعتمد',
-                        controller: controller.licenseController,
-                        prefixIcon: const Icon(Icons.verified_outlined, color: AppColors.primary),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'رقم ترخيص مزاولة المهنة مطلوب' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Official Clinic Phone
-                      CustomTextField(
-                        label: '${AppStringsAr.phone} (رقم يمني رسمي +967) *',
-                        hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
-                        controller: controller.phoneController,
-                        keyboardType: TextInputType.phone,
-                        prefixText: '+967 ',
-                        textDirection: TextDirection.ltr,
-                        maxLength: 9,
-                        validator: (v) => YemeniPhoneValidator.validate(v, isRequired: true),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(9),
-                        ],
-                        prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.primary),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Clinic Address
-                      CustomTextField(
-                        label: '${AppStringsAr.address} *',
-                        hint: 'المدينة، الحي، الشارع الرئيسي',
-                        controller: controller.addressController,
-                        prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.primary),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'عنوان المنشأة البيطرية مطلوب' : null,
-                      ),
-                      const SizedBox(height: 28),
-
-                      Obx(() => PrimaryButton(
-                            text: AppStringsAr.save,
-                            isLoading: controller.isLoading.value,
-                            icon: Icons.check,
-                            onPressed: controller.saveClinicProfile,
-                          )),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 </file>
@@ -10794,6 +10747,873 @@ class OwnerStatementController extends GetxController {
 }
 </file>
 
+<file path="lib/modules/onboarding/controllers/activation_controller.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/demo_config.dart';
+import '../../../core/services/license_service.dart';
+import '../../../routes/app_routes.dart';
+
+class ActivationController extends GetxController {
+  final TextEditingController codeController = TextEditingController();
+  final RxBool isLoading = false.obs;
+
+  String get requestCode => LicenseService.to.deviceRequestCode.value;
+  bool get isExpired => LicenseService.to.isExpired.value;
+
+  void copyRequestCode() {
+    Clipboard.setData(ClipboardData(text: requestCode));
+    Get.snackbar(
+      'تم النسخ',
+      'تم نسخ معرف الجهاز إلى الحافظة بنجاح',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.teal.shade100,
+      colorText: Colors.black87,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  Future<void> sendWhatsAppToDeveloper() async {
+    const phone = DemoConfig.contactPhone; // 967771882350
+    final message = Uri.encodeComponent(
+      'السلام عليكم ورحمة الله وبركاته،\n'
+      'أرغب في تفعيل ترخيص نظام VetPulse لإدارة المنشآت والعيادات البيطرية.\n'
+      'معرف الجهاز المعتمد:\n$requestCode',
+    );
+    final nativeUrl = Uri.parse('whatsapp://send?phone=$phone&text=$message');
+    final webUrl = Uri.parse('https://wa.me/$phone?text=$message');
+
+    try {
+      if (await canLaunchUrl(nativeUrl)) {
+        await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(webUrl)) {
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } else {
+        Get.snackbar(
+          'تنبيه',
+          'تعذر فتح تطبيق واتساب. رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (_) {
+      try {
+        if (await canLaunchUrl(webUrl)) {
+          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+        } else {
+          Get.snackbar(
+            'تنبيه',
+            'رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        }
+      } catch (e) {
+        Get.snackbar('خطأ', 'حدث خطأ أثناء فتح واتساب: $e');
+      }
+    }
+  }
+
+  Future<void> activateLicense() async {
+    final code = codeController.text.trim();
+    if (code.isEmpty) {
+      Get.snackbar(
+        'تنبيه',
+        'يرجى إدخال كود التفعيل المستلم من المطور',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+      );
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final success = await LicenseService.to.verifyAndActivateCode(code);
+      if (success) {
+        codeController.clear();
+        if (LicenseService.to.clinicSetupCompleted.value) {
+          Get.offAllNamed(AppRoutes.login);
+        } else {
+          Get.offAllNamed(AppRoutes.clinicSetup);
+        }
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    codeController.dispose();
+    super.onClose();
+  }
+}
+</file>
+
+<file path="lib/modules/onboarding/controllers/onboarding_controller.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/services/license_service.dart';
+import '../../../routes/app_routes.dart';
+
+class OnboardingSlide {
+  final String title;
+  final String description;
+  final IconData icon;
+  final String imageAsset;
+  final List<String> highlights;
+
+  const OnboardingSlide({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.imageAsset,
+    required this.highlights,
+  });
+}
+
+class OnboardingController extends GetxController {
+  final PageController pageController = PageController();
+  final RxInt currentPage = 0.obs;
+
+  final List<OnboardingSlide> slides = const [
+    OnboardingSlide(
+      title: 'الرعاية السريرية المتكاملة والتشخيص SOAP',
+      description:
+          'ملفات طبية شاملة لجميع الحيوانات الأليفة، وفحوصات سريرية دقيقة وفق منهجية SOAP المعتمدة، وتوثيق العلاجات داخل العيادة، مع تصدير تلقائي للروشتات الطبية ومشاركتها عبر واتساب.',
+      icon: Icons.medical_services_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_1_soap.png',
+      highlights: [
+        'سجل طبي تراكمي يشمل الحساسية وتاريخ الأوزان',
+        'تشخيص سريري وفق منهجية SOAP المعتمدة عالمياً',
+        'إصدار روشتات إلكترونية ومشاركتها فوراً عبر واتساب',
+      ],
+    ),
+    OnboardingSlide(
+      title: 'الجناح الجراحي وجدولة المراجعات الذكية',
+      description:
+          'جدولة دقيقة للعمليات الجراحية، وقوائم التحقق والسلامة قبل وبعد التخدير، ورحلة متابعة سريرية متقدمة مع إشعارات وتنبيهات هاتفية قبل الموعد بـ (12 ساعة، 6 ساعات، وساعة واحدة).',
+      icon: Icons.healing_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_2_surgery.png',
+      highlights: [
+        'تقويم جراحي ذكي وإدارة بروتوكولات التخدير والتعافي',
+        'قوائم تدقيق السلامة الجراحية لمنع الأخطاء الطبية',
+        'إشعارات وتنبيهات هاتفية تلقائية للمربين والعيادة',
+      ],
+    ),
+    OnboardingSlide(
+      title: 'إدارة الصيدلية والمحاسبة المالية والنسخ الاحتياطي',
+      description:
+          'نظام المخزون المزدوج (المستودع ورفوف العيادة) مع الخصم التلقائي، وحسابات العملاء (نقداً وآجل)، وتوثيق الدفعات وسندات القبض، مع نسخ احتياطي محلي مشفر واستعادة فورية للبيانات.',
+      icon: Icons.inventory_2_rounded,
+      imageAsset: 'assets/images/onboarding/onboarding_3_management.jpg',
+      highlights: [
+        'مخزون مزدوج وخصم تلقائي مع مراقبة تواريخ الصلاحية',
+        'كشوفات حسابات المربين وسندات القبض النقدية والآجلة',
+        'نسخ احتياطي محلي مشفر واستعادة فورية للبيانات',
+      ],
+    ),
+  ];
+
+  void onPageChanged(int index) {
+    currentPage.value = index;
+  }
+
+  void nextPage() {
+    if (currentPage.value < slides.length - 1) {
+      pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      finishOnboarding();
+    }
+  }
+
+  void skip() {
+    finishOnboarding();
+  }
+
+  Future<void> finishOnboarding() async {
+    await LicenseService.to.completeOnboarding();
+    Get.offAllNamed(AppRoutes.activation);
+  }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
+  }
+}
+</file>
+
+<file path="lib/modules/onboarding/views/activation_view.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../../../core/config/demo_config.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/services/license_service.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../controllers/activation_controller.dart';
+
+class ActivationView extends GetView<ActivationController> {
+  const ActivationView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('توثيق وتفعيل ترخيص النظام'),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Reassuring Expiration Banner if redirected due to expiry
+                  Obx(() {
+                    if (!LicenseService.to.isExpired.value) {
+                      return const SizedBox.shrink();
+                    }
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.shield_outlined, color: Colors.amber.shade900, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'تنبيه انتهاء فترة الترخيص',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'انتهت صلاحية ترخيص النسخة الحالية — جميع بيانات العيادة والمرضى والحسابات المالية محفوظة وآمنة بالكامل. يرجى إدخال كود التفعيل الجديد لاستئناف العمل فوراً.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.textPrimary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  // Device Request ID Card
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryLight,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.fingerprint_rounded,
+                                  color: AppColors.primary,
+                                  size: 26,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'معرف الجهاز المعتمد (Device Request ID)',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'بصمة رقمية مشفرة خاصة بجهازكم هذا فقط',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Request Code Box with Selectable / Copyable text
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Obx(() => SelectableText(
+                                  controller.requestCode,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                    color: AppColors.primaryDark,
+                                  ),
+                                )),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Copy & WhatsApp Actions
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    side: const BorderSide(color: AppColors.primary),
+                                    foregroundColor: AppColors.primary,
+                                  ),
+                                  icon: const Icon(Icons.copy_rounded, size: 18),
+                                  label: const Text(
+                                    'نسخ المعرف',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  onPressed: controller.copyRequestCode,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF25D366),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  icon: const Icon(Icons.chat_rounded, size: 18),
+                                  label: const Text(
+                                    'إرسال للمطور عبر واتساب',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  onPressed: controller.sendWhatsAppToDeveloper,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Clear Instructions Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryLight.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
+                            SizedBox(width: 8),
+                            Text(
+                              'خطوات التفعيل:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          '1. انسخ "معرف الجهاز" أعلاه أو اضغط زر "إرسال للمطور عبر واتساب".\n'
+                          '2. أرسل المعرف إلى المطور المعتمد للتحقق وتوليد كود تفعيل موثق لجهازكم.\n'
+                          '3. الصق كود التفعيل المستلم في الحقل أدناه واضغط زر التفعيل.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textPrimary,
+                            height: 1.6,
+                          ),
+                        ),
+                        const Divider(height: 18),
+                        Row(
+                          children: [
+                            const Icon(Icons.support_agent_rounded, size: 16, color: AppColors.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'المطور: ${DemoConfig.developerName} (${DemoConfig.contactPhoneDisplay})',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Enter Activation Code Card
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'إدخال كود التفعيل المعتمد',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'مثال: VPACT-20261125-9A7F-A1B2C3D4E5F6',
+                            textDirection: TextDirection.ltr,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: AppColors.textMuted,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          CustomTextField(
+                            label: 'كود التفعيل (Activation Code) *',
+                            hint: 'VPACT-YYYYMMDD-XXXX-XXXXXXXXXXXX',
+                            controller: controller.codeController,
+                            textDirection: TextDirection.ltr,
+                            prefixIcon: const Icon(Icons.key_rounded, color: AppColors.primary),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-]')),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          Obx(() => PrimaryButton(
+                                text: 'تفعيل النسخة وتوثيق الجهاز',
+                                icon: Icons.verified_user_rounded,
+                                isLoading: controller.isLoading.value,
+                                onPressed: controller.activateLicense,
+                              )),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file path="lib/modules/onboarding/views/onboarding_view.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../controllers/onboarding_controller.dart';
+
+class OnboardingView extends GetView<OnboardingController> {
+  const OnboardingView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Bar with App Name and Skip Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: const Icon(Icons.pets_rounded, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        AppStringsAr.appName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Obx(() {
+                    if (controller.currentPage.value == controller.slides.length - 1) {
+                      return const SizedBox.shrink();
+                    }
+                    return TextButton(
+                      onPressed: controller.skip,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.textSecondary,
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      child: const Text('تخطي'),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+            // Slides PageView
+            Expanded(
+              child: PageView.builder(
+                controller: controller.pageController,
+                itemCount: controller.slides.length,
+                onPageChanged: controller.onPageChanged,
+                itemBuilder: (context, index) {
+                  final slide = controller.slides[index];
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 8),
+                            // Layered Textured Hero Illustration Frame
+                            _buildHeroIllustration(slide),
+                            const SizedBox(height: 22),
+
+                            // Slide Title
+                            Text(
+                              slide.title,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryDark,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Slide Description
+                            Text(
+                              slide.description,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                color: AppColors.textSecondary,
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+
+                            // Highlights Card
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: slide.highlights.map((h) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 6),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.successBackground,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check_rounded,
+                                            size: 14,
+                                            color: AppColors.success,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            h,
+                                            style: const TextStyle(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Bottom Navigation Bar with Dots & Next/Start Button
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Smooth Page Indicator Dots
+                      Obx(() {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            controller.slides.length,
+                            (i) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: controller.currentPage.value == i ? 24 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: controller.currentPage.value == i
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 20),
+
+                      // Next / Start Button
+                      Obx(() {
+                        final isLast = controller.currentPage.value == controller.slides.length - 1;
+                        return PrimaryButton(
+                          text: isLast ? 'ابدأ الاستخدام الآن' : 'التالي',
+                          icon: isLast ? Icons.rocket_launch_rounded : Icons.arrow_forward_rounded,
+                          onPressed: controller.nextPage,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroIllustration(OnboardingSlide slide) {
+    return Container(
+      height: 230,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          colors: [
+            AppColors.secondaryLight,
+            AppColors.secondary.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+        ),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Concentric decorative background circles
+          Positioned(
+            right: -25,
+            top: -25,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  width: 18,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -35,
+            bottom: -35,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  width: 22,
+                ),
+              ),
+            ),
+          ),
+          // Elevated White Framing Container with Soft Teal Glow Shadow
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.9),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Image.asset(
+                slide.imageAsset,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Icon(slide.icon, size: 64, color: AppColors.primary),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Category Pill Floating Badge
+          Positioned(
+            top: 20,
+            right: 22,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primaryDark.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(slide.icon, size: 13, color: Colors.white),
+                  const SizedBox(width: 5),
+                  Text(
+                    slide.title.split(' ').take(2).join(' '),
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+</file>
+
 <file path="lib/modules/patients/controllers/owner_controller.dart">
 export 'owner_detail_controller.dart';
 export 'owners_list_controller.dart';
@@ -11374,6 +12194,228 @@ class SurgeryListController extends GetxController {
 }
 </file>
 
+<file path="lib/core/config/demo_config.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:sqflite/sqflite.dart';
+import '../../data/database/database_helper.dart';
+import '../../data/database/database_tables.dart';
+import '../constants/app_colors.dart';
+
+class DemoConfig {
+  DemoConfig._();
+
+  /// Flag to switch between Demo Edition and Full Commercial Edition
+  static const bool isDemoMode = false;
+
+  /// Maximum allowed records per feature in the Demo Edition (5 in everything)
+  static const int maxLimit = 5;
+
+  /// Developer & Sales Contact Details
+  static const String developerName = 'مهندس برمجيات / عبدالله عبدالمغني الأديمي';
+  static const String developerRole = 'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
+  static const String contactPhone = '967771882350';
+  static const String contactPhoneDisplay = '+967 771 882 350';
+  static const String demoWatermark = 'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
+
+  /// Helper to check if a new patient can be registered
+  static Future<bool> canAddPatient() async {
+    if (!isDemoMode) return true;
+    final db = await DatabaseHelper.instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tablePets}'),
+        ) ??
+        0;
+
+    if (count >= maxLimit) {
+      showDemoLimitDialog(
+        featureName: 'مرضى (سجلات حيوانات أليفة)',
+        currentCount: count,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Helper to check if a new consultation (SOAP) can be registered
+  static Future<bool> canAddConsultation() async {
+    if (!isDemoMode) return true;
+    final db = await DatabaseHelper.instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableConsultations}'),
+        ) ??
+        0;
+
+    if (count >= maxLimit) {
+      showDemoLimitDialog(
+        featureName: 'كشوفات سريرية (SOAP)',
+        currentCount: count,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Helper to check if a new surgery can be booked
+  static Future<bool> canAddSurgery() async {
+    if (!isDemoMode) return true;
+    final db = await DatabaseHelper.instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableSurgeries}'),
+        ) ??
+        0;
+
+    if (count >= maxLimit) {
+      showDemoLimitDialog(
+        featureName: 'عمليات جراحية',
+        currentCount: count,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Helper to check if a new follow-up appointment can be booked
+  static Future<bool> canAddFollowUp() async {
+    if (!isDemoMode) return true;
+    final db = await DatabaseHelper.instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableFollowUps}'),
+        ) ??
+        0;
+
+    if (count >= maxLimit) {
+      showDemoLimitDialog(
+        featureName: 'مواعيد ومراجعات',
+        currentCount: count,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Helper to check if a new medicine can be added to pharmacy
+  static Future<bool> canAddMedicine() async {
+    if (!isDemoMode) return true;
+    final db = await DatabaseHelper.instance.database;
+    final count = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableMedicines}'),
+        ) ??
+        0;
+
+    if (count >= maxLimit) {
+      showDemoLimitDialog(
+        featureName: 'أصناف دوائية في الصيدلية',
+        currentCount: count,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  /// Elegant Modal Dialog explaining the Demo Quota Limit
+  static void showDemoLimitDialog({
+    required String featureName,
+    int currentCount = maxLimit,
+  }) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.amber.shade300, width: 2),
+                ),
+                child: const Icon(
+                  Icons.lock_clock_outlined,
+                  color: Colors.amber,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'الحد الأقصى للنسخة التجريبية (Demo)',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryDark,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'لقد استنفدت السعة التجريبية المسموحة ($maxLimit $featureName).\n'
+                'هذه النسخة مخصصة للاختبار السريري واستكشاف المميزات.',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'لترقية النظام لمركزكم البيطري بدون أي قيود:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      developerName,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      developerRole,
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Get.back(),
+                  child: const Text('فهمت ذلك', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
 <file path="lib/data/models/owner_model.dart">
 class OwnerModel {
   final int? id;
@@ -11423,6 +12465,124 @@ class OwnerModel {
       address: address ?? this.address,
       createdAt: createdAt ?? this.createdAt,
     );
+  }
+}
+</file>
+
+<file path="lib/data/repositories/auth_repository.dart">
+import 'package:sqflite/sqflite.dart';
+import '../../core/services/data_sync_service.dart';
+import '../database/database_helper.dart';
+import '../database/database_tables.dart';
+import '../models/clinic_model.dart';
+import '../models/user_model.dart';
+
+class AuthRepository {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
+  Future<ClinicModel?> getClinicInfo() async {
+    final db = await _dbHelper.database;
+    final res = await db.query(DatabaseTables.tableClinicInfo, limit: 1);
+    if (res.isNotEmpty) {
+      return ClinicModel.fromMap(res.first);
+    }
+    return null;
+  }
+
+  Future<int> saveClinicInfo(ClinicModel clinic) async {
+    final db = await _dbHelper.database;
+    final int res;
+    if (clinic.id != null) {
+      res = await db.update(
+        DatabaseTables.tableClinicInfo,
+        clinic.toMap(),
+        where: 'id = ?',
+        whereArgs: [clinic.id],
+      );
+    } else {
+      res = await db.insert(DatabaseTables.tableClinicInfo, clinic.toMap());
+    }
+    DataSyncService.notifyAllChanged();
+    return res;
+  }
+
+  Future<UserModel?> login(String username, String password) async {
+    final db = await _dbHelper.database;
+    final res = await db.query(
+      DatabaseTables.tableUsers,
+      where: 'username = ? AND password_hash = ? AND is_active = 1',
+      whereArgs: [username.trim(), password],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return UserModel.fromMap(res.first);
+    }
+    return null;
+  }
+
+  Future<UserModel?> loginWithPin(String pin) async {
+    final db = await _dbHelper.database;
+    final res = await db.query(
+      DatabaseTables.tableUsers,
+      where: 'pin_code = ? AND is_active = 1',
+      whereArgs: [pin.trim()],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return UserModel.fromMap(res.first);
+    }
+    return null;
+  }
+
+  Future<UserModel?> getUserById(int id) async {
+    final db = await _dbHelper.database;
+    final res = await db.query(
+      DatabaseTables.tableUsers,
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (res.isNotEmpty) {
+      return UserModel.fromMap(res.first);
+    }
+    return null;
+  }
+
+  Future<List<UserModel>> getAllUsers() async {
+    final db = await _dbHelper.database;
+    final res = await db.query(DatabaseTables.tableUsers, orderBy: 'id ASC');
+    return res.map((m) => UserModel.fromMap(m)).toList();
+  }
+
+  Future<int> addUser(UserModel user) async {
+    final db = await _dbHelper.database;
+    final res = await db.insert(DatabaseTables.tableUsers, user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    DataSyncService.notifyAllChanged();
+    return res;
+  }
+
+  Future<int> updateUser(UserModel user) async {
+    final db = await _dbHelper.database;
+    final res = await db.update(
+      DatabaseTables.tableUsers,
+      user.toMap(),
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
+    DataSyncService.notifyAllChanged();
+    return res;
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await _dbHelper.database;
+    final res = await db.delete(
+      DatabaseTables.tableUsers,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    DataSyncService.notifyAllChanged();
+    return res;
   }
 }
 </file>
@@ -11625,6 +12785,314 @@ class PetRepository {
     final res = await db.insert(DatabaseTables.tablePetWeights, weight.toMap());
     DataSyncService.notifyPatientChanged(petId: weight.petId);
     return res;
+  }
+}
+</file>
+
+<file path="lib/modules/auth/views/clinic_setup_view.dart">
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_strings_ar.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/primary_button.dart';
+import '../controllers/auth_controller.dart';
+
+class ClinicSetupView extends GetView<AuthController> {
+  const ClinicSetupView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppStringsAr.clinicSetupTitle),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'بيانات وهوية المنشأة البيطرية',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryDark,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'تظهر هذه البيانات الرسمية والشعار تلقائياً على ترويسة الروشتات الطبية والفواتير وسندات القبض',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Clinic Logo Upload Section
+                      Center(
+                        child: Obx(() {
+                          final logo = controller.clinicLogoPath.value;
+                          return Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              GestureDetector(
+                                onTap: controller.pickClinicLogo,
+                                child: Container(
+                                  width: 104,
+                                  height: 104,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryLight.withValues(alpha: 0.6),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppColors.primary, width: 2.5),
+                                    image: logo != null && File(logo).existsSync()
+                                        ? DecorationImage(
+                                            image: FileImage(File(logo)),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: logo == null || !File(logo).existsSync()
+                                      ? const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_photo_alternate_outlined,
+                                              size: 36,
+                                              color: AppColors.primary,
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              'شعار العيادة',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: controller.pickClinicLogo,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              if (logo != null && File(logo).existsSync())
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  child: GestureDetector(
+                                    onTap: controller.removeClinicLogo,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade700,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                      ),
+                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 22),
+
+                      // Clinic Name
+                      CustomTextField(
+                        label: '${AppStringsAr.clinicName} *',
+                        hint: 'مثال: عيادة الرعاية البيطرية المتقدمة',
+                        controller: controller.clinicNameController,
+                        prefixIcon: const Icon(Icons.business_outlined, color: AppColors.primary),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'اسم المنشأة البيطرية مطلوب' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Responsible Doctor
+                      CustomTextField(
+                        label: '${AppStringsAr.doctorName} (الطبيب المسؤول) *',
+                        hint: 'مثال: د. أحمد محمد السالم',
+                        controller: controller.doctorNameController,
+                        prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primary),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'اسم الطبيب المسؤول مطلوب' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Practice License Number
+                      CustomTextField(
+                        label: '${AppStringsAr.licenseNumber} *',
+                        hint: 'رقم ترخيص مزاولة المهنة المعتمد',
+                        controller: controller.licenseController,
+                        prefixIcon: const Icon(Icons.verified_outlined, color: AppColors.primary),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'رقم ترخيص مزاولة المهنة مطلوب' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Official Clinic Phone
+                      CustomTextField(
+                        label: '${AppStringsAr.phone} (رقم يمني رسمي +967) *',
+                        hint: '77xxxxxxx أو 78 أو 73 أو 70 أو 71',
+                        controller: controller.phoneController,
+                        keyboardType: TextInputType.phone,
+                        prefixText: '+967 ',
+                        textDirection: TextDirection.ltr,
+                        maxLength: 9,
+                        validator: (v) => YemeniPhoneValidator.validate(v, isRequired: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
+                        ],
+                        prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.primary),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Clinic Address
+                      CustomTextField(
+                        label: '${AppStringsAr.address} *',
+                        hint: 'المدينة، الحي، الشارع الرئيسي',
+                        controller: controller.addressController,
+                        prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.primary),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'عنوان المنشأة البيطرية مطلوب' : null,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Lead Doctor Admin Account Credentials Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryLight.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.admin_panel_settings_outlined,
+                                      color: AppColors.primary, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    'بيانات الحساب الرئيسي لمدير النظام (Lead Doctor)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.currentUser.value == null
+                                  ? 'قم بتعيين اسم المستخدم وكلمة المرور ورمز PIN السريع لتسجيل الدخول الأولي للنظام'
+                                  : 'تحديث بيانات الدخول الخاصة بالطبيب الرئيسي',
+                              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Admin Username
+                            CustomTextField(
+                              label: 'اسم مستخدم مدير النظام *',
+                              hint: 'admin',
+                              controller: controller.adminUsernameController,
+                              prefixIcon: const Icon(Icons.person_outline, color: AppColors.primary),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Admin Password
+                            Obx(() => CustomTextField(
+                                  label: controller.currentUser.value == null
+                                      ? 'كلمة مرور مدير النظام *'
+                                      : 'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)',
+                                  hint: '••••••••',
+                                  controller: controller.adminPasswordController,
+                                  obscureText: controller.isAdminPasswordHidden.value,
+                                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primary),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      controller.isAdminPasswordHidden.value
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: AppColors.textMuted,
+                                      size: 20,
+                                    ),
+                                    onPressed: controller.toggleAdminPasswordVisibility,
+                                  ),
+                                )),
+                            const SizedBox(height: 14),
+
+                            // Admin Quick PIN (4 digits)
+                            CustomTextField(
+                              label: 'رمز PIN السريع (4 أرقام لفتح القفل السريع) *',
+                              hint: '1234',
+                              controller: controller.adminPinController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 4,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              prefixIcon: const Icon(Icons.pin_outlined, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+
+                      Obx(() => PrimaryButton(
+                            text: controller.currentUser.value == null
+                                ? 'حفظ البيانات وبدء تشغيل النظام'
+                                : AppStringsAr.save,
+                            isLoading: controller.isLoading.value,
+                            icon: Icons.check_circle_outline,
+                            onPressed: controller.saveClinicProfile,
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 </file>
@@ -14387,252 +15855,6 @@ class FinancialTransactionModel {
 }
 </file>
 
-<file path="lib/modules/auth/controllers/auth_controller.dart">
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../../core/utils/yemeni_phone_validator.dart';
-import '../../../data/models/clinic_model.dart';
-import '../../../data/models/user_model.dart';
-import '../../../data/repositories/auth_repository.dart';
-import '../../../routes/app_routes.dart';
-
-class AuthController extends GetxController {
-  final AuthRepository _authRepo;
-
-  AuthController([AuthRepository? authRepo]) : _authRepo = authRepo ?? AuthRepository();
-
-  final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
-  final Rx<ClinicModel?> clinicInfo = Rx<ClinicModel?>(null);
-  final RxBool isLoading = false.obs;
-  final RxBool isLocked = false.obs;
-  final RxString pinLockInput = ''.obs;
-
-  // Password visibility toggle for LoginView
-  final RxBool isPasswordHidden = true.obs;
-  void togglePasswordVisibility() => isPasswordHidden.value = !isPasswordHidden.value;
-
-  /// RBAC Permission checking helper
-  bool checkPermission(bool Function(UserModel u) check, String deniedMessage) {
-    final user = currentUser.value;
-    if (user == null || user.isLeadDoctor) return true;
-    if (!check(user)) {
-      Get.snackbar(
-        'صلاحية غير كافية',
-        deniedMessage,
-        backgroundColor: Colors.amber.shade100,
-        colorText: Colors.black87,
-        snackPosition: SnackPosition.BOTTOM,
-        icon: const Icon(Icons.lock_outline, color: Colors.orange),
-      );
-      return false;
-    }
-    return true;
-  }
-
-  // Clinic Logo observable
-  final RxnString clinicLogoPath = RxnString();
-
-  // Controllers for login
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
-  final pinController = TextEditingController();
-
-  // Controllers for clinic setup
-  final clinicNameController = TextEditingController();
-  final doctorNameController = TextEditingController();
-  final licenseController = TextEditingController();
-  final phoneController = TextEditingController();
-  final addressController = TextEditingController();
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadClinicInfo();
-  }
-
-  Future<void> loadClinicInfo() async {
-    clinicInfo.value = await _authRepo.getClinicInfo();
-    if (clinicInfo.value != null) {
-      clinicNameController.text = clinicInfo.value!.clinicName;
-      doctorNameController.text = clinicInfo.value!.doctorName;
-      licenseController.text = clinicInfo.value!.licenseNumber ?? '';
-      phoneController.text = YemeniPhoneValidator.cleanDigits(clinicInfo.value!.phone ?? '');
-      addressController.text = clinicInfo.value!.address ?? '';
-      clinicLogoPath.value = clinicInfo.value!.logoPath;
-    }
-  }
-
-  Future<void> pickClinicLogo() async {
-    try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-      if (picked != null) {
-        clinicLogoPath.value = picked.path;
-      }
-    } catch (e) {
-      debugPrint('Error picking clinic logo: $e');
-    }
-  }
-
-  void removeClinicLogo() {
-    clinicLogoPath.value = null;
-  }
-
-  Future<void> login() async {
-    final user = usernameController.text.trim();
-    final pass = passwordController.text;
-
-    if (user.isEmpty || pass.isEmpty) {
-      Get.snackbar('تنبيه', 'يرجى إدخال اسم المستخدم وكلمة المرور',
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    isLoading.value = true;
-    try {
-      final userModel = await _authRepo.login(user, pass);
-      if (userModel != null) {
-        currentUser.value = userModel;
-        usernameController.clear();
-        passwordController.clear();
-        Get.offAllNamed(AppRoutes.dashboard);
-      } else {
-        Get.snackbar('خطأ', 'اسم المستخدم أو كلمة المرور غير صحيحة',
-            backgroundColor: Colors.red.shade100, colorText: Colors.red.shade900);
-      }
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  Future<void> unlockWithPin(String pin) async {
-    if (pin.length < 4) return;
-    isLoading.value = true;
-    try {
-      final userModel = await _authRepo.loginWithPin(pin);
-      if (userModel != null) {
-        currentUser.value = userModel;
-        isLocked.value = false;
-        pinController.clear();
-        Get.offAllNamed(AppRoutes.dashboard);
-      } else {
-        Get.snackbar('خطأ', 'رمز PIN غير صحيح',
-            backgroundColor: Colors.red.shade100, colorText: Colors.red.shade900);
-        pinController.clear();
-      }
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void onPinKeyPress(String digit) {
-    if (pinLockInput.value.length < 4) {
-      pinLockInput.value += digit;
-      if (pinLockInput.value.length == 4) {
-        final entered = pinLockInput.value;
-        pinLockInput.value = '';
-        unlockWithPin(entered);
-      }
-    }
-  }
-
-  void onPinBackspace() {
-    if (pinLockInput.value.isNotEmpty) {
-      pinLockInput.value = pinLockInput.value.substring(0, pinLockInput.value.length - 1);
-    }
-  }
-
-  void clearPinLock() {
-    pinLockInput.value = '';
-  }
-
-  void lockScreen() {
-    clearPinLock();
-    isLocked.value = true;
-    Get.offAllNamed(AppRoutes.pinLock);
-  }
-
-  void logout() {
-    currentUser.value = null;
-    Get.offAllNamed(AppRoutes.login);
-  }
-
-  Future<void> saveClinicProfile() async {
-    final name = clinicNameController.text.trim();
-    final doc = doctorNameController.text.trim();
-    final license = licenseController.text.trim();
-    final phoneRaw = phoneController.text.trim();
-    final address = addressController.text.trim();
-
-    if (name.isEmpty) {
-      Get.snackbar('تنبيه', 'اسم المنشأة البيطرية مطلوب',
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    if (doc.isEmpty) {
-      Get.snackbar('تنبيه', 'اسم الطبيب المسؤول مطلوب',
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    if (license.isEmpty) {
-      Get.snackbar('تنبيه', 'رقم ترخيص مزاولة المهنة مطلوب',
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    final phoneError = YemeniPhoneValidator.validate(phoneRaw);
-    if (phoneError != null) {
-      Get.snackbar('تنبيه', phoneError,
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    if (address.isEmpty) {
-      Get.snackbar('تنبيه', 'عنوان المنشأة البيطرية مطلوب',
-          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
-      return;
-    }
-
-    isLoading.value = true;
-    try {
-      final formattedPhone = YemeniPhoneValidator.formatWithCountryCode(phoneRaw);
-      final updated = ClinicModel(
-        id: clinicInfo.value?.id,
-        clinicName: name,
-        doctorName: doc,
-        licenseNumber: license,
-        phone: formattedPhone,
-        address: address,
-        logoPath: clinicLogoPath.value,
-      );
-      await _authRepo.saveClinicInfo(updated);
-      clinicInfo.value = updated;
-      Get.back();
-      Get.snackbar('تم', 'تم حفظ بيانات وهوية العيادة بنجاح',
-          backgroundColor: Colors.green.shade100, colorText: Colors.green.shade900);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  @override
-  void onClose() {
-    usernameController.dispose();
-    passwordController.dispose();
-    pinController.dispose();
-    clinicNameController.dispose();
-    doctorNameController.dispose();
-    licenseController.dispose();
-    phoneController.dispose();
-    addressController.dispose();
-    super.onClose();
-  }
-}
-</file>
-
 <file path="lib/modules/backup/views/database_backup_view.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15907,72 +17129,6 @@ class DashboardBinding extends Bindings {
 
     if (!Get.isRegistered<AuthController>()) {
       Get.put<AuthController>(AuthController(), permanent: true);
-    }
-  }
-}
-</file>
-
-<file path="lib/modules/dashboard/controllers/dashboard_controller.dart">
-import 'package:get/get.dart';
-import '../../../data/models/consultation_model.dart';
-import '../../../data/models/medicine_model.dart';
-import '../../../data/repositories/appointment_repository.dart';
-import '../../../data/repositories/consultation_repository.dart';
-import '../../../data/repositories/inventory_repository.dart';
-import '../../../data/repositories/surgery_repository.dart';
-
-class DashboardController extends GetxController {
-  final ConsultationRepository _consultationRepo;
-  final AppointmentRepository _appointmentRepo;
-  final InventoryRepository _inventoryRepo;
-  final SurgeryRepository _surgeryRepo;
-
-  DashboardController({
-    ConsultationRepository? consultationRepo,
-    AppointmentRepository? appointmentRepo,
-    InventoryRepository? inventoryRepo,
-    SurgeryRepository? surgeryRepo,
-  })  : _consultationRepo = consultationRepo ?? ConsultationRepository(),
-        _appointmentRepo = appointmentRepo ?? AppointmentRepository(),
-        _inventoryRepo = inventoryRepo ?? InventoryRepository(),
-        _surgeryRepo = surgeryRepo ?? SurgeryRepository();
-
-  final RxInt todayVisits = 0.obs;
-  final RxInt todaySurgeries = 0.obs;
-  final RxInt pendingFollowUps = 0.obs;
-  final RxInt lowStockCount = 0.obs;
-  final RxInt expiringMedsCount = 0.obs;
-
-  final RxList<ConsultationModel> recentConsultations = <ConsultationModel>[].obs;
-  final RxList<MedicineModel> alertMedicines = <MedicineModel>[].obs;
-  final RxBool isLoading = true.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadDashboardData();
-  }
-
-  Future<void> loadDashboardData() async {
-    isLoading.value = true;
-    try {
-      todaySurgeries.value = await _surgeryRepo.getScheduledSurgeriesCount();
-      pendingFollowUps.value = await _appointmentRepo.getPendingTodayCount();
-
-      final lowStock = await _inventoryRepo.getLowStockMedicines();
-      lowStockCount.value = lowStock.length;
-
-      final expiring = await _inventoryRepo.getExpiringOrExpiredMedicines();
-      expiringMedsCount.value = expiring.length;
-      alertMedicines.assignAll(expiring.take(5));
-
-      final allVisits = await _consultationRepo.getAllConsultations();
-      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
-      final todayVisitsList = allVisits.where((c) => c.visitDate.startsWith(todayStr)).toList();
-      recentConsultations.assignAll(todayVisitsList);
-      todayVisits.value = todayVisitsList.length;
-    } finally {
-      isLoading.value = false;
     }
   }
 }
@@ -17482,61 +18638,6 @@ class CompleteSurgeryView extends GetView<CompleteSurgeryController> {
 }
 </file>
 
-<file path="lib/main.dart">
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get/get.dart';
-import 'core/constants/app_strings_ar.dart';
-import 'core/constants/app_theme.dart';
-import 'core/services/notification_service.dart';
-import 'data/database/database_helper.dart';
-import 'modules/auth/controllers/auth_controller.dart';
-import 'routes/app_pages.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize SQLite Database Engine & seed initial clinic data
-  await DatabaseHelper.instance.database;
-
-  // Initialize global services
-  Get.put<NotificationService>(NotificationService(), permanent: true);
-  Get.put<AuthController>(AuthController(), permanent: true);
-
-  runApp(const VetPulseApp());
-}
-
-class VetPulseApp extends StatelessWidget {
-  const VetPulseApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: AppStringsAr.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      
-      // Native Arabic RTL Configuration
-      locale: const Locale('ar', 'SA'),
-      fallbackLocale: const Locale('ar', 'SA'),
-      supportedLocales: const [
-        Locale('ar', 'SA'),
-      ],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-
-      // Navigation & Routes
-      initialRoute: AppPages.initial,
-      getPages: AppPages.routes,
-      defaultTransition: Transition.fadeIn,
-    );
-  }
-}
-</file>
-
 <file path="lib/data/services/database_backup_service.dart">
 import 'dart:convert';
 import 'dart:io';
@@ -18054,6 +19155,339 @@ class DatabaseBackupService {
 }
 </file>
 
+<file path="lib/modules/auth/controllers/auth_controller.dart">
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/services/license_service.dart';
+import '../../../core/utils/yemeni_phone_validator.dart';
+import '../../../data/models/clinic_model.dart';
+import '../../../data/models/user_model.dart';
+import '../../../data/repositories/auth_repository.dart';
+import '../../../routes/app_routes.dart';
+
+class AuthController extends GetxController {
+  final AuthRepository _authRepo;
+
+  AuthController([AuthRepository? authRepo]) : _authRepo = authRepo ?? AuthRepository();
+
+  final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
+  final Rx<ClinicModel?> clinicInfo = Rx<ClinicModel?>(null);
+  final RxBool isLoading = false.obs;
+  final RxBool isLocked = false.obs;
+  final RxString pinLockInput = ''.obs;
+
+  // Password visibility toggle for LoginView
+  final RxBool isPasswordHidden = true.obs;
+  void togglePasswordVisibility() => isPasswordHidden.value = !isPasswordHidden.value;
+
+  // Admin Setup Controllers (First-run Lead Doctor account)
+  final adminUsernameController = TextEditingController(text: 'admin');
+  final adminPasswordController = TextEditingController();
+  final adminPinController = TextEditingController(text: '1234');
+  final RxBool isAdminPasswordHidden = true.obs;
+  void toggleAdminPasswordVisibility() => isAdminPasswordHidden.value = !isAdminPasswordHidden.value;
+
+  /// RBAC Permission checking helper
+  bool checkPermission(bool Function(UserModel u) check, String deniedMessage) {
+    final user = currentUser.value;
+    if (user == null || user.isLeadDoctor) return true;
+    if (!check(user)) {
+      Get.snackbar(
+        'صلاحية غير كافية',
+        deniedMessage,
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+        snackPosition: SnackPosition.BOTTOM,
+        icon: const Icon(Icons.lock_outline, color: Colors.orange),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  // Clinic Logo observable
+  final RxnString clinicLogoPath = RxnString();
+
+  // Controllers for login
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final pinController = TextEditingController();
+
+  // Controllers for clinic setup
+  final clinicNameController = TextEditingController();
+  final doctorNameController = TextEditingController();
+  final licenseController = TextEditingController();
+  final phoneController = TextEditingController();
+  final addressController = TextEditingController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadClinicInfo();
+  }
+
+  Future<void> loadClinicInfo() async {
+    clinicInfo.value = await _authRepo.getClinicInfo();
+    if (clinicInfo.value != null) {
+      clinicNameController.text = clinicInfo.value!.clinicName;
+      doctorNameController.text = clinicInfo.value!.doctorName;
+      licenseController.text = clinicInfo.value!.licenseNumber ?? '';
+      phoneController.text = YemeniPhoneValidator.cleanDigits(clinicInfo.value!.phone ?? '');
+      addressController.text = clinicInfo.value!.address ?? '';
+      clinicLogoPath.value = clinicInfo.value!.logoPath;
+    }
+
+    final leadDoctor = await _authRepo.getUserById(1);
+    if (leadDoctor != null) {
+      adminUsernameController.text = leadDoctor.username;
+      adminPinController.text = leadDoctor.pinCode ?? '1234';
+    }
+  }
+
+  Future<void> pickClinicLogo() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked != null) {
+        clinicLogoPath.value = picked.path;
+      }
+    } catch (e) {
+      debugPrint('Error picking clinic logo: $e');
+    }
+  }
+
+  void removeClinicLogo() {
+    clinicLogoPath.value = null;
+  }
+
+  Future<void> login() async {
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
+    final user = usernameController.text.trim();
+    final pass = passwordController.text;
+
+    if (user.isEmpty || pass.isEmpty) {
+      Get.snackbar('تنبيه', 'يرجى إدخال اسم المستخدم وكلمة المرور',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final userModel = await _authRepo.login(user, pass);
+      if (userModel != null) {
+        currentUser.value = userModel;
+        usernameController.clear();
+        passwordController.clear();
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.snackbar('خطأ', 'اسم المستخدم أو كلمة المرور غير صحيحة',
+            backgroundColor: Colors.red.shade100, colorText: Colors.red.shade900);
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> unlockWithPin(String pin) async {
+    if (pin.length < 4) return;
+
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      final userModel = await _authRepo.loginWithPin(pin);
+      if (userModel != null) {
+        currentUser.value = userModel;
+        isLocked.value = false;
+        pinController.clear();
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.snackbar('خطأ', 'رمز PIN غير صحيح',
+            backgroundColor: Colors.red.shade100, colorText: Colors.red.shade900);
+        pinController.clear();
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void onPinKeyPress(String digit) {
+    if (pinLockInput.value.length < 4) {
+      pinLockInput.value += digit;
+      if (pinLockInput.value.length == 4) {
+        final entered = pinLockInput.value;
+        pinLockInput.value = '';
+        unlockWithPin(entered);
+      }
+    }
+  }
+
+  void onPinBackspace() {
+    if (pinLockInput.value.isNotEmpty) {
+      pinLockInput.value = pinLockInput.value.substring(0, pinLockInput.value.length - 1);
+    }
+  }
+
+  void clearPinLock() {
+    pinLockInput.value = '';
+  }
+
+  void lockScreen() {
+    clearPinLock();
+    isLocked.value = true;
+    Get.offAllNamed(AppRoutes.pinLock);
+  }
+
+  void logout() {
+    currentUser.value = null;
+    Get.offAllNamed(AppRoutes.login);
+  }
+
+  Future<void> saveClinicProfile() async {
+    final name = clinicNameController.text.trim();
+    final doc = doctorNameController.text.trim();
+    final license = licenseController.text.trim();
+    final phoneRaw = phoneController.text.trim();
+    final address = addressController.text.trim();
+
+    final adminUser = adminUsernameController.text.trim();
+    final adminPass = adminPasswordController.text;
+    final adminPin = adminPinController.text.trim();
+
+    if (name.isEmpty) {
+      Get.snackbar('تنبيه', 'اسم المنشأة البيطرية مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (doc.isEmpty) {
+      Get.snackbar('تنبيه', 'اسم الطبيب المسؤول مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (license.isEmpty) {
+      Get.snackbar('تنبيه', 'رقم ترخيص مزاولة المهنة مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    final phoneError = YemeniPhoneValidator.validate(phoneRaw);
+    if (phoneError != null) {
+      Get.snackbar('تنبيه', phoneError,
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    if (address.isEmpty) {
+      Get.snackbar('تنبيه', 'عنوان المنشأة البيطرية مطلوب',
+          backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+      return;
+    }
+
+    // Lead Doctor account validation during first-run or when fields are provided
+    if (currentUser.value == null) {
+      if (adminUser.isEmpty) {
+        Get.snackbar('تنبيه', 'اسم مستخدم مدير النظام مطلوب',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+      if (adminPass.isEmpty) {
+        Get.snackbar('تنبيه', 'كلمة مرور مدير النظام مطلوبة',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+      if (adminPin.length != 4) {
+        Get.snackbar('تنبيه', 'رمز PIN السريع يجب أن يتكون من 4 أرقام',
+            backgroundColor: Colors.amber.shade100, colorText: Colors.black87);
+        return;
+      }
+    }
+
+    isLoading.value = true;
+    try {
+      final formattedPhone = YemeniPhoneValidator.formatWithCountryCode(phoneRaw);
+      final updated = ClinicModel(
+        id: clinicInfo.value?.id,
+        clinicName: name,
+        doctorName: doc,
+        licenseNumber: license,
+        phone: formattedPhone,
+        address: address,
+        logoPath: clinicLogoPath.value,
+      );
+      await _authRepo.saveClinicInfo(updated);
+      clinicInfo.value = updated;
+
+      // Update or create Lead Doctor (id = 1) in tableUsers
+      if (adminUser.isNotEmpty) {
+        final existingAdmin = await _authRepo.getUserById(1);
+        final leadDoctor = UserModel(
+          id: 1,
+          username: adminUser,
+          passwordHash: adminPass.isNotEmpty ? adminPass : (existingAdmin?.passwordHash ?? 'admin123'),
+          fullName: doc,
+          role: 'lead_doctor',
+          phone: formattedPhone,
+          pinCode: adminPin.isNotEmpty ? adminPin : (existingAdmin?.pinCode ?? '1234'),
+          isActive: true,
+        );
+        if (existingAdmin != null) {
+          await _authRepo.updateUser(leadDoctor);
+        } else {
+          await _authRepo.addUser(leadDoctor);
+        }
+      }
+
+      await LicenseService.to.completeClinicSetup();
+
+      if (currentUser.value == null) {
+        Get.offAllNamed(AppRoutes.login);
+        Get.snackbar(
+          'تم إعداد النظام بنجاح 🎉',
+          'تم حفظ هوية العيادة وحساب مدير النظام، يرجى تسجيل الدخول للبدء',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          duration: const Duration(seconds: 4),
+        );
+      } else {
+        Get.back();
+        Get.snackbar('تم', 'تم حفظ بيانات وهوية العيادة بنجاح',
+            backgroundColor: Colors.green.shade100, colorText: Colors.green.shade900);
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    pinController.dispose();
+    clinicNameController.dispose();
+    doctorNameController.dispose();
+    licenseController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    adminUsernameController.dispose();
+    adminPasswordController.dispose();
+    adminPinController.dispose();
+    super.onClose();
+  }
+}
+</file>
+
 <file path="lib/modules/consultations/views/consultations_list_view.dart">
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18349,6 +19783,80 @@ class ConsultationsListView extends GetView<ConsultationsListController> {
         fontSize: 12,
       ),
     );
+  }
+}
+</file>
+
+<file path="lib/modules/dashboard/controllers/dashboard_controller.dart">
+import 'package:get/get.dart';
+import '../../../core/services/license_service.dart';
+import '../../../data/models/consultation_model.dart';
+import '../../../data/models/medicine_model.dart';
+import '../../../data/repositories/appointment_repository.dart';
+import '../../../data/repositories/consultation_repository.dart';
+import '../../../data/repositories/inventory_repository.dart';
+import '../../../data/repositories/surgery_repository.dart';
+import '../../../routes/app_routes.dart';
+
+class DashboardController extends GetxController {
+  final ConsultationRepository _consultationRepo;
+  final AppointmentRepository _appointmentRepo;
+  final InventoryRepository _inventoryRepo;
+  final SurgeryRepository _surgeryRepo;
+
+  DashboardController({
+    ConsultationRepository? consultationRepo,
+    AppointmentRepository? appointmentRepo,
+    InventoryRepository? inventoryRepo,
+    SurgeryRepository? surgeryRepo,
+  })  : _consultationRepo = consultationRepo ?? ConsultationRepository(),
+        _appointmentRepo = appointmentRepo ?? AppointmentRepository(),
+        _inventoryRepo = inventoryRepo ?? InventoryRepository(),
+        _surgeryRepo = surgeryRepo ?? SurgeryRepository();
+
+  final RxInt todayVisits = 0.obs;
+  final RxInt todaySurgeries = 0.obs;
+  final RxInt pendingFollowUps = 0.obs;
+  final RxInt lowStockCount = 0.obs;
+  final RxInt expiringMedsCount = 0.obs;
+
+  final RxList<ConsultationModel> recentConsultations = <ConsultationModel>[].obs;
+  final RxList<MedicineModel> alertMedicines = <MedicineModel>[].obs;
+  final RxBool isLoading = true.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadDashboardData();
+  }
+
+  Future<void> loadDashboardData() async {
+    final licenseStatus = await LicenseService.to.checkLicenseValidity();
+    if (licenseStatus == LicenseStatus.expired || !LicenseService.to.isLicenseActive.value) {
+      Get.offAllNamed(AppRoutes.activation);
+      return;
+    }
+
+    isLoading.value = true;
+    try {
+      todaySurgeries.value = await _surgeryRepo.getScheduledSurgeriesCount();
+      pendingFollowUps.value = await _appointmentRepo.getPendingTodayCount();
+
+      final lowStock = await _inventoryRepo.getLowStockMedicines();
+      lowStockCount.value = lowStock.length;
+
+      final expiring = await _inventoryRepo.getExpiringOrExpiredMedicines();
+      expiringMedsCount.value = expiring.length;
+      alertMedicines.assignAll(expiring.take(5));
+
+      final allVisits = await _consultationRepo.getAllConsultations();
+      final todayStr = DateTime.now().toIso8601String().substring(0, 10);
+      final todayVisitsList = allVisits.where((c) => c.visitDate.startsWith(todayStr)).toList();
+      recentConsultations.assignAll(todayVisitsList);
+      todayVisits.value = todayVisitsList.length;
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
 </file>
@@ -20073,6 +21581,77 @@ class UsersController extends GetxController {
     phoneController.dispose();
     pinController.dispose();
     super.onClose();
+  }
+}
+</file>
+
+<file path="lib/main.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:get/get.dart';
+import 'core/constants/app_strings_ar.dart';
+import 'core/constants/app_theme.dart';
+import 'core/services/license_service.dart';
+import 'core/services/notification_service.dart';
+import 'data/database/database_helper.dart';
+import 'modules/auth/controllers/auth_controller.dart';
+import 'routes/app_pages.dart';
+import 'routes/app_routes.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SQLite Database Engine & seed initial clinic data
+  await DatabaseHelper.instance.database;
+
+  // Initialize global services
+  final licenseService = await Get.putAsync(() => LicenseService().init(), permanent: true);
+  Get.put<NotificationService>(NotificationService(), permanent: true);
+  Get.put<AuthController>(AuthController(), permanent: true);
+
+  // Dynamic Initial Startup Routing Guard
+  final String initialRoute;
+  if (!licenseService.onboardingCompleted.value) {
+    initialRoute = AppRoutes.onboarding;
+  } else if (!licenseService.isLicenseActive.value) {
+    initialRoute = AppRoutes.activation;
+  } else if (!licenseService.clinicSetupCompleted.value) {
+    initialRoute = AppRoutes.clinicSetup;
+  } else {
+    initialRoute = AppRoutes.login;
+  }
+
+  runApp(VetPulseApp(initialRoute: initialRoute));
+}
+
+class VetPulseApp extends StatelessWidget {
+  final String initialRoute;
+  const VetPulseApp({super.key, this.initialRoute = AppRoutes.login});
+
+  @override
+  Widget build(BuildContext context) {
+    return GetMaterialApp(
+      title: AppStringsAr.appName,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+
+      // Native Arabic RTL Configuration
+      locale: const Locale('ar', 'SA'),
+      fallbackLocale: const Locale('ar', 'SA'),
+      supportedLocales: const [
+        Locale('ar', 'SA'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      // Navigation & Routes
+      initialRoute: initialRoute,
+      getPages: AppPages.routes,
+      defaultTransition: Transition.fadeIn,
+    );
   }
 }
 </file>
@@ -24239,356 +25818,6 @@ class OwnersListView extends GetView<OwnersListController> {
 }
 </file>
 
-<file path="lib/routes/app_routes.dart">
-abstract class AppRoutes {
-  AppRoutes._();
-
-  static const login = '/login';
-  static const clinicSetup = '/clinic-setup';
-  static const pinLock = '/pin-lock';
-  static const dashboard = '/dashboard';
-
-  static const patientList = '/patients';
-  static const patientDetail = '/patients/detail';
-  static const addPatient = '/patients/add';
-
-  static const consultations = '/consultations';
-  static const newConsultation = '/consultations/new';
-  static const consultationDetail = '/consultations/detail';
-  static const prescriptionPreview = '/consultations/prescription-preview';
-
-  static const owners = '/owners';
-  static const ownerDetail = '/owners/detail';
-
-  static const weeklyReports = '/reports/weekly';
-
-  static const inventoryList = '/pharmacy';
-  static const addMedicine = '/pharmacy/add';
-  static const stockTransfer = '/pharmacy/transfer';
-
-  static const followUps = '/follow-ups';
-  static const followUpDetail = '/follow-ups/detail';
-
-  static const surgeries = '/surgeries';
-  static const newSurgery = '/surgeries/new';
-  static const completeSurgery = '/surgeries/complete';
-  static const surgeryDetail = '/surgeries/detail';
-
-  static const usersManagement = '/users';
-
-  static const financialDashboard = '/financials';
-  static const ownerAccountStatement = '/financials/owner-statement';
-  static const databaseBackup = '/backup';
-}
-</file>
-
-<file path="lib/data/database/database_tables.dart">
-class DatabaseTables {
-  DatabaseTables._();
-
-  static const String tableClinicInfo = 'clinic_info';
-  static const String tableUsers = 'users';
-  static const String tableOwners = 'owners';
-  static const String tablePets = 'pets';
-  static const String tablePetWeights = 'pet_weights';
-  static const String tableMedicines = 'medicines';
-  static const String tableConsultations = 'consultations';
-  static const String tablePrescriptions = 'prescriptions';
-  static const String tableFollowUps = 'follow_ups';
-  static const String tableSurgeries = 'surgeries';
-  static const String tableExpenses = 'expenses';
-  static const String tableTransactions = 'financial_transactions';
-  static const String tableCustomerPayments = 'customer_payments';
-  static const String tableBackupLogs = 'backup_logs';
-
-  static const String createClinicInfoTable = '''
-    CREATE TABLE IF NOT EXISTS $tableClinicInfo (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clinic_name TEXT NOT NULL,
-      doctor_name TEXT NOT NULL,
-      phone TEXT,
-      address TEXT,
-      logo_path TEXT,
-      license_number TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createUsersTable = '''
-    CREATE TABLE IF NOT EXISTS $tableUsers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      full_name TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('lead_doctor', 'assistant_vet', 'receptionist', 'pharmacist')),
-      phone TEXT,
-      pin_code TEXT,
-      is_active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createOwnersTable = '''
-    CREATE TABLE IF NOT EXISTS $tableOwners (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      full_name TEXT NOT NULL,
-      phone_primary TEXT NOT NULL,
-      address TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createOwnersPhoneIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_owners_phone ON $tableOwners(phone_primary);
-  ''';
-
-  static const String createPetsTable = '''
-    CREATE TABLE IF NOT EXISTS $tablePets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      owner_id INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      species TEXT NOT NULL,
-      breed TEXT,
-      gender TEXT CHECK(gender IN ('male', 'female')),
-      is_neutered INTEGER DEFAULT 0,
-      date_of_birth DATE,
-      microchip_number TEXT,
-      photo_path TEXT,
-      allergies TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE CASCADE
-    );
-  ''';
-
-  static const String createPetsMicrochipIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_pets_microchip ON $tablePets(microchip_number);
-  ''';
-
-  static const String createPetWeightsTable = '''
-    CREATE TABLE IF NOT EXISTS $tablePetWeights (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      pet_id INTEGER NOT NULL,
-      weight REAL NOT NULL,
-      recorded_date DATE NOT NULL,
-      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE
-    );
-  ''';
-
-  static const String createMedicinesTable = '''
-    CREATE TABLE IF NOT EXISTS $tableMedicines (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      trade_name TEXT NOT NULL,
-      scientific_name TEXT,
-      form TEXT NOT NULL,
-      concentration TEXT,
-      clinic_stock INTEGER DEFAULT 0,
-      warehouse_stock INTEGER DEFAULT 0,
-      min_stock_alert INTEGER DEFAULT 5,
-      unit_cost_price REAL DEFAULT 0.0,
-      unit_sale_price REAL DEFAULT 0.0,
-      expiry_date DATE NOT NULL,
-      batch_number TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createMedicinesExpiryIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_medicines_expiry ON $tableMedicines(expiry_date);
-  ''';
-
-  static const String createConsultationsTable = '''
-    CREATE TABLE IF NOT EXISTS $tableConsultations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      pet_id INTEGER NOT NULL,
-      doctor_id INTEGER NOT NULL,
-      visit_date DATETIME NOT NULL,
-      temperature REAL,
-      heart_rate INTEGER,
-      symptoms TEXT,
-      examination_findings TEXT,
-      diagnosis TEXT NOT NULL,
-      treatment_plan TEXT,
-      visit_cost REAL DEFAULT 0.0,
-      paid_amount REAL DEFAULT 0.0,
-      payment_method TEXT DEFAULT 'نقدا',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
-      FOREIGN KEY (doctor_id) REFERENCES $tableUsers (id)
-    );
-  ''';
-
-  static const String createPrescriptionsTable = '''
-    CREATE TABLE IF NOT EXISTS $tablePrescriptions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      consultation_id INTEGER NOT NULL,
-      medicine_id INTEGER,
-      custom_name TEXT,
-      dosage TEXT NOT NULL,
-      frequency TEXT NOT NULL,
-      duration_days INTEGER NOT NULL,
-      quantity_dispensed INTEGER NOT NULL,
-      instructions TEXT,
-      is_clinic_administered INTEGER DEFAULT 0,
-      route TEXT,
-      FOREIGN KEY (consultation_id) REFERENCES $tableConsultations (id) ON DELETE CASCADE,
-      FOREIGN KEY (medicine_id) REFERENCES $tableMedicines (id)
-    );
-  ''';
-
-  static const String createFollowUpsTable = '''
-    CREATE TABLE IF NOT EXISTS $tableFollowUps (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      pet_id INTEGER NOT NULL,
-      consultation_id INTEGER,
-      scheduled_date DATE NOT NULL,
-      scheduled_time TEXT,
-      reason TEXT NOT NULL,
-      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'completed', 'missed', 'cancelled')),
-      reminder_sent INTEGER DEFAULT 0,
-      notes TEXT,
-      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
-      FOREIGN KEY (consultation_id) REFERENCES $tableConsultations (id)
-    );
-  ''';
-
-  static const String createFollowUpsDateIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_followups_date ON $tableFollowUps(scheduled_date);
-  ''';
-
-  static const String createSurgeriesTable = '''
-    CREATE TABLE IF NOT EXISTS $tableSurgeries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      pet_id INTEGER NOT NULL,
-      lead_surgeon_id INTEGER NOT NULL,
-      scheduled_date DATETIME NOT NULL,
-      surgery_name TEXT NOT NULL,
-      surgery_category TEXT,
-      status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
-      pre_op_checklist_passed INTEGER DEFAULT 0,
-      anesthesia_protocol TEXT,
-      post_op_notes TEXT,
-      estimated_cost REAL,
-      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
-      FOREIGN KEY (lead_surgeon_id) REFERENCES $tableUsers (id)
-    );
-  ''';
-
-  static const String createExpensesTable = '''
-    CREATE TABLE IF NOT EXISTS $tableExpenses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      amount REAL NOT NULL,
-      expense_date DATE NOT NULL,
-      notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createExpensesDateIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_expenses_date ON $tableExpenses(expense_date);
-  ''';
-
-  static const String createTransactionsTable = '''
-    CREATE TABLE IF NOT EXISTS $tableTransactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      transaction_type TEXT NOT NULL CHECK(transaction_type IN ('income', 'expense', 'payment')),
-      category TEXT,
-      owner_id INTEGER,
-      pet_id INTEGER,
-      reference_id INTEGER,
-      reference_type TEXT,
-      amount REAL NOT NULL,
-      paid_amount REAL DEFAULT 0.0,
-      remaining_amount REAL DEFAULT 0.0,
-      payment_method TEXT DEFAULT 'نقدا',
-      transaction_date DATETIME NOT NULL,
-      notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE SET NULL,
-      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE SET NULL
-    );
-  ''';
-
-  static const String createTransactionsDateIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_transactions_date ON $tableTransactions(transaction_date);
-  ''';
-
-  static const String createTransactionsOwnerIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_transactions_owner ON $tableTransactions(owner_id);
-  ''';
-
-  static const String createCustomerPaymentsTable = '''
-    CREATE TABLE IF NOT EXISTS $tableCustomerPayments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      owner_id INTEGER NOT NULL,
-      transaction_id INTEGER,
-      amount REAL NOT NULL,
-      payment_method TEXT NOT NULL DEFAULT 'نقدا',
-      payment_date DATETIME NOT NULL,
-      receipt_number TEXT,
-      notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE CASCADE,
-      FOREIGN KEY (transaction_id) REFERENCES $tableTransactions (id) ON DELETE SET NULL
-    );
-  ''';
-
-  static const String createCustomerPaymentsOwnerIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_customer_payments_owner ON $tableCustomerPayments(owner_id);
-  ''';
-
-  static const String createCustomerPaymentsDateIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_customer_payments_date ON $tableCustomerPayments(payment_date);
-  ''';
-
-  static const String createBackupLogsTable = '''
-    CREATE TABLE IF NOT EXISTS $tableBackupLogs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      backup_name TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      size_bytes INTEGER DEFAULT 0,
-      backup_type TEXT NOT NULL DEFAULT 'internal',
-      destination TEXT,
-      status TEXT NOT NULL DEFAULT 'success',
-      error_message TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  ''';
-
-  static const String createBackupLogsDateIndex = '''
-    CREATE INDEX IF NOT EXISTS idx_backup_logs_date ON $tableBackupLogs(created_at);
-  ''';
-
-  static const List<String> allTablesAndIndices = [
-    createClinicInfoTable,
-    createUsersTable,
-    createOwnersTable,
-    createOwnersPhoneIndex,
-    createPetsTable,
-    createPetsMicrochipIndex,
-    createPetWeightsTable,
-    createMedicinesTable,
-    createMedicinesExpiryIndex,
-    createConsultationsTable,
-    createPrescriptionsTable,
-    createFollowUpsTable,
-    createFollowUpsDateIndex,
-    createSurgeriesTable,
-    createExpensesTable,
-    createExpensesDateIndex,
-    createTransactionsTable,
-    createTransactionsDateIndex,
-    createTransactionsOwnerIndex,
-    createCustomerPaymentsTable,
-    createCustomerPaymentsOwnerIndex,
-    createCustomerPaymentsDateIndex,
-    createBackupLogsTable,
-    createBackupLogsDateIndex,
-  ];
-}
-</file>
-
 <file path="lib/data/repositories/surgery_repository.dart">
 import 'package:get/get.dart';
 import '../../core/services/data_sync_service.dart';
@@ -26090,120 +27319,372 @@ class AddPatientView extends GetView<AddPatientController> {
 }
 </file>
 
-<file path="pubspec.yaml">
-name: vet_pulse
-description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+<file path="lib/routes/app_routes.dart">
+abstract class AppRoutes {
+  AppRoutes._();
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+  static const onboarding = '/onboarding';
+  static const activation = '/activation';
+  static const login = '/login';
+  static const clinicSetup = '/clinic-setup';
+  static const pinLock = '/pin-lock';
+  static const dashboard = '/dashboard';
 
-environment:
-  sdk: ^3.11.4
+  static const patientList = '/patients';
+  static const patientDetail = '/patients/detail';
+  static const addPatient = '/patients/add';
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_localizations:
-    sdk: flutter
+  static const consultations = '/consultations';
+  static const newConsultation = '/consultations/new';
+  static const consultationDetail = '/consultations/detail';
+  static const prescriptionPreview = '/consultations/prescription-preview';
 
-  # State Management & Routing
-  get: ^4.6.6
+  static const owners = '/owners';
+  static const ownerDetail = '/owners/detail';
 
-  # Local SQLite Persistence
-  sqflite: ^2.3.3+1
-  sqflite_common_ffi: ^2.3.3
-  path: ^1.9.0
+  static const weeklyReports = '/reports/weekly';
 
-  # Typography & RTL Support
-  google_fonts: ^6.2.1
-  intl: ^0.20.2
+  static const inventoryList = '/pharmacy';
+  static const addMedicine = '/pharmacy/add';
+  static const stockTransfer = '/pharmacy/transfer';
 
-  # Prescription & Report Export
-  pdf: ^3.10.8
-  printing: ^5.13.1
-  url_launcher: ^6.2.5
+  static const followUps = '/follow-ups';
+  static const followUpDetail = '/follow-ups/detail';
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  image_picker: ^1.2.3
-  permission_handler: ^11.3.1
-  file_picker: ^13.1.0
-  path_provider: ^2.1.6
-  flutter_contacts: 1.1.7
-  flutter_local_notifications: ^18.0.1
-  timezone: ^0.10.0
+  static const surgeries = '/surgeries';
+  static const newSurgery = '/surgeries/new';
+  static const completeSurgery = '/surgeries/complete';
+  static const surgeryDetail = '/surgeries/detail';
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  static const usersManagement = '/users';
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+  static const financialDashboard = '/financials';
+  static const ownerAccountStatement = '/financials/owner-statement';
+  static const databaseBackup = '/backup';
+}
+</file>
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+<file path="lib/data/database/database_tables.dart">
+class DatabaseTables {
+  DatabaseTables._();
 
-# The following section is specific to Flutter packages.
-flutter:
+  static const String tableClinicInfo = 'clinic_info';
+  static const String tableUsers = 'users';
+  static const String tableOwners = 'owners';
+  static const String tablePets = 'pets';
+  static const String tablePetWeights = 'pet_weights';
+  static const String tableMedicines = 'medicines';
+  static const String tableConsultations = 'consultations';
+  static const String tablePrescriptions = 'prescriptions';
+  static const String tableFollowUps = 'follow_ups';
+  static const String tableSurgeries = 'surgeries';
+  static const String tableExpenses = 'expenses';
+  static const String tableTransactions = 'financial_transactions';
+  static const String tableCustomerPayments = 'customer_payments';
+  static const String tableBackupLogs = 'backup_logs';
+  static const String tableAppLicenseState = 'app_license_state';
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
-  uses-material-design: true
+  static const String createClinicInfoTable = '''
+    CREATE TABLE IF NOT EXISTS $tableClinicInfo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clinic_name TEXT NOT NULL,
+      doctor_name TEXT NOT NULL,
+      phone TEXT,
+      address TEXT,
+      logo_path TEXT,
+      license_number TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
 
-  assets:
-    - assets/fonts/
+  static const String createUsersTable = '''
+    CREATE TABLE IF NOT EXISTS $tableUsers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('lead_doctor', 'assistant_vet', 'receptionist', 'pharmacist')),
+      phone TEXT,
+      pin_code TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
 
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
+  static const String createOwnersTable = '''
+    CREATE TABLE IF NOT EXISTS $tableOwners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT NOT NULL,
+      phone_primary TEXT NOT NULL,
+      address TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
 
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
+  static const String createOwnersPhoneIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_owners_phone ON $tableOwners(phone_primary);
+  ''';
 
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  static const String createPetsTable = '''
+    CREATE TABLE IF NOT EXISTS $tablePets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      species TEXT NOT NULL,
+      breed TEXT,
+      gender TEXT CHECK(gender IN ('male', 'female')),
+      is_neutered INTEGER DEFAULT 0,
+      date_of_birth DATE,
+      microchip_number TEXT,
+      photo_path TEXT,
+      allergies TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE CASCADE
+    );
+  ''';
+
+  static const String createPetsMicrochipIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_pets_microchip ON $tablePets(microchip_number);
+  ''';
+
+  static const String createPetWeightsTable = '''
+    CREATE TABLE IF NOT EXISTS $tablePetWeights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      weight REAL NOT NULL,
+      recorded_date DATE NOT NULL,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE
+    );
+  ''';
+
+  static const String createMedicinesTable = '''
+    CREATE TABLE IF NOT EXISTS $tableMedicines (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trade_name TEXT NOT NULL,
+      scientific_name TEXT,
+      form TEXT NOT NULL,
+      concentration TEXT,
+      clinic_stock INTEGER DEFAULT 0,
+      warehouse_stock INTEGER DEFAULT 0,
+      min_stock_alert INTEGER DEFAULT 5,
+      unit_cost_price REAL DEFAULT 0.0,
+      unit_sale_price REAL DEFAULT 0.0,
+      expiry_date DATE NOT NULL,
+      batch_number TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
+
+  static const String createMedicinesExpiryIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_medicines_expiry ON $tableMedicines(expiry_date);
+  ''';
+
+  static const String createConsultationsTable = '''
+    CREATE TABLE IF NOT EXISTS $tableConsultations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      doctor_id INTEGER NOT NULL,
+      visit_date DATETIME NOT NULL,
+      temperature REAL,
+      heart_rate INTEGER,
+      symptoms TEXT,
+      examination_findings TEXT,
+      diagnosis TEXT NOT NULL,
+      treatment_plan TEXT,
+      visit_cost REAL DEFAULT 0.0,
+      paid_amount REAL DEFAULT 0.0,
+      payment_method TEXT DEFAULT 'نقدا',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
+      FOREIGN KEY (doctor_id) REFERENCES $tableUsers (id)
+    );
+  ''';
+
+  static const String createPrescriptionsTable = '''
+    CREATE TABLE IF NOT EXISTS $tablePrescriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      consultation_id INTEGER NOT NULL,
+      medicine_id INTEGER,
+      custom_name TEXT,
+      dosage TEXT NOT NULL,
+      frequency TEXT NOT NULL,
+      duration_days INTEGER NOT NULL,
+      quantity_dispensed INTEGER NOT NULL,
+      instructions TEXT,
+      is_clinic_administered INTEGER DEFAULT 0,
+      route TEXT,
+      FOREIGN KEY (consultation_id) REFERENCES $tableConsultations (id) ON DELETE CASCADE,
+      FOREIGN KEY (medicine_id) REFERENCES $tableMedicines (id)
+    );
+  ''';
+
+  static const String createFollowUpsTable = '''
+    CREATE TABLE IF NOT EXISTS $tableFollowUps (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      consultation_id INTEGER,
+      scheduled_date DATE NOT NULL,
+      scheduled_time TEXT,
+      reason TEXT NOT NULL,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'completed', 'missed', 'cancelled')),
+      reminder_sent INTEGER DEFAULT 0,
+      notes TEXT,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
+      FOREIGN KEY (consultation_id) REFERENCES $tableConsultations (id)
+    );
+  ''';
+
+  static const String createFollowUpsDateIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_followups_date ON $tableFollowUps(scheduled_date);
+  ''';
+
+  static const String createSurgeriesTable = '''
+    CREATE TABLE IF NOT EXISTS $tableSurgeries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id INTEGER NOT NULL,
+      lead_surgeon_id INTEGER NOT NULL,
+      scheduled_date DATETIME NOT NULL,
+      surgery_name TEXT NOT NULL,
+      surgery_category TEXT,
+      status TEXT DEFAULT 'scheduled' CHECK(status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
+      pre_op_checklist_passed INTEGER DEFAULT 0,
+      anesthesia_protocol TEXT,
+      post_op_notes TEXT,
+      estimated_cost REAL,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE CASCADE,
+      FOREIGN KEY (lead_surgeon_id) REFERENCES $tableUsers (id)
+    );
+  ''';
+
+  static const String createExpensesTable = '''
+    CREATE TABLE IF NOT EXISTS $tableExpenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount REAL NOT NULL,
+      expense_date DATE NOT NULL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
+
+  static const String createExpensesDateIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON $tableExpenses(expense_date);
+  ''';
+
+  static const String createTransactionsTable = '''
+    CREATE TABLE IF NOT EXISTS $tableTransactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transaction_type TEXT NOT NULL CHECK(transaction_type IN ('income', 'expense', 'payment')),
+      category TEXT,
+      owner_id INTEGER,
+      pet_id INTEGER,
+      reference_id INTEGER,
+      reference_type TEXT,
+      amount REAL NOT NULL,
+      paid_amount REAL DEFAULT 0.0,
+      remaining_amount REAL DEFAULT 0.0,
+      payment_method TEXT DEFAULT 'نقدا',
+      transaction_date DATETIME NOT NULL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE SET NULL,
+      FOREIGN KEY (pet_id) REFERENCES $tablePets (id) ON DELETE SET NULL
+    );
+  ''';
+
+  static const String createTransactionsDateIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_transactions_date ON $tableTransactions(transaction_date);
+  ''';
+
+  static const String createTransactionsOwnerIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_transactions_owner ON $tableTransactions(owner_id);
+  ''';
+
+  static const String createCustomerPaymentsTable = '''
+    CREATE TABLE IF NOT EXISTS $tableCustomerPayments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL,
+      transaction_id INTEGER,
+      amount REAL NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'نقدا',
+      payment_date DATETIME NOT NULL,
+      receipt_number TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (owner_id) REFERENCES $tableOwners (id) ON DELETE CASCADE,
+      FOREIGN KEY (transaction_id) REFERENCES $tableTransactions (id) ON DELETE SET NULL
+    );
+  ''';
+
+  static const String createCustomerPaymentsOwnerIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_customer_payments_owner ON $tableCustomerPayments(owner_id);
+  ''';
+
+  static const String createCustomerPaymentsDateIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_customer_payments_date ON $tableCustomerPayments(payment_date);
+  ''';
+
+  static const String createBackupLogsTable = '''
+    CREATE TABLE IF NOT EXISTS $tableBackupLogs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      backup_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      size_bytes INTEGER DEFAULT 0,
+      backup_type TEXT NOT NULL DEFAULT 'internal',
+      destination TEXT,
+      status TEXT NOT NULL DEFAULT 'success',
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  ''';
+
+  static const String createBackupLogsDateIndex = '''
+    CREATE INDEX IF NOT EXISTS idx_backup_logs_date ON $tableBackupLogs(created_at);
+  ''';
+
+  static const String createAppLicenseStateTable = '''
+    CREATE TABLE IF NOT EXISTS $tableAppLicenseState (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      onboarding_completed INTEGER NOT NULL DEFAULT 0,
+      clinic_setup_completed INTEGER NOT NULL DEFAULT 0,
+      device_fingerprint TEXT NOT NULL,
+      activation_code TEXT,
+      activated_at TEXT,
+      expiry_date TEXT,
+      last_seen_timestamp TEXT,
+      used_codes_json TEXT NOT NULL DEFAULT '[]'
+    );
+  ''';
+
+  static const List<String> allTablesAndIndices = [
+    createClinicInfoTable,
+    createUsersTable,
+    createOwnersTable,
+    createOwnersPhoneIndex,
+    createPetsTable,
+    createPetsMicrochipIndex,
+    createPetWeightsTable,
+    createMedicinesTable,
+    createMedicinesExpiryIndex,
+    createConsultationsTable,
+    createPrescriptionsTable,
+    createFollowUpsTable,
+    createFollowUpsDateIndex,
+    createSurgeriesTable,
+    createExpensesTable,
+    createExpensesDateIndex,
+    createTransactionsTable,
+    createTransactionsDateIndex,
+    createTransactionsOwnerIndex,
+    createCustomerPaymentsTable,
+    createCustomerPaymentsOwnerIndex,
+    createCustomerPaymentsDateIndex,
+    createBackupLogsTable,
+    createBackupLogsDateIndex,
+    createAppLicenseStateTable,
+  ];
+}
 </file>
 
 <file path="lib/data/database/demo_data_seeder.dart">
@@ -30445,304 +31926,6 @@ class SurgeryCalendarView extends GetView<SurgeryListController> {
 }
 </file>
 
-<file path="lib/data/database/database_helper.dart">
-import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:path/path.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'database_tables.dart';
-
-class DatabaseHelper {
-  static const String _dbName = 'vet_pulse.db';
-  static const int _dbVersion = 8;
-
-  DatabaseHelper._internal();
-  static final DatabaseHelper instance = DatabaseHelper._internal();
-
-  Database? _database;
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
-
-  Future<String> getDatabaseFilePath() async {
-    final dbPath = await getDatabasesPath();
-    return join(dbPath, _dbName);
-  }
-
-  Future<void> flushWal() async {
-    if (_database != null && _database!.isOpen) {
-      try {
-        await _database!.execute('PRAGMA wal_checkpoint(FULL);');
-      } catch (_) {}
-    }
-  }
-
-  Future<void> close() async {
-    if (_database != null && _database!.isOpen) {
-      await _database!.close();
-      _database = null;
-    }
-  }
-
-  Future<Database> _initDatabase() async {
-    // Desktop support (Windows, Linux, macOS)
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
-
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, _dbName);
-
-    return await openDatabase(
-      path,
-      version: _dbVersion,
-      onConfigure: _onConfigure,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      onOpen: (db) async {
-        await ensureAllTablesExist(db);
-      },
-    );
-  }
-
-  Future<void> _onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON;');
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN custom_name TEXT;');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN is_clinic_administered INTEGER DEFAULT 0;');
-      } catch (_) {}
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN route TEXT;');
-      } catch (_) {}
-    }
-    if (oldVersion < 3) {
-      try {
-        await db.execute(DatabaseTables.createExpensesTable);
-        await db.execute(DatabaseTables.createExpensesDateIndex);
-      } catch (_) {}
-      try {
-        await db.execute(DatabaseTables.createTransactionsTable);
-        await db.execute(DatabaseTables.createTransactionsDateIndex);
-        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
-      } catch (_) {}
-    }
-    if (oldVersion < 4) {
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
-      } catch (_) {}
-    }
-    if (oldVersion < 5) {
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
-      } catch (_) {}
-      try {
-        await db.execute(DatabaseTables.createCustomerPaymentsTable);
-        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
-        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
-      } catch (_) {}
-      try {
-        await db.execute(DatabaseTables.createBackupLogsTable);
-        await db.execute(DatabaseTables.createBackupLogsDateIndex);
-      } catch (_) {}
-    }
-    if (oldVersion < 6) {
-      await db.execute('PRAGMA foreign_keys = OFF;');
-      try {
-        await db.execute('DROP TABLE IF EXISTS ${DatabaseTables.tableCustomerPayments};');
-        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} RENAME TO temp_transactions_old;');
-        await db.execute(DatabaseTables.createTransactionsTable);
-        await db.execute(DatabaseTables.createTransactionsDateIndex);
-        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
-        await db.execute('''
-          INSERT INTO ${DatabaseTables.tableTransactions} 
-          (id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, paid_amount, remaining_amount, payment_method, transaction_date, notes, created_at)
-          SELECT id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, 
-                 COALESCE(paid_amount, amount), COALESCE(remaining_amount, 0.0), payment_method, transaction_date, notes, created_at
-          FROM temp_transactions_old;
-        ''');
-        await db.execute('DROP TABLE temp_transactions_old;');
-        await db.execute(DatabaseTables.createCustomerPaymentsTable);
-        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
-        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
-      } catch (_) {}
-      await db.execute('PRAGMA foreign_keys = ON;');
-    }
-    if (oldVersion < 7) {
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableOwners} DROP COLUMN phone_secondary;');
-      } catch (_) {}
-    }
-    if (oldVersion < 8) {
-      try {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableOwners} DROP COLUMN notes;');
-      } catch (_) {}
-    }
-  }
-
-  Future<void> _onCreate(Database db, int version) async {
-    final batch = db.batch();
-
-    for (final sql in DatabaseTables.allTablesAndIndices) {
-      batch.execute(sql);
-    }
-
-    await batch.commit();
-
-    // Seed Initial Doctor & Clinic
-    await _seedInitialData(db);
-  }
-
-  Future<void> _seedInitialData(Database db) async {
-    // 1. Initial Clinic Setup
-    await db.insert(DatabaseTables.tableClinicInfo, {
-      'clinic_name': 'عيادة الوفاء البيطرية المتقدمة',
-      'doctor_name': 'د. عبدالله خالد السالم',
-      'phone': '0555123456',
-      'address': 'الرياض - حي النرجس، طريق أبي بكر الصديق',
-      'license_number': 'VET-SA-2026-9812',
-    });
-
-    // 2. Initial Lead Doctor User
-    await db.insert(DatabaseTables.tableUsers, {
-      'username': 'admin',
-      'password_hash': 'admin123', // In real clinic apps, securely hashed
-      'full_name': 'د. عبدالله خالد السالم',
-      'role': 'lead_doctor',
-      'phone': '0555123456',
-      'pin_code': '1234',
-      'is_active': 1,
-    });
-
-    // 3. Initial Sample Medicines
-    final now = DateTime.now();
-    final futureDate = DateTime(now.year + 1, now.month, now.day).toIso8601String().substring(0, 10);
-    final nearExpiryDate = DateTime(now.year, now.month, now.day + 15).toIso8601String().substring(0, 10);
-    final expiredDate = DateTime(now.year - 1, now.month, now.day).toIso8601String().substring(0, 10);
-
-    final medicines = [
-      {
-        'trade_name': 'أموكسيسيلين + كلافولانيك (Synulox)',
-        'scientific_name': 'Amoxicillin + Clavulanic Acid',
-        'form': 'أقراص (Tablets)',
-        'concentration': '250mg',
-        'clinic_stock': 35,
-        'warehouse_stock': 120,
-        'min_stock_alert': 10,
-        'unit_cost_price': 18.5,
-        'unit_sale_price': 35.0,
-        'expiry_date': futureDate,
-        'batch_number': 'SNX-2026-A1',
-      },
-      {
-        'trade_name': 'ميلوكسيكام (Metacam Inj)',
-        'scientific_name': 'Meloxicam',
-        'form': 'حقن (Injectable)',
-        'concentration': '5mg/ml',
-        'clinic_stock': 8,
-        'warehouse_stock': 25,
-        'min_stock_alert': 5,
-        'unit_cost_price': 45.0,
-        'unit_sale_price': 80.0,
-        'expiry_date': futureDate,
-        'batch_number': 'MTC-9942',
-      },
-      {
-        'trade_name': 'دوكسيسيكلين (Doxybactin)',
-        'scientific_name': 'Doxycycline Hyclate',
-        'form': 'أقراص (Tablets)',
-        'concentration': '50mg',
-        'clinic_stock': 3, // Low stock alert demo
-        'warehouse_stock': 5,
-        'min_stock_alert': 10,
-        'unit_cost_price': 12.0,
-        'unit_sale_price': 25.0,
-        'expiry_date': nearExpiryDate, // Near expiry demo
-        'batch_number': 'DXB-2025-09',
-      },
-      {
-        'trade_name': 'سيفوفلوران (Sevoflurane)',
-        'scientific_name': 'Sevoflurane Inhalation Gas',
-        'form': 'سوائل وريدية (IV Fluids)',
-        'concentration': '250ml',
-        'clinic_stock': 2,
-        'warehouse_stock': 6,
-        'min_stock_alert': 3,
-        'unit_cost_price': 180.0,
-        'unit_sale_price': 320.0,
-        'expiry_date': futureDate,
-        'batch_number': 'SEV-8821',
-      },
-      {
-        'trade_name': 'إيفيرمكتين (Ivermectin 1%)',
-        'scientific_name': 'Ivermectin',
-        'form': 'حقن (Injectable)',
-        'concentration': '10mg/ml',
-        'clinic_stock': 1,
-        'warehouse_stock': 0,
-        'min_stock_alert': 4,
-        'unit_cost_price': 15.0,
-        'unit_sale_price': 30.0,
-        'expiry_date': expiredDate, // Expired demo
-        'batch_number': 'IVM-2023-EXP',
-      },
-    ];
-
-    for (final med in medicines) {
-      await db.insert(DatabaseTables.tableMedicines, med);
-    }
-  }
-
-  /// Self-healing schema validation: ensures all required tables and columns exist
-  Future<void> ensureAllTablesExist(Database db) async {
-    for (final sql in DatabaseTables.allTablesAndIndices) {
-      await db.execute(sql);
-    }
-
-    // Ensure columns exist on legacy databases
-    try {
-      final txCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableTransactions});');
-      final txColNames = txCols.map((c) => c['name'] as String).toSet();
-      if (!txColNames.contains('paid_amount')) {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
-      }
-      if (!txColNames.contains('remaining_amount')) {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN remaining_amount REAL DEFAULT 0.0;');
-      }
-    } catch (_) {}
-
-    try {
-      final consultCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableConsultations});');
-      final consultColNames = consultCols.map((c) => c['name'] as String).toSet();
-      if (!consultColNames.contains('paid_amount')) {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
-      }
-      if (!consultColNames.contains('payment_method')) {
-        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
-      }
-    } catch (_) {}
-
-    // Clean up legacy auto-generated receipt vouchers from consultations and surgeries
-    try {
-      await db.execute('''
-        DELETE FROM ${DatabaseTables.tableCustomerPayments}
-        WHERE receipt_number LIKE 'REC-%-1' 
-           OR receipt_number LIKE 'REC-SURG-%';
-      ''');
-    } catch (_) {}
-  }
-}
-</file>
-
 <file path="lib/modules/patients/views/patient_detail_view.dart">
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -31591,8 +32774,433 @@ class PatientDetailView extends GetView<PatientDetailController> {
 }
 </file>
 
+<file path="pubspec.yaml">
+name: vet_pulse
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management & Routing
+  get: ^4.6.6
+
+  # Local SQLite Persistence
+  sqflite: ^2.3.3+1
+  sqflite_common_ffi: ^2.3.3
+  path: ^1.9.0
+
+  # Typography & RTL Support
+  google_fonts: ^6.2.1
+  intl: ^0.20.2
+
+  # Prescription & Report Export
+  pdf: ^3.10.8
+  printing: ^5.13.1
+  url_launcher: ^6.2.5
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.8
+  image_picker: ^1.2.3
+  permission_handler: ^11.3.1
+  file_picker: ^13.1.0
+  path_provider: ^2.1.6
+  flutter_contacts: 1.1.7
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  device_info_plus: ^13.3.0
+  crypto: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^6.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  assets:
+    - assets/fonts/
+    - assets/images/onboarding/
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+</file>
+
+<file path="lib/data/database/database_helper.dart">
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'database_tables.dart';
+
+class DatabaseHelper {
+  static const String _dbName = 'vet_pulse.db';
+  static const int _dbVersion = 9;
+
+  DatabaseHelper._internal();
+  static final DatabaseHelper instance = DatabaseHelper._internal();
+
+  Database? _database;
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<String> getDatabaseFilePath() async {
+    final dbPath = await getDatabasesPath();
+    return join(dbPath, _dbName);
+  }
+
+  Future<void> flushWal() async {
+    if (_database != null && _database!.isOpen) {
+      try {
+        await _database!.execute('PRAGMA wal_checkpoint(FULL);');
+      } catch (_) {}
+    }
+  }
+
+  Future<void> close() async {
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
+  Future<Database> _initDatabase() async {
+    // Desktop support (Windows, Linux, macOS)
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, _dbName);
+
+    return await openDatabase(
+      path,
+      version: _dbVersion,
+      onConfigure: _onConfigure,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+      onOpen: (db) async {
+        await ensureAllTablesExist(db);
+      },
+    );
+  }
+
+  Future<void> _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON;');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN custom_name TEXT;');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN is_clinic_administered INTEGER DEFAULT 0;');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tablePrescriptions} ADD COLUMN route TEXT;');
+      } catch (_) {}
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute(DatabaseTables.createExpensesTable);
+        await db.execute(DatabaseTables.createExpensesDateIndex);
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createTransactionsTable);
+        await db.execute(DatabaseTables.createTransactionsDateIndex);
+        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
+      } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
+      } catch (_) {}
+    }
+    if (oldVersion < 5) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createCustomerPaymentsTable);
+        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
+        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
+      } catch (_) {}
+      try {
+        await db.execute(DatabaseTables.createBackupLogsTable);
+        await db.execute(DatabaseTables.createBackupLogsDateIndex);
+      } catch (_) {}
+    }
+    if (oldVersion < 6) {
+      await db.execute('PRAGMA foreign_keys = OFF;');
+      try {
+        await db.execute('DROP TABLE IF EXISTS ${DatabaseTables.tableCustomerPayments};');
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} RENAME TO temp_transactions_old;');
+        await db.execute(DatabaseTables.createTransactionsTable);
+        await db.execute(DatabaseTables.createTransactionsDateIndex);
+        await db.execute(DatabaseTables.createTransactionsOwnerIndex);
+        await db.execute('''
+          INSERT INTO ${DatabaseTables.tableTransactions} 
+          (id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, paid_amount, remaining_amount, payment_method, transaction_date, notes, created_at)
+          SELECT id, transaction_type, category, owner_id, pet_id, reference_id, reference_type, amount, 
+                 COALESCE(paid_amount, amount), COALESCE(remaining_amount, 0.0), payment_method, transaction_date, notes, created_at
+          FROM temp_transactions_old;
+        ''');
+        await db.execute('DROP TABLE temp_transactions_old;');
+        await db.execute(DatabaseTables.createCustomerPaymentsTable);
+        await db.execute(DatabaseTables.createCustomerPaymentsOwnerIndex);
+        await db.execute(DatabaseTables.createCustomerPaymentsDateIndex);
+      } catch (_) {}
+      await db.execute('PRAGMA foreign_keys = ON;');
+    }
+    if (oldVersion < 7) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableOwners} DROP COLUMN phone_secondary;');
+      } catch (_) {}
+    }
+    if (oldVersion < 8) {
+      try {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableOwners} DROP COLUMN notes;');
+      } catch (_) {}
+    }
+    if (oldVersion < 9) {
+      try {
+        await db.execute(DatabaseTables.createAppLicenseStateTable);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    final batch = db.batch();
+
+    for (final sql in DatabaseTables.allTablesAndIndices) {
+      batch.execute(sql);
+    }
+
+    await batch.commit();
+
+    // Seed Initial Doctor & Clinic
+    await _seedInitialData(db);
+  }
+
+  Future<void> _seedInitialData(Database db) async {
+    // 1. Initial Clinic Setup
+    await db.insert(DatabaseTables.tableClinicInfo, {
+      'clinic_name': 'عيادة الوفاء البيطرية المتقدمة',
+      'doctor_name': 'د. عبدالله خالد السالم',
+      'phone': '0555123456',
+      'address': 'الرياض - حي النرجس، طريق أبي بكر الصديق',
+      'license_number': 'VET-SA-2026-9812',
+    });
+
+    // 2. Initial Lead Doctor User
+    await db.insert(DatabaseTables.tableUsers, {
+      'username': 'admin',
+      'password_hash': 'admin123', // In real clinic apps, securely hashed
+      'full_name': 'د. عبدالله خالد السالم',
+      'role': 'lead_doctor',
+      'phone': '0555123456',
+      'pin_code': '1234',
+      'is_active': 1,
+    });
+
+    // 3. Initial Sample Medicines
+    final now = DateTime.now();
+    final futureDate = DateTime(now.year + 1, now.month, now.day).toIso8601String().substring(0, 10);
+    final nearExpiryDate = DateTime(now.year, now.month, now.day + 15).toIso8601String().substring(0, 10);
+    final expiredDate = DateTime(now.year - 1, now.month, now.day).toIso8601String().substring(0, 10);
+
+    final medicines = [
+      {
+        'trade_name': 'أموكسيسيلين + كلافولانيك (Synulox)',
+        'scientific_name': 'Amoxicillin + Clavulanic Acid',
+        'form': 'أقراص (Tablets)',
+        'concentration': '250mg',
+        'clinic_stock': 35,
+        'warehouse_stock': 120,
+        'min_stock_alert': 10,
+        'unit_cost_price': 18.5,
+        'unit_sale_price': 35.0,
+        'expiry_date': futureDate,
+        'batch_number': 'SNX-2026-A1',
+      },
+      {
+        'trade_name': 'ميلوكسيكام (Metacam Inj)',
+        'scientific_name': 'Meloxicam',
+        'form': 'حقن (Injectable)',
+        'concentration': '5mg/ml',
+        'clinic_stock': 8,
+        'warehouse_stock': 25,
+        'min_stock_alert': 5,
+        'unit_cost_price': 45.0,
+        'unit_sale_price': 80.0,
+        'expiry_date': futureDate,
+        'batch_number': 'MTC-9942',
+      },
+      {
+        'trade_name': 'دوكسيسيكلين (Doxybactin)',
+        'scientific_name': 'Doxycycline Hyclate',
+        'form': 'أقراص (Tablets)',
+        'concentration': '50mg',
+        'clinic_stock': 3, // Low stock alert demo
+        'warehouse_stock': 5,
+        'min_stock_alert': 10,
+        'unit_cost_price': 12.0,
+        'unit_sale_price': 25.0,
+        'expiry_date': nearExpiryDate, // Near expiry demo
+        'batch_number': 'DXB-2025-09',
+      },
+      {
+        'trade_name': 'سيفوفلوران (Sevoflurane)',
+        'scientific_name': 'Sevoflurane Inhalation Gas',
+        'form': 'سوائل وريدية (IV Fluids)',
+        'concentration': '250ml',
+        'clinic_stock': 2,
+        'warehouse_stock': 6,
+        'min_stock_alert': 3,
+        'unit_cost_price': 180.0,
+        'unit_sale_price': 320.0,
+        'expiry_date': futureDate,
+        'batch_number': 'SEV-8821',
+      },
+      {
+        'trade_name': 'إيفيرمكتين (Ivermectin 1%)',
+        'scientific_name': 'Ivermectin',
+        'form': 'حقن (Injectable)',
+        'concentration': '10mg/ml',
+        'clinic_stock': 1,
+        'warehouse_stock': 0,
+        'min_stock_alert': 4,
+        'unit_cost_price': 15.0,
+        'unit_sale_price': 30.0,
+        'expiry_date': expiredDate, // Expired demo
+        'batch_number': 'IVM-2023-EXP',
+      },
+    ];
+
+    for (final med in medicines) {
+      await db.insert(DatabaseTables.tableMedicines, med);
+    }
+  }
+
+  /// Self-healing schema validation: ensures all required tables and columns exist
+  Future<void> ensureAllTablesExist(Database db) async {
+    for (final sql in DatabaseTables.allTablesAndIndices) {
+      await db.execute(sql);
+    }
+
+    // Ensure columns exist on legacy databases
+    try {
+      final txCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableTransactions});');
+      final txColNames = txCols.map((c) => c['name'] as String).toSet();
+      if (!txColNames.contains('paid_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      }
+      if (!txColNames.contains('remaining_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableTransactions} ADD COLUMN remaining_amount REAL DEFAULT 0.0;');
+      }
+    } catch (_) {}
+
+    try {
+      final consultCols = await db.rawQuery('PRAGMA table_info(${DatabaseTables.tableConsultations});');
+      final consultColNames = consultCols.map((c) => c['name'] as String).toSet();
+      if (!consultColNames.contains('paid_amount')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN paid_amount REAL DEFAULT 0.0;');
+      }
+      if (!consultColNames.contains('payment_method')) {
+        await db.execute('ALTER TABLE ${DatabaseTables.tableConsultations} ADD COLUMN payment_method TEXT DEFAULT "نقدا";');
+      }
+    } catch (_) {}
+
+    // Clean up legacy auto-generated receipt vouchers from consultations and surgeries
+    try {
+      await db.execute('''
+        DELETE FROM ${DatabaseTables.tableCustomerPayments}
+        WHERE receipt_number LIKE 'REC-%-1' 
+           OR receipt_number LIKE 'REC-SURG-%';
+      ''');
+    } catch (_) {}
+  }
+}
+</file>
+
 <file path="lib/routes/app_pages.dart">
 import 'package:get/get.dart';
+import '../modules/onboarding/bindings/onboarding_binding.dart';
+import '../modules/onboarding/views/activation_view.dart';
+import '../modules/onboarding/views/onboarding_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/clinic_setup_view.dart';
 import '../modules/auth/views/login_view.dart';
@@ -31638,6 +33246,18 @@ class AppPages {
   static const initial = AppRoutes.login;
 
   static final routes = [
+    // Onboarding & Licensing
+    GetPage(
+      name: AppRoutes.onboarding,
+      page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.activation,
+      page: () => const ActivationView(),
+      binding: ActivationBinding(),
+    ),
+
     // Auth
     GetPage(
       name: AppRoutes.login,
@@ -31803,6 +33423,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings_ar.dart';
 import '../../../core/config/demo_config.dart';
+import '../../../core/services/license_service.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../../data/database/demo_data_seeder.dart';
 import '../../../routes/app_routes.dart';
@@ -32760,10 +34381,57 @@ class DashboardView extends GetView<DashboardController> {
         left: 12,
         right: 12,
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
+          // Remaining License Days Badge
+          Obx(() {
+            final isLifetime = LicenseService.to.isLifetime.value;
+            final remaining = LicenseService.to.remainingDays.value;
+            final isActive = LicenseService.to.isLicenseActive.value;
+            final badgeText = isLifetime
+                ? 'ترخيص دائم • مفعل'
+                : (isActive
+                    ? 'الترخيص نشط (متبقي $remaining يوم)'
+                    : 'الترخيص غير نشط');
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isActive ? AppColors.successBackground : AppColors.criticalBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isActive
+                      ? AppColors.success.withValues(alpha: 0.3)
+                      : AppColors.critical.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isActive ? Icons.verified_user_rounded : Icons.warning_amber_rounded,
+                    size: 14,
+                    color: isActive ? AppColors.success : AppColors.critical,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    badgeText,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? AppColors.success : AppColors.critical,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
                 shape: RoundedRectangleBorder(
@@ -32806,6 +34474,8 @@ class DashboardView extends GetView<DashboardController> {
               },
             ),
           ),
+        ],
+      ),
         ],
       ),
     );

@@ -53,7 +53,7 @@ class OnboardingController extends GetxController {
       description:
           'نظام المخزون المزدوج (المستودع ورفوف العيادة) مع الخصم التلقائي، وحسابات العملاء (نقداً وآجل)، وتوثيق الدفعات وسندات القبض، مع نسخ احتياطي محلي مشفر واستعادة فورية للبيانات.',
       icon: Icons.inventory_2_rounded,
-      imageAsset: 'assets/images/onboarding/onboarding_3_management.jpg',
+      imageAsset: 'assets/images/onboarding/onboarding_3_management.png',
       highlights: [
         'مخزون مزدوج وخصم تلقائي مع مراقبة تواريخ الصلاحية',
         'كشوفات حسابات المربين وسندات القبض النقدية والآجلة',
