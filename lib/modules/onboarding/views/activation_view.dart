@@ -29,6 +29,53 @@ class ActivationView extends GetView<ActivationController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Reassuring Device Mismatch Banner if database was copied/restored to different hardware
+                  Obx(() {
+                    if (!LicenseService.to.isDeviceMismatch.value) {
+                      return const SizedBox.shrink();
+                    }
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.amber.shade600, width: 1.5),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.phonelink_lock_rounded, color: Colors.amber.shade900, size: 28),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'تنبيه: نقل البيانات إلى جهاز جديد',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'تم اكتشاف نقل البيانات إلى جهاز جديد — جميع سجلات العيادة والمرضى محفوظة بالكامل، يرجى إدخال كود تفعيل مخصص لهذا الجهاز للمتابعة.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.textPrimary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
                   // Reassuring Expiration Banner if redirected due to expiry
                   Obx(() {
                     if (!LicenseService.to.isExpired.value) {

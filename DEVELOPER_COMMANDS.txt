@@ -20,6 +20,8 @@ Open your terminal in the project root (C:\flutter_apps\vet_pulse) and run:
     dart run tools/license_keygen.dart <DEVICE_REQUEST_CODE> <DAYS_VALID>
 
 [B] Common License Durations:
+
+    dart run tools/license_keygen.dart VP1-F37E49300544-20261027150223B5-AF63 7
     • 7-Day Trial License (نسخة تجريبية 7 أيام):
       dart run tools/license_keygen.dart VP1-F37E49300544-20261027-AA3C 7
 

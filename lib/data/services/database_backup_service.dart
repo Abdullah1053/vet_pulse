@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 import '../database/database_helper.dart';
 import '../models/backup_log_model.dart';
 import '../repositories/backup_repository.dart';
+import '../../core/services/license_service.dart';
 
 class DatabaseBackupInfo {
   final String path;
@@ -405,6 +406,13 @@ class DatabaseBackupService {
 
       if (status != 'ok') {
         throw Exception('فشل فحص سلامة البيانات المستعادة: $status');
+      }
+
+      // Step 5: Verify cryptographic device identity on restored database
+      try {
+        await LicenseService.to.checkLicenseValidity();
+      } catch (e) {
+        debugPrint('License verification error after restore: $e');
       }
 
       // Log success in audit table

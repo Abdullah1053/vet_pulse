@@ -10,6 +10,16 @@ class ActivationController extends GetxController {
   final TextEditingController codeController = TextEditingController();
   final RxBool isLoading = false.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    LicenseService.to.refreshDeviceRequestCode();
+  }
+
+  void refreshRequestCode() {
+    LicenseService.to.refreshDeviceRequestCode();
+  }
+
   String get requestCode => LicenseService.to.deviceRequestCode.value;
   bool get isExpired => LicenseService.to.isExpired.value;
 

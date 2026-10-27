@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../../data/database/database_helper.dart';
 import '../../data/database/database_tables.dart';
 
@@ -12,6 +15,7 @@ enum LicenseStatus {
   active,
   expired,
   clockTampered,
+  deviceMismatch,
 }
 
 class LicenseService extends GetxService {
@@ -53,6 +57,7 @@ class LicenseService extends GetxService {
   final RxBool isLicenseActive = false.obs;
   final RxBool isExpired = false.obs;
   final RxBool isClockTampered = false.obs;
+  final RxBool isDeviceMismatch = false.obs;
   final RxString deviceFingerprint = ''.obs;
   final RxString deviceRequestCode = ''.obs;
   final RxnString expiryDate = RxnString();
@@ -142,26 +147,100 @@ class LicenseService extends GetxService {
     return '${fp12.substring(0, 4)}-${fp12.substring(4, 8)}-${fp12.substring(8, 12)}';
   }
 
-  /// Generates the copyable user request string: `VP1-<FP12>-<YYYYMMDD>-<CHK4>`
+  /// Generates the timestamped user request string: `VP1-<FP12>-<TS16>-<CHK4>`
+  /// Incorporates current date & time down to the second (14 digits) + 2 hex entropy characters (ENT2).
   String getDeviceRequestCode(String formattedFingerprint) {
     final cleanFp = formattedFingerprint.replaceAll('-', '').toUpperCase();
     final now = DateTime.now();
-    final ymd = '${now.year.toString().padLeft(4, '0')}'
+    final ymdHms = '${now.year.toString().padLeft(4, '0')}'
         '${now.month.toString().padLeft(2, '0')}'
-        '${now.day.toString().padLeft(2, '0')}';
+        '${now.day.toString().padLeft(2, '0')}'
+        '${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}'
+        '${now.second.toString().padLeft(2, '0')}';
+
+    final rnd = Random.secure();
+    final ent2 = rnd.nextInt(256).toRadixString(16).padLeft(2, '0').toUpperCase();
+    final ts16 = '$ymdHms$ent2';
 
     final hmac = Hmac(sha256, _secretKeyBytes);
-    final chkBytes = hmac.convert(utf8.encode('$cleanFp|$ymd')).bytes;
+    final chkBytes = hmac.convert(utf8.encode('$cleanFp|$ts16')).bytes;
     final chk4 = chkBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join().toUpperCase().substring(0, 4);
 
-    return 'VP1-$cleanFp-$ymd-$chk4';
+    return 'VP1-$cleanFp-$ts16-$chk4';
+  }
+
+  /// Refreshes the cached deviceRequestCode with current timestamp
+  String refreshDeviceRequestCode() {
+    final fp = deviceFingerprint.value.isNotEmpty ? deviceFingerprint.value : cleanFingerprint;
+    final code = getDeviceRequestCode(fp);
+    deviceRequestCode.value = code;
+    return code;
+  }
+
+  // --- SECONDARY LOCAL LEDGER (license_ledger.json) ---
+
+  Future<File?> _getLedgerFile() async {
+    try {
+      Directory dir;
+      try {
+        dir = await getApplicationSupportDirectory();
+      } catch (_) {
+        try {
+          dir = await getApplicationDocumentsDirectory();
+        } catch (_) {
+          dir = Directory.current;
+        }
+      }
+      return File(p.join(dir.path, 'license_ledger.json'));
+    } catch (e) {
+      debugPrint('License ledger path note: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> _readLedger() async {
+    try {
+      final file = await _getLedgerFile();
+      if (file != null && await file.exists()) {
+        final content = await file.readAsString();
+        final decoded = jsonDecode(content);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error reading license ledger: $e');
+    }
+    return {'used_hashes': <dynamic>[], 'used_tokens': <dynamic>[]};
+  }
+
+  Future<void> _recordToLedger(String codeHash, String reqToken6) async {
+    try {
+      final ledger = await _readLedger();
+      final List<dynamic> hashes = List.from(ledger['used_hashes'] as List? ?? []);
+      final List<dynamic> tokens = List.from(ledger['used_tokens'] as List? ?? []);
+
+      if (!hashes.contains(codeHash)) hashes.add(codeHash);
+      if (!tokens.contains(reqToken6)) tokens.add(reqToken6);
+
+      ledger['used_hashes'] = hashes;
+      ledger['used_tokens'] = tokens;
+
+      final file = await _getLedgerFile();
+      if (file != null) {
+        await file.writeAsString(jsonEncode(ledger));
+      }
+    } catch (e) {
+      debugPrint('Error writing to license ledger: $e');
+    }
   }
 
   /// Verifies an activation code and stores the license state upon success
   Future<bool> verifyAndActivateCode(String rawCode) async {
     final code = rawCode.trim().toUpperCase();
 
-    // Code Format: VPACT-<EXPIRY_YYYYMMDD>-<NONCE4>-<SIG12>
+    // Code Format: VPACT-<EXPIRY_YYYYMMDD>-<REQ_TOKEN6>-<SIG12>
     final parts = code.split('-');
     if (parts.length != 4 || parts[0] != 'VPACT') {
       _showFeedback(
@@ -172,12 +251,13 @@ class LicenseService extends GetxService {
     }
 
     final expiryYmd = parts[1];
-    final nonce4 = parts[2];
+    final reqToken6 = parts[2];
     final sig12 = parts[3];
 
     final validHex12 = RegExp(r'^[0-9A-F]{12}$');
+    final validAlphanumeric6 = RegExp(r'^[0-9A-Z]{6}$');
     final validYmd = RegExp(r'^\d{8}$');
-    if (!validYmd.hasMatch(expiryYmd) || nonce4.length != 4 || !validHex12.hasMatch(sig12)) {
+    if (!validYmd.hasMatch(expiryYmd) || !validAlphanumeric6.hasMatch(reqToken6) || !validHex12.hasMatch(sig12)) {
       _showFeedback(
         'كود غير صالح',
         'أجزاء كود التفعيل غير مكتملة أو غير صالحة',
@@ -185,9 +265,12 @@ class LicenseService extends GetxService {
       return false;
     }
 
-    // 1. Verify Signature matches current device's fingerprint (constant-time)
+    // 1. Live Device Signature Verification (constant-time)
+    final liveFp = await getDeviceFingerprint();
+    final liveCleanFp = liveFp.replaceAll('-', '').toUpperCase();
+
     final hmac = Hmac(sha256, _secretKeyBytes);
-    final expectedSigBytes = hmac.convert(utf8.encode('$cleanFingerprint|$expiryYmd|$nonce4')).bytes;
+    final expectedSigBytes = hmac.convert(utf8.encode('$liveCleanFp|$expiryYmd|$reqToken6')).bytes;
     final expectedSig12 = expectedSigBytes
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
         .join()
@@ -202,20 +285,30 @@ class LicenseService extends GetxService {
       return false;
     }
 
-    // 2. Verify SHA-256 hash is NOT in used_codes_json
+    // 2. Anti-Reuse Check: Verify SHA-256 hash AND reqToken6 in DB AND license_ledger.json
+    final codeHash = sha256.convert(utf8.encode(code)).toString().toUpperCase();
+
     final db = await DatabaseHelper.instance.database;
     final rowList = await db.query(DatabaseTables.tableAppLicenseState, limit: 1);
-    List<dynamic> usedCodes = [];
+    List<dynamic> usedCodesInDb = [];
     if (rowList.isNotEmpty && rowList.first['used_codes_json'] != null) {
       try {
-        usedCodes = jsonDecode(rowList.first['used_codes_json'] as String) as List<dynamic>;
+        usedCodesInDb = jsonDecode(rowList.first['used_codes_json'] as String) as List<dynamic>;
       } catch (_) {
-        usedCodes = [];
+        usedCodesInDb = [];
       }
     }
 
-    final codeHash = sha256.convert(utf8.encode(code)).toString().toUpperCase();
-    if (usedCodes.contains(codeHash)) {
+    final ledger = await _readLedger();
+    final usedHashesInLedger = List<dynamic>.from(ledger['used_hashes'] as List? ?? []);
+    final usedTokensInLedger = List<dynamic>.from(ledger['used_tokens'] as List? ?? []);
+
+    final isUsed = usedCodesInDb.contains(codeHash) ||
+        usedCodesInDb.contains(reqToken6) ||
+        usedHashesInLedger.contains(codeHash) ||
+        usedTokensInLedger.contains(reqToken6);
+
+    if (isUsed) {
       _showFeedback(
         'كود مستخدم مسبقاً',
         'تم استخدام كود التفعيل هذا مسبقاً ولا يمكن تكرار استخدامه بعد انتهاء مدته',
@@ -252,25 +345,31 @@ class LicenseService extends GetxService {
           '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
     }
 
-    // Update persistent state
-    usedCodes.add(codeHash);
+    // Update persistent state in DB and file ledger
+    usedCodesInDb.add(codeHash);
+    usedCodesInDb.add(reqToken6);
+    await _recordToLedger(codeHash, reqToken6);
+
     final nowIso = DateTime.now().toIso8601String();
 
     await db.update(
       DatabaseTables.tableAppLicenseState,
       {
+        'device_fingerprint': liveFp,
         'activation_code': code,
         'activated_at': nowIso,
         'expiry_date': formattedExpiryIso,
         'last_seen_timestamp': nowIso,
-        'used_codes_json': jsonEncode(usedCodes),
+        'used_codes_json': jsonEncode(usedCodesInDb),
       },
       where: 'id = 1',
     );
 
     // Update in-memory reactive state
+    deviceFingerprint.value = liveFp;
     licenseStatus.value = LicenseStatus.active;
     isLicenseActive.value = true;
+    isDeviceMismatch.value = false;
     isExpired.value = false;
     isClockTampered.value = false;
     isLifetime.value = lifetime;
@@ -301,22 +400,25 @@ class LicenseService extends GetxService {
     }
   }
 
-  /// Checks persistent database state, clock-rollback tampering, and expiration date
+  /// Checks persistent database state, cryptographic device identity verification, clock tampering, and expiration
   Future<LicenseStatus> checkLicenseValidity() async {
+    final liveFp = await getDeviceFingerprint();
+    final liveCleanFp = liveFp.replaceAll('-', '').toUpperCase();
+    deviceFingerprint.value = liveFp;
+
     final db = await DatabaseHelper.instance.database;
     final res = await db.query(DatabaseTables.tableAppLicenseState, limit: 1);
 
     if (res.isEmpty) {
-      final fp = deviceFingerprint.value.isNotEmpty ? deviceFingerprint.value : await getDeviceFingerprint();
-      deviceFingerprint.value = fp;
-      deviceRequestCode.value = getDeviceRequestCode(fp);
+      final reqCode = getDeviceRequestCode(liveFp);
+      deviceRequestCode.value = reqCode;
 
       final nowIso = DateTime.now().toIso8601String();
       await db.insert(DatabaseTables.tableAppLicenseState, {
         'id': 1,
         'onboarding_completed': 0,
         'clinic_setup_completed': 0,
-        'device_fingerprint': fp,
+        'device_fingerprint': liveFp,
         'activation_code': null,
         'activated_at': null,
         'expiry_date': null,
@@ -327,6 +429,7 @@ class LicenseService extends GetxService {
       onboardingCompleted.value = false;
       clinicSetupCompleted.value = false;
       isLicenseActive.value = false;
+      isDeviceMismatch.value = false;
       isExpired.value = false;
       isClockTampered.value = false;
       licenseStatus.value = LicenseStatus.unactivated;
@@ -337,19 +440,80 @@ class LicenseService extends GetxService {
     onboardingCompleted.value = (row['onboarding_completed'] as int? ?? 0) == 1;
     clinicSetupCompleted.value = (row['clinic_setup_completed'] as int? ?? 0) == 1;
 
+    final storedFp = (row['device_fingerprint'] as String? ?? '').trim();
+    final storedCleanFp = storedFp.replaceAll('-', '').toUpperCase();
     final actCode = row['activation_code'] as String?;
     final expiry = row['expiry_date'] as String?;
     final lastSeen = row['last_seen_timestamp'] as String?;
 
+    // Refresh request code with live fingerprint
+    if (deviceRequestCode.value.isEmpty) {
+      deviceRequestCode.value = getDeviceRequestCode(liveFp);
+    }
+
+    // If no activation code exists yet
     if (actCode == null || actCode.isEmpty || expiry == null || expiry.isEmpty) {
+      if (storedFp.isEmpty) {
+        await db.update(
+          DatabaseTables.tableAppLicenseState,
+          {'device_fingerprint': liveFp},
+          where: 'id = 1',
+        );
+      }
       isLicenseActive.value = false;
+      isDeviceMismatch.value = false;
       isExpired.value = false;
       isClockTampered.value = false;
       licenseStatus.value = LicenseStatus.unactivated;
       return LicenseStatus.unactivated;
     }
 
-    // Clock Tamper Detection (check if clock was turned back > 6 hours)
+    // 3. Cryptographic Device Identity Verification
+    bool signatureValid = false;
+    final parts = actCode.split('-');
+    if (parts.length == 4 && parts[0] == 'VPACT') {
+      final expiryYmd = parts[1];
+      final reqToken6 = parts[2];
+      final sig12 = parts[3];
+
+      final hmac = Hmac(sha256, _secretKeyBytes);
+      final expectedSigBytes = hmac.convert(utf8.encode('$liveCleanFp|$expiryYmd|$reqToken6')).bytes;
+      final expectedSig12 = expectedSigBytes
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join()
+          .toUpperCase()
+          .substring(0, 12);
+
+      signatureValid = _constantTimeEquals(sig12, expectedSig12);
+    }
+
+    final bool fingerprintMatches = storedCleanFp == liveCleanFp;
+
+    if (!fingerprintMatches || !signatureValid) {
+      // Detected database copy or restored backup from a different device!
+      isDeviceMismatch.value = true;
+      isLicenseActive.value = false;
+      licenseStatus.value = LicenseStatus.deviceMismatch;
+
+      // Update device_fingerprint to liveFp and clear activation_code
+      // (preserving used_codes_json and preserving 100% of all clinic, patient, surgery, inventory, and financial tables)
+      await db.update(
+        DatabaseTables.tableAppLicenseState,
+        {
+          'device_fingerprint': liveFp,
+          'activation_code': null,
+          'last_seen_timestamp': DateTime.now().toIso8601String(),
+        },
+        where: 'id = 1',
+      );
+
+      return LicenseStatus.deviceMismatch;
+    }
+
+    // Device identity is confirmed
+    isDeviceMismatch.value = false;
+
+    // 4. Expiration & Clock Tampering Verification
     final now = DateTime.now();
     if (lastSeen != null && lastSeen.isNotEmpty) {
       final lastSeenDt = DateTime.tryParse(lastSeen);
@@ -434,7 +598,7 @@ class LicenseService extends GetxService {
   static String generateActivationCode({
     required String cleanFingerprint,
     required DateTime expiryDate,
-    String? nonce,
+    String? reqToken,
   }) {
     final cleanFp = cleanFingerprint.replaceAll('-', '').toUpperCase();
     final ymd = expiryDate.year >= 9999
@@ -443,16 +607,21 @@ class LicenseService extends GetxService {
             '${expiryDate.month.toString().padLeft(2, '0')}'
             '${expiryDate.day.toString().padLeft(2, '0')}';
 
-    final nonce4 = (nonce ?? '9A7F').toUpperCase().padLeft(4, '0').substring(0, 4);
+    final reqToken6 = (reqToken ?? _generateRandomToken6()).toUpperCase().padLeft(6, '0').substring(0, 6);
 
     final hmac = Hmac(sha256, _secretKeyBytes);
-    final sigBytes = hmac.convert(utf8.encode('$cleanFp|$ymd|$nonce4')).bytes;
+    final sigBytes = hmac.convert(utf8.encode('$cleanFp|$ymd|$reqToken6')).bytes;
     final sig12 = sigBytes
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
         .join()
         .toUpperCase()
         .substring(0, 12);
 
-    return 'VPACT-$ymd-$nonce4-$sig12';
+    return 'VPACT-$ymd-$reqToken6-$sig12';
+  }
+
+  static String _generateRandomToken6() {
+    final rnd = Random.secure();
+    return List.generate(6, (_) => rnd.nextInt(16).toRadixString(16)).join().toUpperCase();
   }
 }

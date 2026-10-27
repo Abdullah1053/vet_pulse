@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import '../../core/config/demo_config.dart';
 import 'database_tables.dart';
-import 'demo_data_seeder.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
@@ -167,17 +165,25 @@ class DatabaseHelper {
       'id': 1,
       'username': 'admin',
       'password_hash': 'admin123',
-      'full_name': 'طبيب العيادة المسؤول',
+      'full_name': 'الطبيب المسؤول',
       'role': 'lead_doctor',
       'phone': '',
       'pin_code': '1234',
       'is_active': 1,
     });
 
-    // 2. Demo data seeded ONLY if demo mode is active
-    if (DemoConfig.isDemoMode) {
-      await DemoDataSeeder.seedIfEmpty();
-    }
+    // 2. Initial Unactivated App License State (id = 1)
+    await db.insert(DatabaseTables.tableAppLicenseState, {
+      'id': 1,
+      'onboarding_completed': 0,
+      'clinic_setup_completed': 0,
+      'device_fingerprint': '',
+      'activation_code': null,
+      'activated_at': null,
+      'expiry_date': null,
+      'last_seen_timestamp': DateTime.now().toIso8601String(),
+      'used_codes_json': '[]',
+    });
   }
 
   /// Self-healing schema validation: ensures all required tables and columns exist

@@ -39,6 +39,8 @@ class SplashController extends GetxController
     await Future.delayed(const Duration(milliseconds: 1400));
 
     final license = LicenseService.to;
+    await license.checkLicenseValidity();
+
     if (!license.onboardingCompleted.value) {
       Get.offAllNamed(AppRoutes.onboarding);
     } else if (!license.isLicenseActive.value) {
