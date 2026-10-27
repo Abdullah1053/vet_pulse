@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../core/config/demo_config.dart';
 import '../../core/services/data_sync_service.dart';
 import 'database_helper.dart';
 import 'database_tables.dart';
@@ -10,6 +11,7 @@ class DemoDataSeeder {
 
   /// Check if the database has any owners/pets or financial records; if not, seed realistic demo data.
   static Future<void> seedIfEmpty() async {
+    if (!DemoConfig.isDemoMode) return;
     try {
       final db = await DatabaseHelper.instance.database;
       await DatabaseHelper.instance.ensureAllTablesExist(db);

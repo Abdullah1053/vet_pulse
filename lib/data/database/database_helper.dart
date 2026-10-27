@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../../core/config/demo_config.dart';
 import 'database_tables.dart';
+import 'demo_data_seeder.dart';
 
 class DatabaseHelper {
   static const String _dbName = 'vet_pulse.db';
@@ -160,102 +162,21 @@ class DatabaseHelper {
   }
 
   Future<void> _seedInitialData(Database db) async {
-    // 1. Initial Clinic Setup
-    await db.insert(DatabaseTables.tableClinicInfo, {
-      'clinic_name': 'عيادة الوفاء البيطرية المتقدمة',
-      'doctor_name': 'د. عبدالله خالد السالم',
-      'phone': '0555123456',
-      'address': 'الرياض - حي النرجس، طريق أبي بكر الصديق',
-      'license_number': 'VET-SA-2026-9812',
-    });
-
-    // 2. Initial Lead Doctor User
+    // 1. Initial Primary Lead Doctor Admin User (id = 1)
     await db.insert(DatabaseTables.tableUsers, {
+      'id': 1,
       'username': 'admin',
-      'password_hash': 'admin123', // In real clinic apps, securely hashed
-      'full_name': 'د. عبدالله خالد السالم',
+      'password_hash': 'admin123',
+      'full_name': 'طبيب العيادة المسؤول',
       'role': 'lead_doctor',
-      'phone': '0555123456',
+      'phone': '',
       'pin_code': '1234',
       'is_active': 1,
     });
 
-    // 3. Initial Sample Medicines
-    final now = DateTime.now();
-    final futureDate = DateTime(now.year + 1, now.month, now.day).toIso8601String().substring(0, 10);
-    final nearExpiryDate = DateTime(now.year, now.month, now.day + 15).toIso8601String().substring(0, 10);
-    final expiredDate = DateTime(now.year - 1, now.month, now.day).toIso8601String().substring(0, 10);
-
-    final medicines = [
-      {
-        'trade_name': 'أموكسيسيلين + كلافولانيك (Synulox)',
-        'scientific_name': 'Amoxicillin + Clavulanic Acid',
-        'form': 'أقراص (Tablets)',
-        'concentration': '250mg',
-        'clinic_stock': 35,
-        'warehouse_stock': 120,
-        'min_stock_alert': 10,
-        'unit_cost_price': 18.5,
-        'unit_sale_price': 35.0,
-        'expiry_date': futureDate,
-        'batch_number': 'SNX-2026-A1',
-      },
-      {
-        'trade_name': 'ميلوكسيكام (Metacam Inj)',
-        'scientific_name': 'Meloxicam',
-        'form': 'حقن (Injectable)',
-        'concentration': '5mg/ml',
-        'clinic_stock': 8,
-        'warehouse_stock': 25,
-        'min_stock_alert': 5,
-        'unit_cost_price': 45.0,
-        'unit_sale_price': 80.0,
-        'expiry_date': futureDate,
-        'batch_number': 'MTC-9942',
-      },
-      {
-        'trade_name': 'دوكسيسيكلين (Doxybactin)',
-        'scientific_name': 'Doxycycline Hyclate',
-        'form': 'أقراص (Tablets)',
-        'concentration': '50mg',
-        'clinic_stock': 3, // Low stock alert demo
-        'warehouse_stock': 5,
-        'min_stock_alert': 10,
-        'unit_cost_price': 12.0,
-        'unit_sale_price': 25.0,
-        'expiry_date': nearExpiryDate, // Near expiry demo
-        'batch_number': 'DXB-2025-09',
-      },
-      {
-        'trade_name': 'سيفوفلوران (Sevoflurane)',
-        'scientific_name': 'Sevoflurane Inhalation Gas',
-        'form': 'سوائل وريدية (IV Fluids)',
-        'concentration': '250ml',
-        'clinic_stock': 2,
-        'warehouse_stock': 6,
-        'min_stock_alert': 3,
-        'unit_cost_price': 180.0,
-        'unit_sale_price': 320.0,
-        'expiry_date': futureDate,
-        'batch_number': 'SEV-8821',
-      },
-      {
-        'trade_name': 'إيفيرمكتين (Ivermectin 1%)',
-        'scientific_name': 'Ivermectin',
-        'form': 'حقن (Injectable)',
-        'concentration': '10mg/ml',
-        'clinic_stock': 1,
-        'warehouse_stock': 0,
-        'min_stock_alert': 4,
-        'unit_cost_price': 15.0,
-        'unit_sale_price': 30.0,
-        'expiry_date': expiredDate, // Expired demo
-        'batch_number': 'IVM-2023-EXP',
-      },
-    ];
-
-    for (final med in medicines) {
-      await db.insert(DatabaseTables.tableMedicines, med);
+    // 2. Demo data seeded ONLY if demo mode is active
+    if (DemoConfig.isDemoMode) {
+      await DemoDataSeeder.seedIfEmpty();
     }
   }
 

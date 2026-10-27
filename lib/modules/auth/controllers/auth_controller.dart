@@ -78,6 +78,13 @@ class AuthController extends GetxController {
       phoneController.text = YemeniPhoneValidator.cleanDigits(clinicInfo.value!.phone ?? '');
       addressController.text = clinicInfo.value!.address ?? '';
       clinicLogoPath.value = clinicInfo.value!.logoPath;
+    } else {
+      clinicNameController.text = '';
+      doctorNameController.text = '';
+      licenseController.text = '';
+      phoneController.text = '';
+      addressController.text = '';
+      clinicLogoPath.value = null;
     }
 
     final leadDoctor = await _authRepo.getUserById(1);

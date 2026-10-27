@@ -27,40 +27,71 @@ class ActivationController extends GetxController {
 
   Future<void> sendWhatsAppToDeveloper() async {
     const phone = DemoConfig.contactPhone; // 967771882350
-    final message = Uri.encodeComponent(
-      'السلام عليكم ورحمة الله وبركاته،\n'
-      'أرغب في تفعيل ترخيص نظام VetPulse لإدارة المنشآت والعيادات البيطرية.\n'
-      'معرف الجهاز المعتمد:\n$requestCode',
-    );
-    final nativeUrl = Uri.parse('whatsapp://send?phone=$phone&text=$message');
-    final webUrl = Uri.parse('https://wa.me/$phone?text=$message');
+    String currentCode = requestCode;
+    if (currentCode.isEmpty) {
+      final fp = await LicenseService.to.getDeviceFingerprint();
+      currentCode = LicenseService.to.getDeviceRequestCode(fp);
+      LicenseService.to.deviceRequestCode.value = currentCode;
+    }
 
+    final message =
+        'السلام عليكم ورحمة الله وبركاته،\n'
+        'أرغب في تفعيل ترخيص نظام VetPulse لإدارة المنشآت والعيادات البيطرية.\n'
+        'معرف الجهاز المعتمد:\n$currentCode';
+
+    // Auto-copy the request code to clipboard first for convenience
+    Clipboard.setData(ClipboardData(text: currentCode));
+
+    final encoded = Uri.encodeComponent(message);
+    final nativeUrl = Uri.parse('whatsapp://send?phone=$phone&text=$encoded');
+    final webUrl = Uri.parse('https://api.whatsapp.com/send?phone=$phone&text=$encoded');
+    final waMeUrl = Uri.parse('https://wa.me/$phone?text=$encoded');
+
+    bool launched = false;
+
+    // 1. Try native scheme first (WhatsApp app on mobile / registered desktop client)
     try {
       if (await canLaunchUrl(nativeUrl)) {
-        await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
-      } else if (await canLaunchUrl(webUrl)) {
-        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-      } else {
-        Get.snackbar(
-          'تنبيه',
-          'تعذر فتح تطبيق واتساب. رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        launched = await launchUrl(nativeUrl, mode: LaunchMode.externalApplication);
       }
-    } catch (_) {
+    } catch (_) {}
+
+    // 2. Try universal web links with externalApplication (redirects to WhatsApp on mobile / desktop)
+    if (!launched) {
       try {
         if (await canLaunchUrl(webUrl)) {
-          await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-        } else {
-          Get.snackbar(
-            'تنبيه',
-            'رقم المطور للتواصل: ${DemoConfig.contactPhoneDisplay}',
-            snackPosition: SnackPosition.BOTTOM,
-          );
+          launched = await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+        } else if (await canLaunchUrl(waMeUrl)) {
+          launched = await launchUrl(waMeUrl, mode: LaunchMode.externalApplication);
         }
-      } catch (e) {
-        Get.snackbar('خطأ', 'حدث خطأ أثناء فتح واتساب: $e');
+      } catch (_) {}
+    }
+
+    // 3. Fallback: Force launch web URL without canLaunchUrl check (handles desktop browsers and restricted intents)
+    if (!launched) {
+      try {
+        launched = await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        try {
+          launched = await launchUrl(webUrl, mode: LaunchMode.platformDefault);
+        } catch (_) {
+          try {
+            launched = await launchUrl(waMeUrl, mode: LaunchMode.platformDefault);
+          } catch (_) {}
+        }
       }
+    }
+
+    if (!launched) {
+      Clipboard.setData(ClipboardData(text: '$phone\n$currentCode'));
+      Get.snackbar(
+        'تنبيه',
+        'تعذر فتح تطبيق واتساب تلقائياً. تم نسخ رقم المطور ($phone) ومعرف الجهاز إلى الحافظة.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.amber.shade100,
+        colorText: Colors.black87,
+        duration: const Duration(seconds: 4),
+      );
     }
   }
 

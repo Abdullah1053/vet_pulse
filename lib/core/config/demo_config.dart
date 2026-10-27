@@ -20,7 +20,7 @@ class DemoConfig {
   static const String developerRole =
       'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
   static const String contactPhone = '967771882350';
-  static const String contactPhoneDisplay = '+967771882350';
+  static const String contactPhoneDisplay = '967771882350';
   static const String demoWatermark =
       'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
 
