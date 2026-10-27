@@ -15,17 +15,21 @@ class DemoConfig {
   static const int maxLimit = 5;
 
   /// Developer & Sales Contact Details
-  static const String developerName = 'مهندس برمجيات / عبدالله عبدالمغني الأديمي';
-  static const String developerRole = 'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
+  static const String developerName =
+      'مهندس برمجيات / عبدالله عبدالمغني الأديمي';
+  static const String developerRole =
+      'استشاري ومطور الحلول البرمجية والأنظمة الطبية';
   static const String contactPhone = '967771882350';
-  static const String contactPhoneDisplay = '+967 771 882 350';
-  static const String demoWatermark = 'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
+  static const String contactPhoneDisplay = '+967771882350';
+  static const String demoWatermark =
+      'نسخة تجريبية • VetPulse Demo Edition • إعداد: م. عبدالله عبدالمغني الأديمي';
 
   /// Helper to check if a new patient can be registered
   static Future<bool> canAddPatient() async {
     if (!isDemoMode) return true;
     final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
+    final count =
+        Sqflite.firstIntValue(
           await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tablePets}'),
         ) ??
         0;
@@ -44,8 +48,11 @@ class DemoConfig {
   static Future<bool> canAddConsultation() async {
     if (!isDemoMode) return true;
     final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableConsultations}'),
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM ${DatabaseTables.tableConsultations}',
+          ),
         ) ??
         0;
 
@@ -63,16 +70,16 @@ class DemoConfig {
   static Future<bool> canAddSurgery() async {
     if (!isDemoMode) return true;
     final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableSurgeries}'),
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM ${DatabaseTables.tableSurgeries}',
+          ),
         ) ??
         0;
 
     if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'عمليات جراحية',
-        currentCount: count,
-      );
+      showDemoLimitDialog(featureName: 'عمليات جراحية', currentCount: count);
       return false;
     }
     return true;
@@ -82,16 +89,16 @@ class DemoConfig {
   static Future<bool> canAddFollowUp() async {
     if (!isDemoMode) return true;
     final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableFollowUps}'),
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM ${DatabaseTables.tableFollowUps}',
+          ),
         ) ??
         0;
 
     if (count >= maxLimit) {
-      showDemoLimitDialog(
-        featureName: 'مواعيد ومراجعات',
-        currentCount: count,
-      );
+      showDemoLimitDialog(featureName: 'مواعيد ومراجعات', currentCount: count);
       return false;
     }
     return true;
@@ -101,8 +108,11 @@ class DemoConfig {
   static Future<bool> canAddMedicine() async {
     if (!isDemoMode) return true;
     final db = await DatabaseHelper.instance.database;
-    final count = Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableMedicines}'),
+    final count =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM ${DatabaseTables.tableMedicines}',
+          ),
         ) ??
         0;
 
@@ -174,23 +184,36 @@ class DemoConfig {
                 decoration: BoxDecoration(
                   color: AppColors.secondaryLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Column(
                   children: [
                     const Text(
                       'لترقية النظام لمركزكم البيطري بدون أي قيود:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryDark,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const Text(
                       developerName,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       developerRole,
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -203,11 +226,16 @@ class DemoConfig {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () => Get.back(),
-                  child: const Text('فهمت ذلك', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  child: const Text(
+                    'فهمت ذلك',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                 ),
               ),
             ],

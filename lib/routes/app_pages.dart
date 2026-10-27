@@ -1,7 +1,9 @@
 import 'package:get/get.dart';
 import '../modules/onboarding/bindings/onboarding_binding.dart';
+import '../modules/onboarding/controllers/splash_controller.dart';
 import '../modules/onboarding/views/activation_view.dart';
 import '../modules/onboarding/views/onboarding_view.dart';
+import '../modules/onboarding/views/splash_view.dart';
 import '../modules/auth/bindings/auth_binding.dart';
 import '../modules/auth/views/clinic_setup_view.dart';
 import '../modules/auth/views/login_view.dart';
@@ -44,9 +46,19 @@ import 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const initial = AppRoutes.login;
+  static const initial = AppRoutes.splash;
 
   static final routes = [
+    // Splash
+    GetPage(
+      name: AppRoutes.splash,
+      page: () => const SplashView(),
+      binding: BindingsBuilder(() {
+        Get.put(SplashController());
+      }),
+      transition: Transition.fadeIn,
+    ),
+
     // Onboarding & Licensing
     GetPage(
       name: AppRoutes.onboarding,

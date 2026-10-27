@@ -17,28 +17,16 @@ void main() async {
   await DatabaseHelper.instance.database;
 
   // Initialize global services
-  final licenseService = await Get.putAsync(() => LicenseService().init(), permanent: true);
+  await Get.putAsync(() => LicenseService().init(), permanent: true);
   Get.put<NotificationService>(NotificationService(), permanent: true);
   Get.put<AuthController>(AuthController(), permanent: true);
 
-  // Dynamic Initial Startup Routing Guard
-  final String initialRoute;
-  if (!licenseService.onboardingCompleted.value) {
-    initialRoute = AppRoutes.onboarding;
-  } else if (!licenseService.isLicenseActive.value) {
-    initialRoute = AppRoutes.activation;
-  } else if (!licenseService.clinicSetupCompleted.value) {
-    initialRoute = AppRoutes.clinicSetup;
-  } else {
-    initialRoute = AppRoutes.login;
-  }
-
-  runApp(VetPulseApp(initialRoute: initialRoute));
+  runApp(const VetPulseApp(initialRoute: AppRoutes.splash));
 }
 
 class VetPulseApp extends StatelessWidget {
   final String initialRoute;
-  const VetPulseApp({super.key, this.initialRoute = AppRoutes.login});
+  const VetPulseApp({super.key, this.initialRoute = AppRoutes.splash});
 
   @override
   Widget build(BuildContext context) {
