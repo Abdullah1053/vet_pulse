@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+# Licensing & Developer Internal Tools
+tools/license_keygen.dart
+DEVELOPER_COMMANDS.txt
+build/app/outputs/symbols/
+repomix-output*.txt
+otherfiles.txt
